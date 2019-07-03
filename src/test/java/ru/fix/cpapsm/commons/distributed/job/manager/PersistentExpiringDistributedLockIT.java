@@ -227,7 +227,8 @@ public class PersistentExpiringDistributedLockIT {
     }
 
     @Test
-    @SuppressWarnings("squid:S3415") //https://groups.google.com/forum/?nomobile=true#!msg/sonarqube/E48APX81Rmg/Xd92b4y3AQAJ
+    @SuppressWarnings("squid:S3415")
+    //https://groups.google.com/forum/?nomobile=true#!msg/sonarqube/E48APX81Rmg/Xd92b4y3AQAJ
     public void test_lock_acquire_with_timeout() throws Exception {
         long lock0Timeout = 100_000;
         long lock1Timeout = 10;

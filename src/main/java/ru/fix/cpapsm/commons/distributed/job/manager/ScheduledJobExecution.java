@@ -152,7 +152,7 @@ class ScheduledJobExecution implements Runnable {
         scheduledFuture.cancel(false);
     }
 
-    boolean isShutdowned(){
+    boolean isShutdowned() {
         return shutdownFlag.get();
     }
 

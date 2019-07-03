@@ -321,7 +321,7 @@ class Worker implements AutoCloseable {
         reconfigureExecutors(threadCounts);
 
         // stop already running jobs which changed their states
-       scheduledJobManager.removeIf(scheduledEntry -> {
+        scheduledJobManager.removeIf(scheduledEntry -> {
             DistributedJob multiJob = scheduledEntry.getKey();
             List<ScheduledJobExecution> jobExecutions = scheduledEntry.getValue();
 

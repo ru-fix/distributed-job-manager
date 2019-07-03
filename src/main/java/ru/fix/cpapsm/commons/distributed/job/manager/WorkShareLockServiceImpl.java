@@ -128,10 +128,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                 return false;
             }
             log.info("sid={} wid={} acqired jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+                    serverId,
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             return true;
 
         } catch (Exception exc) {
@@ -167,10 +167,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         try {
             lock.release();
             log.info("sid={} wid={} released jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+                    serverId,
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             workItemLocks.remove(workItem);
         } finally {
             try {
