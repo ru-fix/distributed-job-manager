@@ -1,0 +1,32 @@
+language: java
+jdk:
+  - oraclejdk8
+cache:
+  directories:
+    - "$HOME/.gradle"
+jobs:
+  include:
+    - stage: build
+      if: tag IS blank
+      install: skip
+      before_script: if [[ $encrypted_47596ca1f42f_key ]]; then openssl aes-256-cbc -K $encrypted_47596ca1f42f_key -iv $encrypted_47596ca1f42f_iv -in secring.gpg.enc -out secring.gpg -d; fi
+      script: ./gradlew clean build
+
+    - stage: deploy
+      if: tag =~ ^\d+\.\d+\.\d+$
+      install: skip
+      before_script: openssl aes-256-cbc -K $encrypted_47596ca1f42f_key -iv $encrypted_47596ca1f42f_iv -in secring.gpg.enc -out secring.gpg -d
+      script: ./gradlew clean build publish
+env:
+  global:
+    - signingSecretKeyRingFile="`pwd`/secring.gpg"
+
+    - secure: "SNLvgjKPzorMC1Sk3FYveTx05W3/y3/y6igwCsgfhQc0N8nmZYLREbVuBSrR7hWTOjMRHG4k19EK028n945/WeqEEgNxb5F/BveN0RwC1NWE5uEFn+hFBwo8EqOVblXh4dlZ8Llu5uY2nlIrJNumYBR0HS9qge7qq7rZJ0+ioIp0VlpjRAdT6hpGatbj8gFavn++50r6WWJNhcY01y74VHXqNgd/KkqgnhvbK679mbFIWPbIRBV0bCBSN1qOFgZBBqqsNM4NTyc7IrC2J+EjCbOlRBSuMuqyxhNvSAY1d2zaF/qRhKwRN02YkbW0KvI9a8IfUBRrg3WLW0tVPm3poXNpTVhjxzz0k4i59ypglxmyoRDMDxbhV7tJxIJRQYQymyJ3JKpiltGF56pLuc7w9ICxyzUp3/RlBk9OfCrehb82AXHe9uDm0v2YXsKmhJDmWJqskHDdB4Yr8kNdCy0PEgldYSkOW5rmVfRpSTs34hZbO2EKxv4MFlvL6H9ImZ4T+GC/ngu6qEFcGk6oTao27Tajlo8VBx59t7rRp1Y8wzrYc4U8v6JKoB7MslDGreUbX2fzUO2/GYNTsnl6P9M9HIqFZOrIeX7wq1Q4N0ZvYLOQFl3g/g0HD0bynmef95HKJ8UwBSCfvrRMeCmtxREbG3dVpLhAHGOkzq5qN9zVdeQ="
+
+    - secure: "qWzNWkLnJ1ZRy0is/3d2zQLrCMrHucONuhzVrCtGmDBzROByxsVjhMPMLiMJssVdfU4b+TU3vgZ4ne6IWhioSIighsRwzwRItOwHXdeTTjbImY0U1RjjSAVyZyaaIaknFkEGLYF2UYEFxWaBm9Ho/XOK3Ceo4EDbzPo1GcS5uWh9qRa2HT56wKHZ5LvFduN1VlEahagoL6BoVsW+4wxghlxtdrbSalDYZrnogpFR8jLTxU/w6k+6EC1HzKmLZAbnrBRfIqbSDRMaIbi/sqTLS1WLHWsCPrE0yOM7AYOKqq+raUm9jRxEoCRwbP2oazM3z83uf5ecB+xXspt9f3bWhp94POH3dzNPIUkAjJ484Ei/Hd3/w5LkJY4V+M1ejYrGDGnYZF8dE/xZq29fU+zN9SgpdeT7pPmZ3oPuhQAW9NEaVheznaKhwXKYm7D7lliCd3kvFCBFQ2XHQ97sk9/24IBLa9NUtn3yKOBioRlFHnVtu2C/Fb9AKEAEBRR/nGv+PLCzgLxD5aGgzIQjOBZNROPyn3Vv1tzCRLcx07/AOP/cabWtxlO2NVrCgBy7bytksEka0YJC4i+A0fmt9sqsFleEAFFz4JY1/qMq8hrfB1lP01qpgPLxqGv86PblnvnqK/9HFtANDEJ2zwjGkSJ85rdjBtWZybVks1am3O3+aao="
+
+    - secure: "HQ8Qw/lyquYFkcH0byv8IfWyEeWnBuEhYnyxVaqA7sOGRL2n2zKc9qrzaB3mWxZZp0RVX+OcydMeQ3DuoJt8Ozxi+kaxf7uyjjhSy+Jan5hYfTEnLJmq7wGZop8G25dqSnlNNMW7lIA1bRSSaEKiCkQF1HSl2+HP0LgDp0YILYdE5NAWCJMW0yg3RndNHFKveZdaue2i6xbdgPbKXdynhUSzo3n34WdNLhoENEe/hQQjMLOjAL3W/i7y8t7FVtjw3kqLGtKvdHEa0vjzV2CXxeco1n/jkdZEfIXfNVHNoyLDHHZencf7QmQgxM3/Nt6ycT1dAJ0q9uZrGQ4FDE28+Q/HCY4J7AJJZiKlBrMOs8xKEPofx59lmfyH9g7Hm/ezWwU1fr1gAuXIz8AOOLfznNsEMUP2AlDrB372vlIH/SDpwqcGRW+A7HdNZNeWHqMYul/3/ccZLl5AjDu5/SPEAJCvOGci3q7vlaAeTCzKtCLfAs1r60xG2e5M3o+EARGYw+5FteAmwd4hsBZwBsnSfVkE1TL/ISuFb6ZSs9XPGal5IDDco+ssV7gJ1mjU8ncDhKW7xrouNR5kVhLD1k2w+voKvHaDiu+RaZgc1rxyjqiwJWgHAl0II0R9fdyvpDZ2eTrWJipif0Rz5ZpSdBmzmIKUs6UR6DuLurm1/n+PChE="
+
+    - secure: "IISzvQCMRwhZpx8h3ADGUH2SA4tMY007L1/zq292Im7+hxAy6g2L8O2FCK2w4sHc9fqAt74yR9l6uNEFOnU+pT5q2LhcGAiCMvHzRIzg3Ji5Tgdft/qXy1qLHAHAVnCL+HdK8zW5+hfttUHr8XjpGsk6vZHhxrD551ZXWngLSVXdcmFA9d8e9bgNIo0fITxll/+7G8J3gWcAyPTbCAjtiDyf7dQ1ZNrkwxNhGrk2vIFvzb00UjuQDR2g4LStV1YCE+3RKE5+275xAy3/J2qKteWehzN+IoDkqDppMjBZDJ0LwZYRNvcVm97/tgWBS7JIf0fSUX3KSRMnKZ26T6YwXxWJRtxNQgYSsS8MoQBq39T2/rRTZP59la1XfbyNtWsDF+DnwP4xqksT3kRMzm9xmH3SHm59ZiUg4MJofoeVkMRLDlMy7W88dhap6aN3KWCFdYGrKu/NHb3B8Q77hsRAln5OwHUYOzGJBfMq694AvBylaK+d1e9YHI6IKNc4Kdv11m2YsDSaK1nC6HNqON/I4aU8ZNhh2uNXbMpC1fgDmCNwPpt2nu2rBLPR11ABtk5FogW5Gj8szAMtWtOusuuBBSzRc9C+Fng96huqnel7faUCN8yl4Wc4S1DIJrYVE8q6rPkdRlrZEfIbTKCqYdE57iI7uGmJrCcvMc8+/sQLLw4="
+
+    - secure: "nSIlrWI49fdMhLzD4HOfVCAQgJzdGzP7Z6axlXSXorunHY2COGzODz7DbW6kkPtRH+iUIjt5Qu4+9wxxYR6zyzI1g/gS/PuOgh3HwHL12m1VR8xZ1pLKqZHU7f9HmghECv6LXDe8ENDpwuRaNzehctjBwnCwAxGeRIcW1XgzCkPW//WjJ8lgQyJdIdnFX6pDanr66RhRAO14Zxognm8Mb17s8pZAzEqc35ixEkOOcoVxMFaJektrFg6Ny8qT7h8dmwxpGJ2v2PFolx8EEzDQuEED0zjqUhXa4Xezh674frq9UQ1Rarcs19OfDCgtZbkKwFuFETanFrgC/arql8Npo2UNG4UC8bbMrhJ6Q57MrY7+XNmusqaG14TmxxbliiynbmhljbAjk0x9Jsyr8pGt7QDOn9ExXrAg677YpAPPAMqX6ZEUvglvBdIkawNWv/saLWyZ/WneKN+KB9MnAUem3ceCCeiCfhF5xAIApk0dV4cLZxpwC3mtFzVF8v4G09KFsUKM7SkxHGXawhZ/RFBtUioUk2ZCcBtajCMltZ57QMiZtAonnmrpktA8q7Ojkm9Z0L+r16Fol2klAZwvvZNcIBZp6hYeVPzXET2vIzprIJ7VT3bP8Sf/LggU0lW16bSLMpnCB1aye8P6oY7qwNhPam+0fh5/yyW+kktWjDotEvY="
