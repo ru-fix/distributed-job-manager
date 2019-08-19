@@ -1,7 +1,8 @@
 package ru.fix.distributed.job.manager;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
@@ -29,13 +30,14 @@ public class PersistentExpiringDistributedLockIT {
 
     public ZKTestingServer zkTestingServer;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         zkTestingServer = new ZKTestingServer();
         zkTestingServer.start();
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10_000)
     public void test_lock_release() throws Exception {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
                 "PersistentExpiringDistributedLock-Notifications-",
@@ -59,7 +61,8 @@ public class PersistentExpiringDistributedLockIT {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10_000)
     public void deleting_node_if_lock_release() throws Exception {
         ExecutorService notificationsExecutor =
                 NamedExecutors.newSingleThreadPool("PersistentExpiringDistributedLock-Notifications-",
@@ -77,7 +80,8 @@ public class PersistentExpiringDistributedLockIT {
         assertNull(zkTestingServer.getClient().checkExists().forPath("/lockingNode"));
     }
 
-    @Test(timeout = 20_000)
+    @Test
+    @Timeout(20_000)
     public void test_lock_prolong_after_timeout() throws Exception {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
@@ -141,7 +145,8 @@ public class PersistentExpiringDistributedLockIT {
         }
     }
 
-    @Test(timeout = 120_000)
+    @Test
+    @Timeout(120_000)
     public void test_lock_complex_multi_thread() throws InterruptedException {
         int threadsCount = 3;
         int threadIncrementLoop = 5;
@@ -204,7 +209,8 @@ public class PersistentExpiringDistributedLockIT {
         assertEquals(threadsCount * threadIncrementLoop, counter.get());
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10_000)
     public void test_acquire_after_acquire() throws Exception {
         long lock0Timeout = 100_000;
         long lock1Timeout = 100_000;
@@ -313,7 +319,8 @@ public class PersistentExpiringDistributedLockIT {
      * В тесте 2 лока попеременно пытаются взять лок и отпустить его. В итоге на методе
      * acquire должна происходить блокировка, которая должна окончится при релизе другого лока
      */
-    @Test(timeout = 5_000)
+    @Test
+    @Timeout(5_000)
     public void continueAcquireAfterLockReleased() throws Exception {
         ScheduledExecutorService backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
 
