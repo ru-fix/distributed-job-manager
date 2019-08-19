@@ -26,9 +26,7 @@ object Libs {
     val gradle_release_plugin = "ru.fix:gradle-release-plugin:${Vers.gradle_release_plugin}"
     val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokka}"
 
-    val mockito_kotiln = "com.nhaarman:mockito-kotlin-kt1.1:1.5.0"
-    val kotlin_logging = "io.github.microutils:kotlin-logging:1.4.9"
-
+    val commons_io = "commons-io:commons-io:${Vers.commons_io}"
     val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
     val jfix_zookeeper = "ru.fix:jfix-zookeeper:${Vers.jfix_zookeeper}"
     val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_concurrency}"

@@ -1,5 +1,3 @@
-import org.gradle.kotlin.dsl.*
-
 plugins {
     java
     kotlin("jvm")
@@ -16,6 +14,7 @@ dependencies {
     compile(Libs.curator) {
         exclude("org.slf4j", "slf4j-api")
     }
+    compile(Libs.commons_io)
     compileOnly("org.projectlombok:lombok:1.18.8")
     annotationProcessor("org.projectlombok:lombok:1.18.8")
 
