@@ -4,10 +4,10 @@ object Vers {
     val slf4j = "1.7.25"
     val dokka = "0.9.18"
     val gradle_release_plugin = "1.3.8"
-    val junit = "5.3.1"
+    val junit = "5.5.1"
     val hamkrest = "1.3"
     val commons_io = "2.6"
-    val mockito = "1.10.19"
+    val mockito = "2.21.0"
     val logback = "1.1.11"
     val aggregating_profiler = "1.4.13"
     val jfix_zookeeper = "1.0.4"
@@ -15,7 +15,7 @@ object Vers {
     val lombok = "1.18.8"
     val validation_api = "2.0.1.Final"
     val curator = "2.10.0"
-    val jfix_socket = "1.0-SNAPSHOT"
+    val jfix_socket = "1.0.30"
 }
 
 object Libs {
@@ -40,6 +40,6 @@ object Libs {
     val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     val mockito = "org.mockito:mockito-core:${Vers.mockito}"
     val hamkrest = "org.hamcrest:hamcrest-all:${Vers.hamkrest}"
-    val junit_vintage = "org.junit.vintage:junit-vintage-engine:${Vers.junit}"
+    val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
     val junit_jupiter = "org.junit.jupiter:junit-jupiter-engine:${Vers.junit}"
 }
