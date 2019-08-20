@@ -1,21 +1,26 @@
 
 object Vers {
     val kotlin = "1.3.41"
+
     val slf4j = "1.7.25"
+    val logback = "1.1.11"
+
     val dokka = "0.9.18"
     val gradle_release_plugin = "1.3.8"
-    val junit = "5.5.1"
-    val hamkrest = "1.3"
-    val commons_io = "2.6"
-    val mockito = "2.21.0"
-    val logback = "1.1.11"
+
     val aggregating_profiler = "1.4.13"
     val jfix_zookeeper = "1.0.4"
     val jfix_concurrency = "1.0.22"
-    val lombok = "1.18.8"
+    val jfix_socket = "1.0.30"
+
     val validation_api = "2.0.1.Final"
     val curator = "2.10.0"
-    val jfix_socket = "1.0.30"
+    val commons_io = "2.6"
+
+    val lombok = "1.18.8"
+    val junit = "5.5.1"
+    val hamkrest = "1.3"
+    val mockito = "2.21.0"
 }
 
 object Libs {

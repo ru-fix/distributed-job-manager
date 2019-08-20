@@ -1,4 +1,3 @@
-
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.dokka.gradle.DokkaTask
@@ -72,7 +71,7 @@ subprojects {
         from("src/main/kotlin")
     }
 
-    val dokkaTask by tasks.creating(DokkaTask::class){
+    val dokkaTask by tasks.creating(DokkaTask::class) {
         outputFormat = "javadoc"
         outputDirectory = "$buildDir/dokka"
     }
