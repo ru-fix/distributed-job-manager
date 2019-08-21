@@ -23,8 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
-//import ru.fix.stdlib.socket.proxy.ProxySocket;
-
 /**
  * @author Ayrat Zulkarnyaev
  */
