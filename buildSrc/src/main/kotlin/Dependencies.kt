@@ -2,16 +2,16 @@
 object Vers {
     const val kotlin = "1.3.41"
 
-    const val slf4j = "1.7.25"
-    const val logback = "1.1.11"
+    const val slf4j = "1.7.28"
+    const val logback = "1.2.3"
 
     const val dokka = "0.9.18"
-    const val gradle_release_plugin = "1.3.8"
+    const val gradle_release_plugin = "1.3.9"
 
-    const val aggregating_profiler = "1.5.13"
+    const val aggregating_profiler = "1.4.13"
     const val jfix_zookeeper = "1.0.4"
-    const val jfix_concurrency = "1.0.22"
-    const val jfix_socket = "1.0.30"
+    const val jfix_concurrency = "1.0.42"
+    const val jfix_socket = "1.0.42"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "2.10.0"
@@ -20,7 +20,7 @@ object Vers {
     const val lombok = "1.18.8"
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
-    const val mockito = "2.21.0"
+    const val mockito = "3.0.0"
 }
 
 object Libs {
