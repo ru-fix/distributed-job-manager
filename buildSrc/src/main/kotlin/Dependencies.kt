@@ -22,6 +22,8 @@ object Vers {
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
     const val mockito = "3.0.0"
+
+    const val log4j = "2.12.0"
 }
 
 object Libs {
@@ -48,6 +50,11 @@ object Libs {
     const val validation_api = "javax.validation:validation-api:${Vers.validation_api}"
     const val slf4j = "org.slf4j:slf4j-api:${Vers.slf4j}"
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
+
+    const val log4j = "org.apache.logging.log4j:log4j-api:${Vers.log4j}"
+    const val log4j_core = "org.apache.logging.log4j:log4j-core:${Vers.log4j}"
+    const val log4j_kotlin = "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
+    const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test
     const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_socket}"

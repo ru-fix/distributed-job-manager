@@ -27,5 +27,6 @@ dependencies {
     testCompile(Libs.mockito)
     testCompile(Libs.hamkrest)
     testCompile(Libs.curator_test)
-    testCompile(Libs.logback)
+    testCompile(Libs.log4j_core)
+    testCompile(Libs.slf4j_over_log4j)
 }
