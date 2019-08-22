@@ -18,10 +18,6 @@ dependencies {
         exclude("org.slf4j", "slf4j-api")
     }
 
-    // Lombok
-    compileOnly(Libs.lombok)
-    annotationProcessor(Libs.lombok)
-
     // JFIX Test
     testCompile(Libs.jfix_socket)
 

@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -10,8 +11,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * Monitors how long it's impossible to take lock from Job
  * If this process is long enough, it will report an error
  */
-@Slf4j
 public class SmartLockMonitorDecorator implements WorkShareLockService {
+
+    private static final Logger log = LoggerFactory.getLogger(SmartLockMonitorDecorator.class);
 
     private static final long DEFAULT_ALARM_INTERVAL = TimeUnit.MINUTES.toMillis(10);
 

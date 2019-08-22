@@ -19,7 +19,6 @@ object Vers {
     const val curator = "2.10.0"
     const val commons_io = "2.6"
 
-    const val lombok = "1.18.8"
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
     const val mockito = "3.0.0"
@@ -46,7 +45,6 @@ object Libs {
 
     // Common
     const val commons_io = "commons-io:commons-io:${Vers.commons_io}"
-    const val lombok = "org.projectlombok:lombok:${Vers.lombok}"
     const val validation_api = "javax.validation:validation-api:${Vers.validation_api}"
     const val slf4j = "org.slf4j:slf4j-api:${Vers.slf4j}"
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
