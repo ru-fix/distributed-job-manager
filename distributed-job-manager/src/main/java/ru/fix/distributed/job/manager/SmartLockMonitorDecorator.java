@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Мониторит насколько долго не получается захватить lock у джобы.
- * Если не получается достаточно долго - только тогда будет сыпать error'ами
+ * Monitors how long it's impossible to take lock from Job
+ * If this process is long enough, it will report an error
  */
 @Slf4j
 public class SmartLockMonitorDecorator implements WorkShareLockService {
@@ -18,12 +18,12 @@ public class SmartLockMonitorDecorator implements WorkShareLockService {
     private final WorkShareLockService wrappedService;
 
     /**
-     * timestamp, когда первый раз не смогли захватить lock
+     * timestamp, when the first unsuccessful attempt to take lock
      */
     private final AtomicReference<Long> firstFailedAcquireLockDate = new AtomicReference<>();
 
     /**
-     * Интервал времени, при котором считаем что нормальным, что мы не смогли получить Lock
+     * time interval during which it's ok we can't get lock
      */
     private final long alarmInterval;
 
