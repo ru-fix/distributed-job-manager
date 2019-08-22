@@ -1,12 +1,14 @@
 
 object Vers {
+    //Plugins
+    const val dokkav = "0.9.18"
+    const val gradle_release_plugin = "1.3.9"
+
+    //Dependencies
     const val kotlin = "1.3.41"
 
     const val slf4j = "1.7.28"
     const val logback = "1.2.3"
-
-    const val dokka = "0.9.18"
-    const val gradle_release_plugin = "1.3.9"
 
     const val aggregating_profiler = "1.4.13"
     const val jfix_zookeeper = "1.0.4"
@@ -24,6 +26,13 @@ object Vers {
 }
 
 object Libs {
+    //Plugins
+    val gradle_release_plugin = "ru.fix:gradle-release-plugin:${Vers.gradle_release_plugin}"
+    val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokkav}"
+    val nexus_staging_plugin = "io.codearte.nexus-staging"
+    val nexus_publish_plugin = "de.marcphilipp.nexus-publish"
+
+    //Dependencies
 
     // Kotlin
     const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Vers.kotlin}"
@@ -31,7 +40,6 @@ object Libs {
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Vers.kotlin}"
 
     // JFIX
-    const val gradle_release_plugin = "ru.fix:gradle-release-plugin:${Vers.gradle_release_plugin}"
     const val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
     const val jfix_zookeeper = "ru.fix:jfix-zookeeper:${Vers.jfix_zookeeper}"
     const val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_concurrency}"
@@ -42,7 +50,6 @@ object Libs {
     const val validation_api = "javax.validation:validation-api:${Vers.validation_api}"
     const val slf4j = "org.slf4j:slf4j-api:${Vers.slf4j}"
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
-    const val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokka}"
 
     // JFIX Test
     const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_socket}"

@@ -1,3 +1,4 @@
+import de.marcphilipp.gradle.nexus.NexusPublishExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.dokka.gradle.DokkaTask
@@ -19,6 +20,13 @@ buildscript {
     }
 }
 
+plugins {
+    kotlin("jvm") version Vers.kotlin apply false
+    signing
+    `maven-publish`
+    id(Libs.nexus_publish_plugin) version "0.3.0" apply false
+    id(Libs.nexus_staging_plugin) version "0.21.0"
+}
 
 /**
  * Project configuration by properties and environment
@@ -39,11 +47,13 @@ val signingKeyId by envConfig()
 val signingPassword by envConfig()
 val signingSecretKeyRingFile by envConfig()
 
-
-plugins {
-    kotlin("jvm") version "${Vers.kotlin}" apply false
-    signing
-    `maven-publish`
+nexusStaging {
+    packageGroup = "ru.fix"
+    stagingProfileId = "1f0730098fd259"
+    username = "$repositoryUser"
+    password = "$repositoryPassword"
+    numberOfRetries = 50
+    delayBetweenRetriesInMillis = 3_000
 }
 
 apply {
@@ -58,6 +68,7 @@ subprojects {
         plugin("signing")
         plugin("java")
         plugin("org.jetbrains.dokka")
+        plugin(Libs.nexus_publish_plugin)
     }
 
     repositories {
@@ -83,48 +94,62 @@ subprojects {
         dependsOn(dokkaTask)
     }
 
-
-    publishing {
+    configure<NexusPublishExtension> {
         repositories {
-            maven {
-                url = uri("$repositoryUrl")
-                if (url.scheme.startsWith("http", true)) {
-                    credentials {
-                        username = "$repositoryUser"
-                        password = "$repositoryPassword"
-                    }
-                }
+            sonatype {
+                username.set("$repositoryUser")
+                password.set("$repositoryPassword")
+                useStaging.set(true)
+                stagingProfileId.set("1f0730098fd259")
             }
         }
+    }
 
-        publications {
-            register("maven", MavenPublication::class) {
-                from(components["java"])
+    project.afterEvaluate {
+        publishing {
 
-                artifact(sourcesJar)
-                artifact(dokkaJar)
-
-                pom {
-                    name.set("${project.group}:${project.name}")
-                    description.set("distributed-job-manager Balance workload between available servers")
-                    url.set("https://github.com/ru-fix/distributed-job-manager")
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+            publications {
+                //Internal repository setup
+                repositories {
+                    maven {
+                        url = uri("$repositoryUrl")
+                        if (url.scheme.startsWith("http", true)) {
+                            credentials {
+                                username = "$repositoryUser"
+                                password = "$repositoryPassword"
+                            }
                         }
                     }
-                    developers {
-                        developer {
-                            id.set("swarmshine")
-                            name.set("Kamil Asfandiyarov")
-                            url.set("https://github.com/swarmshine")
+                }
+
+                create<MavenPublication>("maven") {
+                    from(components["java"])
+
+                    artifact(sourcesJar)
+                    artifact(dokkaJar)
+
+                    pom {
+                        name.set("${project.group}:${project.name}")
+                        description.set("https://github.com/ru-fix/")
+                        url.set("https://github.com/ru-fix/${rootProject.name}")
+                        licenses {
+                            license {
+                                name.set("The Apache License, Version 2.0")
+                                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                            }
                         }
-                    }
-                    scm {
-                        url.set("https://github.com/ru-fix/distributed-job-manager")
-                        connection.set("https://github.com/ru-fix/distributed-job-manager.git")
-                        developerConnection.set("https://github.com/ru-fix/distributed-job-manager.git")
+                        developers {
+                            developer {
+                                id.set("JFix Team")
+                                name.set("JFix Team")
+                                url.set("https://github.com/ru-fix/")
+                            }
+                        }
+                        scm {
+                            url.set("https://github.com/ru-fix/${rootProject.name}")
+                            connection.set("https://github.com/ru-fix/${rootProject.name}.git")
+                            developerConnection.set("https://github.com/ru-fix/${rootProject.name}.git")
+                        }
                     }
                 }
             }
@@ -132,20 +157,16 @@ subprojects {
     }
 
     configure<SigningExtension> {
-
         if (!signingKeyId.isNullOrEmpty()) {
             project.ext["signing.keyId"] = signingKeyId
             project.ext["signing.password"] = signingPassword
             project.ext["signing.secretKeyRingFile"] = signingSecretKeyRingFile
-
             logger.info("Signing key id provided. Sign artifacts for $project.")
-
             isRequired = true
         } else {
-            logger.warn("${project.name}: Signing key not provided. Disable signing for  $project.")
+            logger.info("${project.name}: Signing key not provided. Disable signing for  $project.")
             isRequired = false
         }
-
         sign(publishing.publications)
     }
 
@@ -153,7 +174,6 @@ subprojects {
         withType<KotlinCompile> {
             kotlinOptions.jvmTarget = "1.8"
         }
-
         withType<Test> {
             useJUnitPlatform()
 
@@ -163,6 +183,11 @@ subprojects {
                 events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
                 showStandardStreams = true
                 exceptionFormat = TestExceptionFormat.FULL
+            }
+        }
+        withType<KotlinCompile>{
+            kotlinOptions {
+                jvmTarget = "1.8"
             }
         }
     }
