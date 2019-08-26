@@ -7,7 +7,7 @@
 DistributedJobManager will schedule tasks and balance workload in the cluster.
 [link=https://search.maven.org/search?q=g:ru.fix%20and%20a:distributed-job-manager]
 image::https://img.shields.io/maven-central/v/ru.fix/distributed-job-manager.svg[]
-image:https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png[32,32]
+image:https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png[32,32]
 link:https://github.com/ru-fix/distributed-job-manager[]
 
 == Concept
