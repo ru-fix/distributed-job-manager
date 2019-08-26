@@ -1,0 +1,104 @@
+= Completable Reactor
+:toc: left
+:toclevels: 4
+:source-highlighter: coderay
+
+[abstract]
+DistributedJobManager will schedule tasks and balance workload in the cluster.
+[link=https://search.maven.org/search?q=g:ru.fix%20and%20a:distributed-job-manager]
+image::https://img.shields.io/maven-central/v/ru.fix/distributed-job-manager.svg[]
+image:https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png[32,32]
+link:https://github.com/ru-fix/distributed-job-manager[]
+
+== Concept
+
+DistributedJobManager (DJM) stores it's state in link:https://zookeeper.apache.org/[ZooKeeper] +
+DJM lives withing JVM application and maintain it's own thread pool. +
+DJM regularly launches user defined jobs in separate threads based on schedule. +
+User defined Job is any class that implements `DistributedJob` interface. +
+DJM will restart Job in case of any failure. +
+DJM balance workload between Jobs +
+DJM consists of two parts: Manager and Worker. Each DJM instance has active Worker.
+  But only one DJM instance has active Manager. +
+Master orchestrate Job between Workers in the cluster.
+
+image::djm-zk.png[]
+
+User defined Job should implement `DistributedJob` interface and provide information about work-items. +
+Work-item is a smallest indivisible peace of work. +
+Job WorkPool is a list of work-items that DJM will split between active Workers.
+[code]
+----
+class MyJob implements DistributedJob{
+    //...
+    WorkPool getWorkPool(){
+        return WorkPool.of(new HashSet<>(Arrays.asList("workItem1", "workItem2")));
+    }
+}
+----
+
+Job informs DJM about WorkPool. +
+DJM split work-items from WorkPool among all Workers evenly. +
+If Job define WorkPool with single work-item then it means that such a job will be launched by DJM
+only within single application in the cluster.
+
+When DJM launches Job it passes information about work-items that Job should process.
+[code]
+----
+class MyJob implements DistributedJob{
+    //...
+void run(DistributedJobContext context) {
+    //...
+    Set<String> workShare = context.getWorkShare();
+    for (String workItem : workShare) {
+        //process workItem
+    }
+}
+----
+
+image::djm.png[]
+
+
+== Getting started
+
+=== Add dependency into your project.
+
+.Java dependencies
+* distributed-job-manager image:https://img.shields.io/maven-central/v/ru.fix/distributed-job-manager.svg[link=https://search.maven.org/search?q=g:ru.fix%20and%20a:distributed-job-manager]
+
+=== Launch DJM
+DJM requires list of ZooKeeper hosts and path within ZooKeeper that will be used to store DJM state. +
+DJM will use provided applicationId to identify application instance within cluster. +
+
+[code]
+----
+//During application startup
+DistributedJobManager djm = new DistributedJobManager(
+    "zooKeeperHost1,zooKeeperHost2,zooKeeperHost3"
+    "/zooKeeperPath/for/djm",
+    "applicaiotId#3",
+    Arrays.asList(new MyJob1(), new MyJob2()));
+
+//During applicatoin shutdown
+djm.close();
+----
+
+
+=== Monitoring and metrics
+DJM expose Jobs state through profiler metrics. +
+* What tasks are currently running.
+* How long it took for task to complete.
+* How many work items processed.
+* etc.
+
+
+=== Guarantees
+
+In case of network failure one one can be temporary detached from other part of the cluster. +
+In order to improve stability of the cluster and tolerate short connectivity problems
+DJM allows detached Worker to continue it's work for configured amount of time. +
+To enable that DJM uses persistent locks and keep information when which worker started to process particular job in ZooKeeper. +
+Other Workers will not be able to process same work-items during this lock timeout even if owner of lock gone offline.
+
+image::djm-zk-disconnect.png[]
+
