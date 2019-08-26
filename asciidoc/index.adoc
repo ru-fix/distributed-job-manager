@@ -102,3 +102,4 @@ Other Workers will not be able to process same work-items during this lock timeo
 
 image::djm-zk-disconnect.png[]
 
+include::source-guidebook.adoc[]

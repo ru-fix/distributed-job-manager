@@ -5,6 +5,7 @@ import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
+import org.asciidoctor.gradle.AsciidoctorTask
 
 buildscript {
     repositories {
@@ -17,6 +18,7 @@ buildscript {
         classpath(Libs.kotlin_stdlib)
         classpath(Libs.kotlin_jdk8)
         classpath(Libs.kotlin_reflect)
+        classpath(Libs.asciidoctor)
     }
 }
 
@@ -26,6 +28,7 @@ plugins {
     `maven-publish`
     id(Libs.nexus_publish_plugin) version "0.3.0" apply false
     id(Libs.nexus_staging_plugin) version "0.21.0"
+    id("org.asciidoctor.convert") version Vers.asciidoctor
 }
 
 /**
@@ -130,7 +133,7 @@ subprojects {
 
                     pom {
                         name.set("${project.group}:${project.name}")
-                        description.set("https://github.com/ru-fix/")
+                        description.set("https://github.com/ru-fix/${rootProject.name}")
                         url.set("https://github.com/ru-fix/${rootProject.name}")
                         licenses {
                             license {
@@ -188,6 +191,23 @@ subprojects {
         withType<KotlinCompile>{
             kotlinOptions {
                 jvmTarget = "1.8"
+            }
+        }
+    }
+}
+
+tasks {
+    withType<AsciidoctorTask> {
+        sourceDir = project.file("asciidoc")
+        resources(closureOf<CopySpec> {
+            from("asciidoc")
+            include("**/*.png")
+        })
+        doLast {
+            copy {
+                from(outputDir.resolve("html5"))
+                into(project.file("docs"))
+                include("**/*.html", "**/*.png")
             }
         }
     }

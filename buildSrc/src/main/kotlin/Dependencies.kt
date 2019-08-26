@@ -3,6 +3,7 @@ object Vers {
     //Plugins
     const val dokkav = "0.9.18"
     const val gradle_release_plugin = "1.3.9"
+    const val asciidoctor = "1.5.9.2"
 
     //Dependencies
     const val kotlin = "1.3.41"
@@ -32,6 +33,7 @@ object Libs {
     val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokkav}"
     val nexus_staging_plugin = "io.codearte.nexus-staging"
     val nexus_publish_plugin = "de.marcphilipp.nexus-publish"
+    val asciidoctor = "org.asciidoctor:asciidoctor-gradle-plugin:${Vers.asciidoctor}"
 
     //Dependencies
 

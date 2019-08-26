@@ -2,9 +2,6 @@
 [abstract]
 Implementation details
 
-=== Graph representation
-
-
 === Generate documentation
 Documentation source located at
 ----
