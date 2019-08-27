@@ -532,6 +532,10 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel2">
 <li><a href="#_add_dependency_into_your_project">Add dependency into your project.</a></li>
 <li><a href="#_launch_djm">Launch DJM</a></li>
+</ul>
+</li>
+<li><a href="#_reassignment">Reassignment</a>
+<ul class="sectlevel2">
 <li><a href="#_monitoring_and_metrics">Monitoring and metrics</a></li>
 <li><a href="#_guarantees">Guarantees</a></li>
 </ul>
@@ -575,7 +579,7 @@ DJM will restart Job in case of any failure.<br>
 DJM balance workload between Jobs<br>
 DJM consists of two parts: Manager and Worker. Each DJM instance has active Worker.
   But only one DJM instance has active Manager.<br>
-Master orchestrate Job between Workers in the cluster.</p>
+Manager orchestrate Job between Workers in the cluster.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -660,6 +664,61 @@ djm.close();</pre>
 </div>
 </div>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_reassignment">Reassignment</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Reassignment is a process when Master change Job and work-items assigment between application instances in the cluster.<br>
+Reassignment is triggered by</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>One of nodes shutdown or restart</p>
+</li>
+<li>
+<p>Network disconnect</p>
+</li>
+<li>
+<p>Job WorkPool changes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Rebalance steps:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="djm-reassignment.png" alt="djm reassignment">
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Manager reads from zookeeper availabiliy state - list of jobs, where they can be launched and list of each job work-items</p>
+</li>
+<li>
+<p>Manager reads from zookeeper assignment state - on which nodes jobs and work-items are launched or scheduled right now.</p>
+</li>
+<li>
+<p>Manager calculate new assignment state</p>
+</li>
+<li>
+<p>Manager writes new assignment state to zookeeper</p>
+</li>
+<li>
+<p>Workers receive notification from zookeeper about assignment state update</p>
+</li>
+<li>
+<p>Workers stops old Jobs and launches new Jobs according to new assignment state.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Main goal of rebalance process is to minimize unnecessary job restarts and reassignments.</p>
+</div>
 <div class="sect2">
 <h3 id="_monitoring_and_metrics">Monitoring and metrics</h3>
 <div class="paragraph">
@@ -728,7 +787,7 @@ To compile documentation run</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-08-26 10:42:46 +0300
+Last updated 2019-08-27 11:35:41 +0300
 </div>
 </div>
 </body>
