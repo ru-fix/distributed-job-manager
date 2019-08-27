@@ -2,56 +2,6 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.utils.ZKPaths;
 
-/**
- * Class keep information about zookeeper paths
- * <pre>
- * {@code
- *
- *  job-manager
- *    └ alive                               //alive servers, list contains alive nodes (workers) that could run jobs
- *      └ 20
- *      └ 3
- *      ...
- *    └ locks
- *      └ work-pooled
- *        └ async.report.building.job
- *          └ workItemA.lock                //list of job locks so only one node could run job with same work item
- *        └ elasticsearch.upload.job        //only one worker should handle work item at the same time
- *          └ workItemC.lock
- *         ...
- *    └ assignment-version
- *    └ registration-version
- *    └ leader-latch
- *      └ ...
- *    └ workers
- *      └ 20
- *       ...
- *      └ 3
- *        └ available
- *          └ work-pooled
- *            └ async.report.building.job   //list of available jobs that worker with id '3' could run
- *              └ work-pool
- *                └ workItemA               //Work pool for particular worker
- *                └ workItemB
- *            └ elasticsearch.upload.job
- *              └ work-pool
- *                └ workItemC
- *             ...
- *        └ assigned
- *          └ work-pooled                   //List of assigned jobs to worker '3'
- *            └ async.report.building.job
- *              └ work-pool
- *                └ workItemA
- *                └ workItemB
- *            └ elasticsearch.upload.job
- *              └ work-pool
- *                └ workItemC
- *             ...
- *
- * </pre>
- *
- * @author Kamil Asfandiyarov
- */
 class JobManagerPaths {
     public static final String WORK_POOLED_JOB_ID = "work-pooled";
     public static final String WORK_POOL = "work-pool";

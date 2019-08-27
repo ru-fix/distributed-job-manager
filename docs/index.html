@@ -532,14 +532,12 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel2">
 <li><a href="#_add_dependency_into_your_project">Add dependency into your project.</a></li>
 <li><a href="#_launch_djm">Launch DJM</a></li>
-</ul>
-</li>
-<li><a href="#_reassignment">Reassignment</a>
-<ul class="sectlevel2">
 <li><a href="#_monitoring_and_metrics">Monitoring and metrics</a></li>
-<li><a href="#_guarantees">Guarantees</a></li>
 </ul>
 </li>
+<li><a href="#_reassignment">Reassignment</a></li>
+<li><a href="#_state">State</a></li>
+<li><a href="#_guarantees">Guarantees</a></li>
 <li><a href="#_source_guidebook">Source guidebook</a>
 <ul class="sectlevel2">
 <li><a href="#_generate_documentation">Generate documentation</a></li>
@@ -664,6 +662,16 @@ djm.close();</pre>
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_monitoring_and_metrics">Monitoring and metrics</h3>
+<div class="paragraph">
+<p>DJM expose Jobs state through profiler metrics.<br>
+* What tasks are currently running.
+* How long it took for task to complete.
+* How many work items processed.
+* etc.</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -719,18 +727,66 @@ Reassignment is triggered by</p>
 <div class="paragraph">
 <p>Main goal of rebalance process is to minimize unnecessary job restarts and reassignments.</p>
 </div>
-<div class="sect2">
-<h3 id="_monitoring_and_metrics">Monitoring and metrics</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_state">State</h2>
+<div class="sectionbody">
 <div class="paragraph">
-<p>DJM expose Jobs state through profiler metrics.<br>
-* What tasks are currently running.
-* How long it took for task to complete.
-* How many work items processed.
-* etc.</p>
+<p>DJM keeps cluster state as a tree of zookeeper nodes.<br>
+Worker registers Jobs and update available subtree.<br>
+Manager update assigned subtree.<br>
+Worker listens for updates in assigned subtree and stop/launch jobs accordingly.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>job-manager
+  └ alive //alive workers that can run jobs
+    └ 20 //worker with id 20
+    └ 3  //worker with id 3
+    ...
+  └ locks //locks guard work-items: ony one Job can access work-item in the same time
+    └ work-pooled
+      └ async.report.building.job //job id
+        └ workItemA.lock  //list of job locks so only one node could run job with same work-item
+      └ elasticsearch.upload.job
+        └ workItemC.lock
+        ...
+  └ assignment-version //part of transaction, allows atomicaly assign jobs
+  └ registration-version //part of transaction, allows atomicaly register workier
+  └ leader-latch // used for Manager election
+    └ ...
+  └ workers //list of workers
+    └ 20
+     ...
+    └ 3
+      └ available //list of jobs that worker with id `3` can run
+        └ work-pooled
+          └ async.report.building.job
+            └ work-pool
+              └ workItemA //Work pool of report.building Job
+              └ workItemB
+          └ elasticsearch.upload.job
+            └ work-pool
+              └ workItemC
+           ...
+      └ assigned
+        └ work-pooled                   //List of assigned jobs to worker '3'
+          └ async.report.building.job
+            └ work-pool
+              └ workItemA  //report.building job with `workItemA` and `workItemB` is assigned to worker `3`
+              └ workItemB
+          └ elasticsearch.upload.job
+            └ work-pool
+              └ workItemC
+           ...</code></pre>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_guarantees">Guarantees</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_guarantees">Guarantees</h2>
+<div class="sectionbody">
 <div class="paragraph">
 <p>In case of network failure one one can be temporary detached from other part of the cluster.<br>
 In order to improve stability of the cluster and tolerate short connectivity problems
@@ -741,7 +797,6 @@ Other Workers will not be able to process same work-items during this lock timeo
 <div class="imageblock">
 <div class="content">
 <img src="djm-zk-disconnect.png" alt="djm zk disconnect">
-</div>
 </div>
 </div>
 </div>
@@ -787,7 +842,7 @@ To compile documentation run</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-08-27 11:35:41 +0300
+Last updated 2019-08-27 16:54:26 +0300
 </div>
 </div>
 </body>
