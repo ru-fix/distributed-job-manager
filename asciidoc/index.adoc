@@ -20,7 +20,7 @@ DJM will restart Job in case of any failure. +
 DJM balance workload between Jobs +
 DJM consists of two parts: Manager and Worker. Each DJM instance has active Worker.
   But only one DJM instance has active Manager. +
-Master orchestrate Job between Workers in the cluster.
+Manager orchestrate Job between Workers in the cluster.
 
 image::djm-zk.png[]
 
@@ -82,6 +82,27 @@ DistributedJobManager djm = new DistributedJobManager(
 //During applicatoin shutdown
 djm.close();
 ----
+
+== Reassignment
+Reassignment is a process when Master change Job and work-items assigment between application instances in the cluster. +
+Reassignment is triggered by
+
+* One of nodes shutdown or restart
+* Network disconnect
+* Job WorkPool changes
+
+Rebalance steps:
+
+image::djm-reassignment.png[]
+
+* Manager reads from zookeeper availabiliy state - list of jobs, where they can be launched and list of each job work-items
+* Manager reads from zookeeper assignment state - on which nodes jobs and work-items are launched or scheduled right now.
+* Manager calculate new assignment state
+* Manager writes new assignment state to zookeeper
+* Workers receive notification from zookeeper about assignment state update
+* Workers stops old Jobs and launches new Jobs according to new assignment state.
+
+Main goal of rebalance process is to minimize unnecessary job restarts and reassignments.
 
 
 === Monitoring and metrics
