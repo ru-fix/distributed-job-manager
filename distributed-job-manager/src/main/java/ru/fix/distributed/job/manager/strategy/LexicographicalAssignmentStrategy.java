@@ -1,4 +1,6 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager.strategy;
+
+import ru.fix.distributed.job.manager.model.distribution.JobState;
 
 import java.util.HashSet;
 import java.util.List;
@@ -12,9 +14,8 @@ import java.util.stream.Collectors;
  *
  * @author Kamil Asfandiyarov
  */
-class LexicographicalAssignmentStrategy implements AssignmentStrategy {
+public class LexicographicalAssignmentStrategy implements AssignmentStrategy {
 
-    @Override
     public Map<String, Set<String>> reassignAndBalance(
             Map<String, Set<String>> availableRepeatableJobs,
             Map<String, Set<String>> assignedRepeatableJobs) {
@@ -42,5 +43,10 @@ class LexicographicalAssignmentStrategy implements AssignmentStrategy {
         }
 
         return newAssignments;
+    }
+
+    @Override
+    public JobState reassignAndBalance(JobState jobAvailability, JobState currentAssignment) {
+        return null;
     }
 }

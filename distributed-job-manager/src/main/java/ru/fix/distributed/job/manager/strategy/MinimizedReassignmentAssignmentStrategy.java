@@ -1,4 +1,6 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager.strategy;
+
+import ru.fix.distributed.job.manager.model.distribution.JobState;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -9,8 +11,8 @@ import java.util.stream.Collectors;
  *
  * @author Kamil Asfandiyarov
  */
-class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
-    @Override
+public class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
+
     public Map<String, Set<String>> reassignAndBalance(Map<String, Set<String>> availableRepeatableJobs,
                                                        Map<String, Set<String>> currentAssignment) {
 
@@ -72,5 +74,10 @@ class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
         }
 
         return newAssigment;
+    }
+
+    @Override
+    public JobState reassignAndBalance(JobState jobAvailability, JobState currentAssignment) {
+        return null;
     }
 }
