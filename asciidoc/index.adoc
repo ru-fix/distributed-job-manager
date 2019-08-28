@@ -20,7 +20,7 @@ DJM will restart Job in case of any failure. +
 DJM balance workload between Jobs +
 DJM consists of two parts: Manager and Worker. Each DJM instance has active Worker.
   But only one DJM instance has active Manager. +
-Master orchestrate Job between Workers in the cluster.
+Manager orchestrate Job between Workers in the cluster.
 
 image::djm-zk.png[]
 
@@ -83,7 +83,6 @@ DistributedJobManager djm = new DistributedJobManager(
 djm.close();
 ----
 
-
 === Monitoring and metrics
 DJM expose Jobs state through profiler metrics. +
 * What tasks are currently running.
@@ -92,7 +91,78 @@ DJM expose Jobs state through profiler metrics. +
 * etc.
 
 
-=== Guarantees
+== Reassignment
+Reassignment is a process when Master change Job and work-items assigment between application instances in the cluster. +
+Reassignment is triggered by
+
+* One of nodes shutdown or restart
+* Network disconnect
+* Job WorkPool changes
+
+Rebalance steps:
+
+image::djm-reassignment.png[]
+
+* Manager reads from zookeeper availabiliy state - list of jobs, where they can be launched and list of each job work-items
+* Manager reads from zookeeper assignment state - on which nodes jobs and work-items are launched or scheduled right now.
+* Manager calculate new assignment state
+* Manager writes new assignment state to zookeeper
+* Workers receive notification from zookeeper about assignment state update
+* Workers stops old Jobs and launches new Jobs according to new assignment state.
+
+Main goal of rebalance process is to minimize unnecessary job restarts and reassignments.
+
+== State
+DJM keeps cluster state as a tree of zookeeper nodes. +
+Worker registers Jobs and update available subtree. +
+Manager update assigned subtree. +
+Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
+
+
+```
+job-manager
+  └ alive //alive workers that can run jobs
+    └ 20 //worker with id 20
+    └ 3  //worker with id 3
+    ...
+  └ locks //locks guard work-items: ony one Job can access work-item in the same time
+    └ work-pooled
+      └ async.report.building.job //job id
+        └ workItemA.lock  //list of job locks so only one node could run job with same work-item
+      └ elasticsearch.upload.job
+        └ workItemC.lock
+        ...
+  └ assignment-version //part of transaction, allows atomicaly assign jobs
+  └ registration-version //part of transaction, allows atomicaly register workier
+  └ leader-latch // used for Manager election
+    └ ...
+  └ workers //list of workers
+    └ 20
+     ...
+    └ 3
+      └ available //list of jobs that worker with id `3` can run
+        └ work-pooled
+          └ async.report.building.job
+            └ work-pool
+              └ workItemA //Work pool of report.building Job
+              └ workItemB
+          └ elasticsearch.upload.job
+            └ work-pool
+              └ workItemC
+           ...
+      └ assigned
+        └ work-pooled                   //List of assigned jobs to worker '3'
+          └ async.report.building.job
+            └ work-pool
+              └ workItemA  //report.building job with `workItemA` and `workItemB` is assigned to worker `3`
+              └ workItemB
+          └ elasticsearch.upload.job
+            └ work-pool
+              └ workItemC
+           ...
+```
+
+== Guarantees
 
 In case of network failure one one can be temporary detached from other part of the cluster. +
 In order to improve stability of the cluster and tolerate short connectivity problems
@@ -101,5 +171,6 @@ To enable that DJM uses persistent locks and keep information when which worker 
 Other Workers will not be able to process same work-items during this lock timeout even if owner of lock gone offline.
 
 image::djm-zk-disconnect.png[]
+
 
 include::source-guidebook.adoc[]
