@@ -24,7 +24,7 @@ public class ClassifiedAssignmentStrategyTest {
     );
 
     private final AssignmentStrategy strategy2 = new ClassifiedAssignmentStrategy(
-            new Function<>() {
+            new Function<WorkPoolItem, String>() {
                 private ObjectMapper mapper = new ObjectMapper();
 
                 @Override

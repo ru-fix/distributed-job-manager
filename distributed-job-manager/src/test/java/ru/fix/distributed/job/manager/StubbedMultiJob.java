@@ -2,6 +2,8 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
+import ru.fix.distributed.job.manager.strategy.DefaultAssignmentStrategy;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 import java.util.Collections;
@@ -88,6 +90,11 @@ class StubbedMultiJob implements DistributedJob {
         logger.trace("{} Run distributed test job {} / {}", this, getJobId(), context.getWorkShare());
         localWorkPool.set(context.getWorkShare());
         allWorkPools.add(context.getWorkShare());
+    }
+
+    @Override
+    public AssignmentStrategy getAssignmentStrategy() {
+        return new DefaultAssignmentStrategy();
     }
 
     public Set<String> getLocalWorkPool() {

@@ -5,6 +5,8 @@ import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
+import ru.fix.distributed.job.manager.strategy.DefaultAssignmentStrategy;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 import java.util.Collections;
@@ -79,6 +81,12 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
 
     class SimpleJob implements DistributedJob {
+
+        @Override
+        public AssignmentStrategy getAssignmentStrategy() {
+            return new DefaultAssignmentStrategy();
+        }
+
         /**
          * @return id of the job.
          */
