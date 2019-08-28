@@ -21,10 +21,7 @@ import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.zookeeper.transactional.TransactionalClient;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -44,7 +41,6 @@ class Manager implements AutoCloseable {
 
     private final CuratorFramework curatorFramework;
     private final JobManagerPaths paths;
-    private final AssignmentStrategyFactory assignmentStrategyFactory;
     private final DynamicProperty<Boolean> printTree;
 
     private PathChildrenCache workersAliveChildrenCache;
@@ -52,17 +48,18 @@ class Manager implements AutoCloseable {
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
     private final String serverId;
+    private final Collection<DistributedJob> distributedJobs;
 
     Manager(CuratorFramework curatorFramework,
+            Collection<DistributedJob> distributedJobs,
             String rootPath,
-            AssignmentStrategyFactory assignmentStrategyFactory,
             String serverId,
             Profiler profiler,
             DynamicProperty<Boolean> printTree) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
+        this.distributedJobs = distributedJobs;
         this.paths = new JobManagerPaths(rootPath);
-        this.assignmentStrategyFactory = assignmentStrategyFactory;
         this.printTree = printTree;
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
@@ -177,17 +174,26 @@ class Manager implements AutoCloseable {
         }
     }
 
+    private Map<String, AssignmentStrategy> mapJobIdToAssignmentStrategy() {
+        Map<String, AssignmentStrategy> map = new HashMap<>();
+
+        for (DistributedJob job : distributedJobs) {
+            map.put(job.getJobId(), job.getAssignmentStrategy());
+        }
+
+        return map;
+    }
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(TransactionalClient transactionalClient, JobsSnapshot jobsSnapshot) throws Exception {
         Map<JobItem, JobState> availabilityState = jobsSnapshot.getAvailabilityState();
         Map<JobItem, JobState> assignmentState = jobsSnapshot.getAssignmentState();
+        Map<String, AssignmentStrategy> jobStrategyMap = mapJobIdToAssignmentStrategy();
 
         for (Map.Entry<JobItem, JobState> jobAvailability : availabilityState.entrySet()) {
             JobItem jobItem = jobAvailability.getKey();
             Set<WorkerItem> currentAssignment = assignmentState.get(jobItem).getWorkers();
 
-            AssignmentStrategy wpAssignmentStrategy =
-                    assignmentStrategyFactory.getAssignmentStrategy(jobItem.getId());
+            AssignmentStrategy wpAssignmentStrategy = jobStrategyMap.get(jobItem.getId());
             if (wpAssignmentStrategy == null) {
                 throw new IllegalStateException("Got null assignment strategy for job " + jobItem.getId());
             }

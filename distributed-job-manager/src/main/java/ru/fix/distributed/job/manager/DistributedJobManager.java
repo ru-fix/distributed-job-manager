@@ -12,13 +12,14 @@ import ru.fix.distributed.job.manager.strategy.factory.DefaultAssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 /**
  * <p>
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
- * In {@link DistributedJobManager#DistributedJobManager(String, CuratorFramework, String, int, Collection, Profiler, DynamicProperty, String)}
+ * In {@link DistributedJobManager#DistributedJobManager(String, CuratorFramework, String, Collection, Profiler, DynamicProperty, String)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -80,7 +81,6 @@ public class DistributedJobManager implements AutoCloseable {
                 curatorFramework,
                 rootPath,
                 repeatableJobs,
-                new DefaultAssignmentStrategyFactory(),
                 profiler,
                 timeToWaitTermination,
                 serverId,
@@ -91,28 +91,7 @@ public class DistributedJobManager implements AutoCloseable {
     public DistributedJobManager(String workerId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
-                                 Collection<DistributedJob> repeatableJobs,
-                                 Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination,
-                                 String serverId,
-                                 DynamicProperty<Boolean> printTree) throws Exception {
-        this(workerId,
-                curatorFramework,
-                rootPath,
-                repeatableJobs,
-                new DefaultAssignmentStrategyFactory(),
-                profiler,
-                timeToWaitTermination,
-                serverId,
-                printTree);
-    }
-
-    @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String workerId,
-                                 CuratorFramework curatorFramework,
-                                 String rootPath,
                                  Collection<DistributedJob> distributedJobs,
-                                 Map<JobItem, AssignmentStrategy> strategyMap,
                                  Profiler profiler,
                                  DynamicProperty<Long> timeToWaitTermination,
                                  String serverId,
@@ -126,7 +105,7 @@ public class DistributedJobManager implements AutoCloseable {
         initPaths(curatorFramework, rootPath);
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategyFactory, serverId, profiler, printTree);
+        this.manager = new Manager(curatorFramework, distributedJobs, rootPath, serverId, profiler, printTree);
         managerInitTimespan.stop();
 
 

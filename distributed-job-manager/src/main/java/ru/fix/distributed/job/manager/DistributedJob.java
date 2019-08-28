@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 /**
@@ -11,6 +12,11 @@ public interface DistributedJob {
      * @return id of the job.
      */
     String getJobId();
+
+    /**
+     * @return strategy of distribution workItems for workers
+     */
+    AssignmentStrategy getAssignmentStrategy();
 
     /**
      * @return delay between job invocation
