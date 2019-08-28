@@ -14,6 +14,7 @@ import ru.fix.distributed.job.manager.model.distribution.JobItem;
 import ru.fix.distributed.job.manager.model.distribution.JobState;
 import ru.fix.distributed.job.manager.model.distribution.WorkPoolItem;
 import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -185,7 +186,7 @@ class Manager implements AutoCloseable {
             JobItem jobItem = jobAvailability.getKey();
             Set<WorkerItem> currentAssignment = assignmentState.get(jobItem).getWorkers();
 
-            ru.fix.distributed.job.manager.strategy.AssignmentStrategy wpAssignmentStrategy =
+            AssignmentStrategy wpAssignmentStrategy =
                     assignmentStrategyFactory.getAssignmentStrategy(jobItem.getId());
             if (wpAssignmentStrategy == null) {
                 throw new IllegalStateException("Got null assignment strategy for job " + jobItem.getId());
