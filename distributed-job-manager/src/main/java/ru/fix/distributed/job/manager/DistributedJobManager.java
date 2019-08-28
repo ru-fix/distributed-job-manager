@@ -5,15 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.model.distribution.JobItem;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
-import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
-import ru.fix.distributed.job.manager.strategy.factory.DefaultAssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * <p>

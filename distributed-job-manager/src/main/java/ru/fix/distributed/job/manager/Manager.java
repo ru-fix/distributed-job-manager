@@ -15,7 +15,6 @@ import ru.fix.distributed.job.manager.model.distribution.JobState;
 import ru.fix.distributed.job.manager.model.distribution.WorkPoolItem;
 import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
-import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
