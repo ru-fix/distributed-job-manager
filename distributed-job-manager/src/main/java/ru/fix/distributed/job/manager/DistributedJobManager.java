@@ -5,11 +5,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.distribution.JobItem;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
 import ru.fix.distributed.job.manager.strategy.factory.DefaultAssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * <p>
@@ -109,7 +112,7 @@ public class DistributedJobManager implements AutoCloseable {
                                  CuratorFramework curatorFramework,
                                  String rootPath,
                                  Collection<DistributedJob> distributedJobs,
-                                 AssignmentStrategyFactory assignmentStrategyFactory,
+                                 Map<JobItem, AssignmentStrategy> strategyMap,
                                  Profiler profiler,
                                  DynamicProperty<Long> timeToWaitTermination,
                                  String serverId,
