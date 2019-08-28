@@ -45,16 +45,50 @@ only within single application in the cluster.
 When DJM launches Job it passes information about work-items that Job should process.
 [code]
 ----
-class MyJob implements DistributedJob{
+class MyJob implements DistributedJob {
+    private AssignmentStrategy strategy;
+
+    public MyJob(AssignmentStrategy strategy) {
+        this.strategy = strategy;
+    }
+
     //...
-void run(DistributedJobContext context) {
-    //...
-    Set<String> workShare = context.getWorkShare();
-    for (String workItem : workShare) {
-        //process workItem
+    void run(DistributedJobContext context) {
+        //...
+        Set<String> workShare = context.getWorkShare();
+        for (String workItem : workShare) {
+            //process workItem
+        }
+    }
+
+    public AssignmentStrategy getAssignmentStrategy {
+        return strategy;
     }
 }
+
+
 ----
+
+=== Assignment Strategies
+Assignment strategy is the behavior of how the distribution of work items by workers will change,
+when number active workers changes. +
+DJM provides some implementations for the most common cases of distribution.
+Also you implement AssigmentStrategy for your case by himself and inject it to your job.
+
+* ClassifiedAssignmentStrategy +
+Intended for distribution classified (grouped by type) jobs,
+so one worker can't handle more than one job of the same class
+* DefaultAssignmentStrategy
+* LexicographicalAssignmentStrategy +
+Ignore current workers assignment. Assign jobs to workers and try balance loading uniformly
+* MinimizedReassignmentAssignmentStrategy +
+It minimize job reassignment within
+living workers when new worker added or one of workers removed
+* SingletonAssignmentStrategy +
+Ensures that with repeated distributions, one job will be launched on only one worker
+* FixedSizeWorkersAssignmentStrategy
+Ensures that with repeated distributions, worker will handle one work item of one job.
+
 
 image::djm.png[]
 
