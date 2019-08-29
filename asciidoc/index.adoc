@@ -61,7 +61,7 @@ class MyJob implements DistributedJob {
         }
     }
 
-    public AssignmentStrategy getAssignmentStrategy {
+    public AssignmentStrategy getAssignmentStrategy() {
         return strategy;
     }
 }
@@ -73,7 +73,7 @@ class MyJob implements DistributedJob {
 Assignment strategy is the behavior of how the distribution of work items by workers will change,
 when number active workers changes. +
 DJM provides some implementations for the most common cases of distribution.
-Also you implement AssigmentStrategy for your case by himself and inject it to your job.
+Also you can implement AssigmentStrategy for your case by himself and inject it to your distributed job.
 
 * ClassifiedAssignmentStrategy +
 Intended for distribution classified (grouped by type) jobs,
@@ -89,6 +89,70 @@ Ensures that with repeated distributions, one job will be launched on only one w
 * FixedSizeWorkersAssignmentStrategy
 Ensures that with repeated distributions, worker will handle one work item of one job.
 
+
+=== Example of bean configuration in Spring Framework
+[code]
+----
+
+class EmailSenderJob implements DistributedJob {
+    private String jobId;
+    private AssignmentStrategy strategy;
+
+    public EmailSenderJob(AssignmentStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    WorkPool getWorkPool(){
+        return WorkPool.of(new HashSet<>(Arrays.asList("sendEmail1", "sendEmail2")));
+    }
+
+    //...
+    void run(DistributedJobContext context) {
+        //...
+        Set<String> workShare = context.getWorkShare();
+        for (String workItem : workShare) {
+            //process workItem
+        }
+    }
+
+    public AssignmentStrategy getAssignmentStrategy() {
+        return strategy;
+    }
+
+    public getJobId() {
+        return jobId;
+    }
+}
+
+@Bean
+DistributedJobManager distributedJobManager(
+        EmailSenderJob emailSenderJob,
+        StatisticsLogKafkaToHBaseExporterJob statisticsLogKafkaToHBaseExportJob,
+        ElasticsearchStatisticsUploadJob elasticsearchStatisticsUploadJob,
+        TotalSpentMoneyUpdateJob totalSpentMoneyUpdateJob
+) throws Exception {
+    return new DistributedJobManager(
+            "my-app-1", // application id
+            CuratorFrameworkFactory.newClient(zkHosts, new ExponentialBackoffRetry(1000, 10)),
+            zkRoot + "/job-manager",
+            Arrays.asList(
+                    emailSenderJob,
+                    statisticsLogKafkaToHBaseExportJob,
+                    elasticsearchStatisticsUploadJob,
+                    totalSpentMoneyUpdateJob
+            ),
+            new AggregationProfiler(),
+            DynamicProperty.of(180000), // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
+            DynamicProperty.of(true) // Log full tree during job rebalancing operation
+    );
+}
+
+@Bean
+EmailSenderJob emailSenderJob() {
+    return new EmailSenderJob("email.sender.job", new SingletonAssignmentStrategy());
+}
+//...
+----
 
 image::djm.png[]
 

@@ -173,20 +173,12 @@ class Manager implements AutoCloseable {
         }
     }
 
-    private Map<String, AssignmentStrategy> mapJobIdToAssignmentStrategy() {
-        Map<String, AssignmentStrategy> map = new HashMap<>();
-
-        for (DistributedJob job : distributedJobs) {
-            map.put(job.getJobId(), job.getAssignmentStrategy());
-        }
-
-        return map;
-    }
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(TransactionalClient transactionalClient, JobsSnapshot jobsSnapshot) throws Exception {
         Map<JobItem, JobState> availabilityState = jobsSnapshot.getAvailabilityState();
         Map<JobItem, JobState> assignmentState = jobsSnapshot.getAssignmentState();
-        Map<String, AssignmentStrategy> jobStrategyMap = mapJobIdToAssignmentStrategy();
+        Map<String, AssignmentStrategy> jobStrategyMap = distributedJobs.stream()
+                .collect(Collectors.toMap(DistributedJob::getJobId, DistributedJob::getAssignmentStrategy));
 
         for (Map.Entry<JobItem, JobState> jobAvailability : availabilityState.entrySet()) {
             JobItem jobItem = jobAvailability.getKey();
