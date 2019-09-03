@@ -20,4 +20,8 @@ public class ZookeeperState extends HashMap<JobId, Map<WorkerItem, WorkItem>> {
     public void moveWorkItem(JobId job, WorkItem workItem, WorkerItem from, WorkItem to) {
 
     }
+
+    public HashMap<JobId, Map<WorkerItem, WorkItem>> getAsMap() {
+        return this;
+    }
 }

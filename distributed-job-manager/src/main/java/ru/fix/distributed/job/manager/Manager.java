@@ -10,10 +10,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.model.distribution.JobId;
-import ru.fix.distributed.job.manager.model.distribution.JobState;
-import ru.fix.distributed.job.manager.model.distribution.WorkItem;
-import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
+import ru.fix.distributed.job.manager.model.distribution.*;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -153,11 +150,11 @@ class Manager implements AutoCloseable {
 
                 // read-up required values
                 removeAssignmentsOnDeadNodes();
-                JobsSnapshot jobsSnapshot = takeJobsSnapshot();
+
 
                 transactionalClient.checkPathWithVersion(assignmentVersionNode, version);
                 transactionalClient.setData(assignmentVersionNode, new byte[]{});
-                assignWorkPools(transactionalClient, jobsSnapshot);
+                assignWorkPools(transactionalClient, getZookeeperGlobalState());
             });
         } catch (Exception e) {
             log.error("Failed to perform assignment", e);
@@ -177,12 +174,24 @@ class Manager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    private void assignWorkPools(TransactionalClient transactionalClient, JobsSnapshot jobsSnapshot) throws Exception {
-        Map<JobId, JobState> availabilityState = jobsSnapshot.getAvailabilityState();
-        Map<JobId, JobState> assignmentState = jobsSnapshot.getAssignmentState();
+    private void assignWorkPools(
+            TransactionalClient transactionalClient,
+            ZookeeperGlobalState globalState
+    ) throws Exception {
+        ZookeeperState newAssignmentState = new ZookeeperState();
+        assignmentStrategy.reassignAndBalance(
+                globalState.getAvailableState(),
+                globalState.getCurrentState(),
+                newAssignmentState,
+                globalState.getWorkItemsToAssign()
+        );
 
-        // here we call method which take all zookeeper availability and current assignment states,
-        // then we call injected assignment strategy
+        newAssignmentState.forEach((k, v) -> {
+            // new logic
+        });
+
+
+
         /*for (Map.Entry<JobId, JobState> jobAvailability : availabilityState.entrySet()) {
             JobId jobId = jobAvailability.getKey();
             Set<WorkerItem> currentAssignment = assignmentState.get(jobId).getWorkers();
@@ -288,77 +297,74 @@ class Manager implements AutoCloseable {
         }
     }
 
-    private JobsSnapshot takeJobsSnapshot() throws Exception {
-        JobsSnapshot jobsState = new JobsSnapshot();
+    private ZookeeperGlobalState getZookeeperGlobalState() throws Exception {
+        ZookeeperState availableState = new ZookeeperState();
+        ZookeeperState currentState = new ZookeeperState();
+        Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
-        // retrieve workers list
-        List<String> workersRoots = curatorFramework.getChildren().forPath(paths.getWorkersPath());
+        List<String> workersRoots = curatorFramework.getChildren()
+                .forPath(paths.getWorkersPath());
+
         for (String worker : workersRoots) {
             if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) == null) {
                 continue;
             }
 
-            log.trace("Detect live worker {}", paths.getWorkerAliveFlagPath(worker));
-
-            // availability
-            if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) != null) {
-                List<String> availableJobIds = curatorFramework.getChildren()
-                        .forPath(paths.getAvailableWorkPooledJobPath(worker));
-                for (String availableJobId : availableJobIds) {
-                    JobState availabilityState = jobsState.getAvailabilityState()
-                            .computeIfAbsent(new JobId(availableJobId), v -> new JobState());
-
-                    WorkerItem availableWorkerItem = new WorkerItem(worker);
-                    availabilityState.getWorkers().add(availableWorkerItem);
-
-                    List<String> localWorkPool = curatorFramework.getChildren()
-                            .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
-                    availableWorkerItem.getWorkPools().addAll(localWorkPool.stream()
-                            .map(WorkItem::new).collect(Collectors.toSet()));
-
-                    // create assignment state for the same worker if doesn't exist
-                    jobsState.getAssignmentState().computeIfAbsent(new JobId(availableJobId), v -> new JobState());
-                }
+            if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) == null) {
+                continue;
             }
 
-            // assignment
-            if (curatorFramework.checkExists().forPath(paths.getAssignedWorkPooledJobsPath(worker)) != null) {
-                List<String> assignedJobIds = curatorFramework.getChildren()
-                        .forPath(paths.getAssignedWorkPooledJobsPath(worker));
-                for (String assignedJobId : assignedJobIds) {
-                    JobState assignmentState = jobsState.getAssignmentState().get(new JobId(assignedJobId));
+            List<String> availableJobIds = curatorFramework.getChildren()
+                    .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
-                    WorkerItem assignedWorkerItem = new WorkerItem(worker);
-                    assignmentState.getWorkers().add(assignedWorkerItem);
+            for (String availableJobId : availableJobIds) {
+                Map<WorkerItem, WorkItem> workItemsForAvailableJob = curatorFramework.getChildren()
+                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId))
+                        .stream()
+                        .collect(Collectors.toMap(w -> new WorkerItem(worker), WorkItem::new));
+                availableState.put(new JobId(availableJobId), workItemsForAvailableJob);
+            }
 
-                    List<String> localWorkPool = curatorFramework.getChildren()
-                            .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
-                    assignedWorkerItem.getWorkPools().addAll(localWorkPool.stream()
-                            .map(WorkItem::new).collect(Collectors.toSet()));
-                }
+            List<String> assignedJobIds = curatorFramework.getChildren()
+                    .forPath(paths.getAssignedWorkPooledJobsPath(worker));
+
+            for (String assignedJobId : assignedJobIds) {
+                Map<WorkerItem, WorkItem> workItemsForAvailableJob = curatorFramework.getChildren()
+                        .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId))
+                        .stream()
+                        .collect(Collectors.toMap(w -> new WorkerItem(worker), WorkItem::new));
+
+                currentState.put(new JobId(assignedJobId), workItemsForAvailableJob);
             }
         }
-        return jobsState;
+
+        return new ZookeeperGlobalState(availableState, currentState, workItemsToAssign);
     }
 
-    private static class JobsSnapshot {
-        private Map<JobId, JobState> availabilityState = new HashMap<>();
-        private Map<JobId, JobState> assignmentState = new HashMap<>();
+    private static class ZookeeperGlobalState {
+        private ZookeeperState availableState;
+        private ZookeeperState currentState;
+        private Map<JobId, List<WorkItem>> workItemsToAssign;
 
-        public Map<JobId, JobState> getAssignmentState() {
-            return assignmentState;
+        ZookeeperGlobalState(ZookeeperState availableState,
+                             ZookeeperState currentState,
+                             Map<JobId, List<WorkItem>> workItemsToAssign
+        ) {
+            this.availableState = availableState;
+            this.currentState = currentState;
+            this.workItemsToAssign = workItemsToAssign;
         }
 
-        public Map<JobId, JobState> getAvailabilityState() {
-            return availabilityState;
+        public ZookeeperState getAvailableState() {
+            return availableState;
         }
 
-        @Override
-        public String toString() {
-            return "JobsSnapshot{" +
-                    "availabilityState=" + availabilityState +
-                    ",assignmentState=" + assignmentState +
-                    '}';
+        public ZookeeperState getCurrentState() {
+            return currentState;
+        }
+
+        public Map<JobId, List<WorkItem>> getWorkItemsToAssign() {
+            return workItemsToAssign;
         }
     }
 
