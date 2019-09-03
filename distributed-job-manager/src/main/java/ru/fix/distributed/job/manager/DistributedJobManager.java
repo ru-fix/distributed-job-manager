@@ -5,8 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
-import ru.fix.distributed.job.manager.strategy.factory.DefaultAssignmentStrategyFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
@@ -15,7 +14,8 @@ import java.util.Collection;
  * <p>
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
- * In {@link DistributedJobManager#DistributedJobManager(String, CuratorFramework, String, int, Collection, Profiler, DynamicProperty, String)}
+ * In {@link DistributedJobManager#DistributedJobManager(
+ * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty, String)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -44,7 +44,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     private final Worker worker;
     private final Manager manager;
-    private String workerId;
+    private String applicationId;
 
     private static class Timespan {
         long startTimestamp;
@@ -66,79 +66,57 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String workerId,
+    public DistributedJobManager(String applicationId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
                                  Collection<DistributedJob> repeatableJobs,
+                                 AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination,
-                                 String serverId) throws Exception {
-        this(workerId,
+                                 DynamicProperty<Long> timeToWaitTermination) throws Exception {
+        this(applicationId,
                 curatorFramework,
                 rootPath,
                 repeatableJobs,
-                new DefaultAssignmentStrategyFactory(),
+                assignmentStrategy,
                 profiler,
                 timeToWaitTermination,
-                serverId,
                 DynamicProperty.of(false));
     }
 
     @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String workerId,
-                                 CuratorFramework curatorFramework,
-                                 String rootPath,
-                                 Collection<DistributedJob> repeatableJobs,
-                                 Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination,
-                                 String serverId,
-                                 DynamicProperty<Boolean> printTree) throws Exception {
-        this(workerId,
-                curatorFramework,
-                rootPath,
-                repeatableJobs,
-                new DefaultAssignmentStrategyFactory(),
-                profiler,
-                timeToWaitTermination,
-                serverId,
-                printTree);
-    }
-
-    @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String workerId,
+    public DistributedJobManager(String applicationId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
                                  Collection<DistributedJob> distributedJobs,
-                                 AssignmentStrategyFactory assignmentStrategyFactory,
+                                 AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
                                  DynamicProperty<Long> timeToWaitTermination,
-                                 String serverId,
                                  DynamicProperty<Boolean> printTree) throws Exception {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
-        log.trace("Starting DistributedJobManager for workerId {} with zk-path {}",
-                workerId, rootPath);
+        log.trace("Starting DistributedJobManager for applicationId {} with zk-path {}",
+                applicationId, rootPath);
 
         initPaths(curatorFramework, rootPath);
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategyFactory, serverId, profiler, printTree);
+        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, applicationId, profiler, printTree);
         managerInitTimespan.stop();
 
 
         final Timespan workerInitTimespan = new Timespan().start();
 
-        this.workerId = workerId;
+        this.applicationId = applicationId;
 
         this.worker = new Worker(
                 curatorFramework,
-                this.workerId,
+                applicationId,
                 rootPath,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
                 timeToWaitTermination,
-                serverId,
+                applicationId,
                 printTree);
 
         workerInitTimespan.stop();
@@ -184,7 +162,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        log.info("Closing DJM with worker id {}", workerId);
+        log.info("Closing DJM with worker id {}", applicationId);
 
         Timespan djmClosing = new Timespan().start();
 
@@ -200,7 +178,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         log.info("DJM closed in {}ms, Worker {} closed in {}ms, Manager closed in {}ms",
                 djmClosing.getTimespan(),
-                workerId,
+                applicationId,
                 workerClosing.getTimespan(),
                 managerClosing.getTimespan());
     }

@@ -5,6 +5,8 @@ plugins {
 
 dependencies {
 
+    compile(Libs.kotlin_jdk8)
+
     // JFIX
     compile(Libs.aggregating_profiler)
     compile(Libs.jfix_zookeeper)

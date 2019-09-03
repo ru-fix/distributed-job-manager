@@ -10,11 +10,11 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.model.distribution.JobItem;
+import ru.fix.distributed.job.manager.model.distribution.JobId;
 import ru.fix.distributed.job.manager.model.distribution.JobState;
-import ru.fix.distributed.job.manager.model.distribution.WorkPoolItem;
+import ru.fix.distributed.job.manager.model.distribution.WorkItem;
 import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
-import ru.fix.distributed.job.manager.strategy.factory.AssignmentStrategyFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
@@ -43,8 +43,8 @@ class Manager implements AutoCloseable {
 
     private final CuratorFramework curatorFramework;
     private final JobManagerPaths paths;
-    private final AssignmentStrategyFactory assignmentStrategyFactory;
     private final DynamicProperty<Boolean> printTree;
+    private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
 
@@ -54,14 +54,14 @@ class Manager implements AutoCloseable {
 
     Manager(CuratorFramework curatorFramework,
             String rootPath,
-            AssignmentStrategyFactory assignmentStrategyFactory,
+            AssignmentStrategy assignmentStrategy,
             String serverId,
             Profiler profiler,
             DynamicProperty<Boolean> printTree) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
-        this.assignmentStrategyFactory = assignmentStrategyFactory;
+        this.assignmentStrategy = assignmentStrategy;
         this.printTree = printTree;
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
@@ -178,20 +178,21 @@ class Manager implements AutoCloseable {
 
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(TransactionalClient transactionalClient, JobsSnapshot jobsSnapshot) throws Exception {
-        Map<JobItem, JobState> availabilityState = jobsSnapshot.getAvailabilityState();
-        Map<JobItem, JobState> assignmentState = jobsSnapshot.getAssignmentState();
+        Map<JobId, JobState> availabilityState = jobsSnapshot.getAvailabilityState();
+        Map<JobId, JobState> assignmentState = jobsSnapshot.getAssignmentState();
 
-        for (Map.Entry<JobItem, JobState> jobAvailability : availabilityState.entrySet()) {
-            JobItem jobItem = jobAvailability.getKey();
-            Set<WorkerItem> currentAssignment = assignmentState.get(jobItem).getWorkers();
+        // here we call method which take all zookeeper availability and current assignment states,
+        // then we call injected assignment strategy
+        /*for (Map.Entry<JobId, JobState> jobAvailability : availabilityState.entrySet()) {
+            JobId jobId = jobAvailability.getKey();
+            Set<WorkerItem> currentAssignment = assignmentState.get(jobId).getWorkers();
 
-            ru.fix.distributed.job.manager.strategy.AssignmentStrategy wpAssignmentStrategy =
-                    assignmentStrategyFactory.getAssignmentStrategy(jobItem.getId());
+
             if (wpAssignmentStrategy == null) {
-                throw new IllegalStateException("Got null assignment strategy for job " + jobItem.getId());
+                throw new IllegalStateException("Got null assignment strategy for job " + jobId.getId());
             }
             JobState newJobState = wpAssignmentStrategy.reassignAndBalance(jobAvailability.getValue(),
-                    assignmentState.get(jobItem));
+                    assignmentState.get(jobId));
 
             // cleanup empty workers
             Set<WorkerItem> newAssignment = newJobState.getWorkers().stream()
@@ -203,7 +204,7 @@ class Manager implements AutoCloseable {
             for (WorkerItem workerItem : workersToRemove) {
                 // remove path [worker/assigned/job/...]
                 String jobPoolForWorkerPath =
-                        paths.getAssignedWorkPooledJobsPath(workerItem.getId(), jobItem.getId());
+                        paths.getAssignedWorkPooledJobsPath(workerItem.getId(), jobId.getId());
                 transactionalClient.deletePathWithChildrenIfNeeded(jobPoolForWorkerPath);
             }
 
@@ -213,12 +214,12 @@ class Manager implements AutoCloseable {
             for (WorkerItem workerItem : workersToAdd) {
                 // add path [worker/assigned/job/...]
                 String jobPoolForWorkerPath =
-                        paths.getAssignedWorkPooledJobsPath(workerItem.getId(), jobItem.getId());
+                        paths.getAssignedWorkPooledJobsPath(workerItem.getId(), jobId.getId());
                 String jobPoolForWorkerPathWithWP = ZKPaths.makePath(jobPoolForWorkerPath, JobManagerPaths.WORK_POOL);
                 transactionalClient.createPath(jobPoolForWorkerPath);
                 transactionalClient.createPath(jobPoolForWorkerPathWithWP);
-                for (WorkPoolItem workPoolItem : workerItem.getWorkPools()) {
-                    transactionalClient.createPath(ZKPaths.makePath(jobPoolForWorkerPathWithWP, workPoolItem.getId()));
+                for (WorkItem workItem : workerItem.getWorkPools()) {
+                    transactionalClient.createPath(ZKPaths.makePath(jobPoolForWorkerPathWithWP, workItem.getId()));
                 }
             }
 
@@ -235,37 +236,37 @@ class Manager implements AutoCloseable {
             });
 
             for (Map.Entry<WorkerItem, WorkerItem> workerItemsEntry : workPoolsAdjustmentMap.entrySet()) {
-                Set<WorkPoolItem> currentWorkerItems = workerItemsEntry.getKey().getWorkPools();
-                Set<WorkPoolItem> newWorkerItems = workerItemsEntry.getValue().getWorkPools();
+                Set<WorkItem> currentWorkerItems = workerItemsEntry.getKey().getWorkPools();
+                Set<WorkItem> newWorkerItems = workerItemsEntry.getValue().getWorkPools();
 
                 // work pool removals
-                Set<WorkPoolItem> workPoolItemsToRemove = currentWorkerItems.stream()
+                Set<WorkItem> workItemsToRemove = currentWorkerItems.stream()
                         .filter(v -> !newWorkerItems.contains(v))
                         .collect(Collectors.toSet());
-                for (WorkPoolItem workPoolItem : workPoolItemsToRemove) {
+                for (WorkItem workItem : workItemsToRemove) {
                     // remove work pool item
                     String workPoolPath = ZKPaths.makePath(
                             paths.getAssignedWorkPooledJobsPath(workerItemsEntry.getKey().getId(),
-                                    jobItem.getId()),
+                                    jobId.getId()),
                             JobManagerPaths.WORK_POOL,
-                            workPoolItem.getId());
+                            workItem.getId());
                     transactionalClient.deletePath(workPoolPath);
                 }
 
                 // work pool additions
-                Set<WorkPoolItem> workPoolItemsToAdd = newWorkerItems.stream()
+                Set<WorkItem> workItemsToAdd = newWorkerItems.stream()
                         .filter(v -> !currentWorkerItems.contains(v)).collect(Collectors.toSet());
-                for (WorkPoolItem workPoolItem : workPoolItemsToAdd) {
+                for (WorkItem workItem : workItemsToAdd) {
                     // add work pool item
                     String workPoolPath = ZKPaths.makePath(
                             paths.getAssignedWorkPooledJobsPath(workerItemsEntry.getKey().getId(),
-                                    jobItem.getId()),
+                                    jobId.getId()),
                             JobManagerPaths.WORK_POOL,
-                            workPoolItem.getId());
+                            workItem.getId());
                     transactionalClient.createPath(workPoolPath);
                 }
             }
-        }
+        }*/
     }
 
     private void removeAssignmentsOnDeadNodes() throws Exception {
@@ -305,7 +306,7 @@ class Manager implements AutoCloseable {
                         .forPath(paths.getAvailableWorkPooledJobPath(worker));
                 for (String availableJobId : availableJobIds) {
                     JobState availabilityState = jobsState.getAvailabilityState()
-                            .computeIfAbsent(new JobItem(availableJobId), v -> new JobState());
+                            .computeIfAbsent(new JobId(availableJobId), v -> new JobState());
 
                     WorkerItem availableWorkerItem = new WorkerItem(worker);
                     availabilityState.getWorkers().add(availableWorkerItem);
@@ -313,10 +314,10 @@ class Manager implements AutoCloseable {
                     List<String> localWorkPool = curatorFramework.getChildren()
                             .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
                     availableWorkerItem.getWorkPools().addAll(localWorkPool.stream()
-                            .map(WorkPoolItem::new).collect(Collectors.toSet()));
+                            .map(WorkItem::new).collect(Collectors.toSet()));
 
                     // create assignment state for the same worker if doesn't exist
-                    jobsState.getAssignmentState().computeIfAbsent(new JobItem(availableJobId), v -> new JobState());
+                    jobsState.getAssignmentState().computeIfAbsent(new JobId(availableJobId), v -> new JobState());
                 }
             }
 
@@ -325,7 +326,7 @@ class Manager implements AutoCloseable {
                 List<String> assignedJobIds = curatorFramework.getChildren()
                         .forPath(paths.getAssignedWorkPooledJobsPath(worker));
                 for (String assignedJobId : assignedJobIds) {
-                    JobState assignmentState = jobsState.getAssignmentState().get(new JobItem(assignedJobId));
+                    JobState assignmentState = jobsState.getAssignmentState().get(new JobId(assignedJobId));
 
                     WorkerItem assignedWorkerItem = new WorkerItem(worker);
                     assignmentState.getWorkers().add(assignedWorkerItem);
@@ -333,7 +334,7 @@ class Manager implements AutoCloseable {
                     List<String> localWorkPool = curatorFramework.getChildren()
                             .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
                     assignedWorkerItem.getWorkPools().addAll(localWorkPool.stream()
-                            .map(WorkPoolItem::new).collect(Collectors.toSet()));
+                            .map(WorkItem::new).collect(Collectors.toSet()));
                 }
             }
         }
@@ -341,14 +342,14 @@ class Manager implements AutoCloseable {
     }
 
     private static class JobsSnapshot {
-        private Map<JobItem, JobState> availabilityState = new HashMap<>();
-        private Map<JobItem, JobState> assignmentState = new HashMap<>();
+        private Map<JobId, JobState> availabilityState = new HashMap<>();
+        private Map<JobId, JobState> assignmentState = new HashMap<>();
 
-        public Map<JobItem, JobState> getAssignmentState() {
+        public Map<JobId, JobState> getAssignmentState() {
             return assignmentState;
         }
 
-        public Map<JobItem, JobState> getAvailabilityState() {
+        public Map<JobId, JobState> getAvailabilityState() {
             return availabilityState;
         }
 

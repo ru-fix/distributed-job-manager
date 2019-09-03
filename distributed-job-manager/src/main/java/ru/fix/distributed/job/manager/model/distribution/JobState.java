@@ -13,7 +13,7 @@ public class JobState {
         return workers;
     }
 
-    public Map<WorkerItem, Set<WorkPoolItem>> toMap() {
+    public Map<WorkerItem, Set<WorkItem>> toMap() {
         return workers.stream().collect(Collectors.toMap(v -> v, WorkerItem::getWorkPools));
     }
 

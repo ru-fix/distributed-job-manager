@@ -1,18 +1,29 @@
 package ru.fix.distributed.job.manager.strategy;
 
-import ru.fix.distributed.job.manager.model.distribution.JobState;
+import ru.fix.distributed.job.manager.model.distribution.JobId;
+import ru.fix.distributed.job.manager.model.distribution.WorkItem;
+import ru.fix.distributed.job.manager.model.distribution.ZookeeperState;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Job assignment strategy which could manage work pools distribution on workers
  */
 public interface AssignmentStrategy {
-
     /**
-     * Reassigns job
+     * At the beginning newAssignment is empty.
+     * After applying several assignment strategies we will end up with populated newAssignment
      *
-     * @param jobAvailability   contains information about availability work pools availability on workers
-     * @param currentAssignment contains information about work pools assignment on workers
-     * @return new assignment of work pools on workers
+     * @param availability   where (on which workers) job can launch work-items
+     * @param prevAssignment previous assignment state, where jobs and work-items was launch before reassignment
+     * @param newAssignment  assignment strategy result
+     * @param itemsToAssign  items that should be assigned by this strategy
      */
-    JobState reassignAndBalance(JobState jobAvailability, JobState currentAssignment);
+    void reassignAndBalance(
+            ZookeeperState availability,
+            ZookeeperState prevAssignment,
+            ZookeeperState newAssignment,
+            Map<JobId, List<WorkItem>> itemsToAssign);
+
 }

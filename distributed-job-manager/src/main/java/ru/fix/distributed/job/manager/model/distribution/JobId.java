@@ -2,11 +2,11 @@ package ru.fix.distributed.job.manager.model.distribution;
 
 import java.util.Objects;
 
-public class WorkPoolItem {
+public class JobId {
 
     private String id;
 
-    public WorkPoolItem(String id) {
+    public JobId(String id) {
         Objects.requireNonNull(id);
         this.id = id;
     }
@@ -23,9 +23,8 @@ public class WorkPoolItem {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        WorkPoolItem that = (WorkPoolItem) o;
-        return id.equals(that.id);
-
+        JobId jobId = (JobId) o;
+        return id.equals(jobId.id);
     }
 
     @Override
@@ -35,6 +34,6 @@ public class WorkPoolItem {
 
     @Override
     public String toString() {
-        return "WorkPoolItem[" + id + ']';
+        return "Job[" + id + ']';
     }
 }

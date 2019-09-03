@@ -2,9 +2,7 @@ package ru.fix.distributed.job.manager.strategy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.model.distribution.JobState;
-import ru.fix.distributed.job.manager.model.distribution.WorkPoolItem;
-import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
+import ru.fix.distributed.job.manager.model.distribution.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -13,17 +11,16 @@ public class DefaultAssignmentStrategy implements AssignmentStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultAssignmentStrategy.class);
 
-    @Override
     public JobState reassignAndBalance(JobState jobAvailability, JobState currentAssignment) {
         // create work pool to workers map
-        Map<WorkPoolItem, Set<WorkerItem>> workPoolAvailableWorkers = new HashMap<>();
+        Map<WorkItem, Set<WorkerItem>> workPoolAvailableWorkers = new HashMap<>();
         jobAvailability.getWorkers()
                 .forEach(workerItem -> workerItem.getWorkPools()
                         .forEach(workPoolItem -> workPoolAvailableWorkers
                                 .computeIfAbsent(workPoolItem, v -> new HashSet<>()).add(workerItem)));
 
         // sort work pool to workers map
-        NavigableMap<WorkPoolItem, Set<WorkerItem>> sortedWorkPoolAvailableWorkers = new TreeMap<>((j1, j2) -> {
+        NavigableMap<WorkItem, Set<WorkerItem>> sortedWorkPoolAvailableWorkers = new TreeMap<>((j1, j2) -> {
             int freedomComparison = Integer.compare(workPoolAvailableWorkers.get(j1).size(),
                     workPoolAvailableWorkers.get(j2).size());
             if (freedomComparison != 0) {
@@ -35,8 +32,8 @@ public class DefaultAssignmentStrategy implements AssignmentStrategy {
         sortedWorkPoolAvailableWorkers.putAll(workPoolAvailableWorkers);
 
         // assign started from less free work pools
-        Map<WorkerItem, Set<WorkPoolItem>> currentAssignmentMap = currentAssignment.toMap();
-        Map<WorkerItem, Set<WorkPoolItem>> newAssignmentMap = jobAvailability.getWorkers().stream()
+        Map<WorkerItem, Set<WorkItem>> currentAssignmentMap = currentAssignment.toMap();
+        Map<WorkerItem, Set<WorkItem>> newAssignmentMap = jobAvailability.getWorkers().stream()
                 .collect(Collectors.toMap(k -> k, v -> new HashSet<>()));
         sortedWorkPoolAvailableWorkers.forEach((workPoolItem, workersItem) -> {
             Optional<WorkerItem> worker = workersItem.stream().min((w1, w2) -> {
@@ -71,7 +68,7 @@ public class DefaultAssignmentStrategy implements AssignmentStrategy {
             newAssignmentState.getWorkers().add(workerItem);
 
             origWorkPoolItems.forEach(origWorkPoolItem -> workerItem.getWorkPools()
-                    .add(new WorkPoolItem(origWorkPoolItem.getId())));
+                    .add(new WorkItem(origWorkPoolItem.getId())));
         });
 
         logger.trace("Distributed {} \n to {} ", jobAvailability, newAssignmentState);
@@ -79,4 +76,9 @@ public class DefaultAssignmentStrategy implements AssignmentStrategy {
         return newAssignmentState;
     }
 
+    @Override
+    public void reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment,
+                                   ZookeeperState newAssignment, Map<JobId, List<WorkItem>> itemsToAssign) {
+
+    }
 }

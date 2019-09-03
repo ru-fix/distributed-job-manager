@@ -56,6 +56,106 @@ void run(DistributedJobContext context) {
 }
 ----
 
+=== Assignment Strategies
+Assignment strategy is the behavior of how the distribution of work items by workers will change,
+when number active workers changes. +
+DJM provides some implementations for the most common cases of distribution.
+Also you can implement AssigmentStrategy for your case by himself and inject it to your distributed job.
+
+* ClassifiedAssignmentStrategy +
+Intended for distribution classified (grouped by type) jobs,
+so one worker can't handle more than one job of the same class
+* DefaultAssignmentStrategy
+* LexicographicalAssignmentStrategy +
+Ignore current workers assignment. Assign jobs to workers and try balance loading uniformly
+* MinimizedReassignmentAssignmentStrategy +
+It minimize job reassignment within
+living workers when new worker added or one of workers removed
+* SingletonAssignmentStrategy +
+Ensures that with repeated distributions, one job will be launched on only one worker
+* FixedSizeWorkersAssignmentStrategy
+Ensures that with repeated distributions, worker will handle one work item of one job.
+
+
+=== Example of bean configuration in Spring Framework
+[code]
+----
+
+public static class RebillJob implements DistributedJob {
+        public String getJobId() {
+            return "rebill-job";
+        }
+        //...
+    }
+
+    public static class SmsJob implements DistributedJob {
+        public String getJobId() {
+            return "sms-job";
+        }
+        // ...
+    }
+
+    public static class UssdJob implements DistributedJob {
+        @Override
+        public String getJobId() {
+            return "ussd-job";
+        }
+    }
+
+    public class CustomAssignmentStrategy implements AssignmentStrategy {
+
+        public void reassignAndBalance(
+                ZookeeperState availability,
+                ZookeeperState prevAssignment,
+                ZookeeperState newAssignment,
+                Map<JobId, List<WorkItem>> itemsToAssign) {
+
+            // get all work items for rebill job from itemsToAssign
+            Map<JobId, List<WorkItem>> itemsToRebillJob = //
+            AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
+                    availability, prevAssignment, newAssignment, itemsToRebillJob);
+            // remove rebill job from itemsToAssign
+            itemsToAssign.remove(new JobId("rebill-job"));
+
+            // get all work items for ussd job from itemsToAssign
+            Map<JobId, List<WorkItem>> itemsToUssdJob = //
+            // here we implements custom logic for ussd job...
+            // remove ussd job from itemsToAssign
+            itemsToAssign.remove(new JobId("ussd-job"));
+
+            // get all work items for sms job from itemsToAssign
+            Map<JobId, List<WorkItem>> itemsToSmsJob = //
+            // here we implements custom logic for ussd job...
+            // remove ussd job from itemsToAssign
+            itemsToAssign.remove(new JobId("ussd-job"));
+
+            // get all work items for other jobs from itemsToAssign
+            Map<JobId, List<WorkItem>> itemsToOtherJobs = //
+            AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
+                   availability, prevAssignment, newAssignment, itemsToOtherJobs
+            );
+        }
+    }
+
+@Bean
+DistributedJobManager distributedJobManager() throws Exception {
+    return new DistributedJobManager(
+            "my-app-server-1", // application id
+            CuratorFrameworkFactory.newClient(zkHosts, new ExponentialBackoffRetry(1000, 10)),
+            "zk/root/path",
+            Arrays.asList(
+                    new SmsJob(),
+                    new UssdJob(),
+                    new RebillJob()
+            ),
+            new CustomAssignmentStrategy(),
+            new AggregationProfiler(),
+            DynamicProperty.of(180000), // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
+            DynamicProperty.of(true) // Log full tree during job rebalancing operation
+    );
+}
+----
+
 image::djm.png[]
 
 

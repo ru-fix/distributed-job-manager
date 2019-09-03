@@ -3,7 +3,7 @@ package ru.fix.distributed.job.manager.strategy;
 
 import org.junit.jupiter.api.Test;
 import ru.fix.distributed.job.manager.model.distribution.JobState;
-import ru.fix.distributed.job.manager.model.distribution.WorkPoolItem;
+import ru.fix.distributed.job.manager.model.distribution.WorkItem;
 import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
 
 import java.util.Arrays;
@@ -19,7 +19,7 @@ public class DefaultAssignmentStrategyTest {
 
     static void populate(JobState jobState, String workerId, String... workPoolIds) {
         WorkerItem workerItem = new WorkerItem(workerId);
-        Arrays.asList(workPoolIds).forEach(v -> workerItem.getWorkPools().add(new WorkPoolItem(v)));
+        Arrays.asList(workPoolIds).forEach(v -> workerItem.getWorkPools().add(new WorkItem(v)));
         jobState.getWorkers().add(workerItem);
     }
 
@@ -72,7 +72,7 @@ public class DefaultAssignmentStrategyTest {
         populate(available, "w2", "1", "2", "3", "4", "5");
         populate(available, "w3", "1", "2", "3", "4", "5");
 
-        Map<WorkerItem, Set<WorkPoolItem>> assignmentMap = strategy.reassignAndBalance(available, current).toMap();
+        Map<WorkerItem, Set<WorkItem>> assignmentMap = strategy.reassignAndBalance(available, current).toMap();
 
         assertTrue(assignmentMap.get(new WorkerItem("w1")).size() <= 2);
         assertTrue(assignmentMap.get(new WorkerItem("w2")).size() <= 2);
@@ -84,7 +84,7 @@ public class DefaultAssignmentStrategyTest {
 
         assertEquals(15, assignmentMap.values().stream()
                 .flatMap(Collection::stream)
-                .map(WorkPoolItem::getId)
+                .map(WorkItem::getId)
                 .map(Integer::parseInt)
                 .reduce((a, b) -> a + b)
                 .orElse(0)

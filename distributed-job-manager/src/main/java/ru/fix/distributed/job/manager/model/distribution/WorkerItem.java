@@ -7,7 +7,7 @@ import java.util.Set;
 public class WorkerItem {
 
     private String id;
-    private Set<WorkPoolItem> workPools = new HashSet<>();
+    private Set<WorkItem> workPools = new HashSet<>();
 
     public WorkerItem(String id) {
         Objects.requireNonNull(id);
@@ -18,7 +18,7 @@ public class WorkerItem {
         return id;
     }
 
-    public Set<WorkPoolItem> getWorkPools() {
+    public Set<WorkItem> getWorkPools() {
         return workPools;
     }
 
