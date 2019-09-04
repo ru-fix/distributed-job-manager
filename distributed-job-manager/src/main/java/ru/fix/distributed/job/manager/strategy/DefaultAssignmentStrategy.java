@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager.strategy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.model.distribution.*;
+import ru.fix.distributed.job.manager.model.*;
 
 import java.util.*;
 import java.util.stream.Collectors;

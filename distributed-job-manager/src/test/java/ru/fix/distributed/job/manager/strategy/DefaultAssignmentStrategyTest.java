@@ -2,9 +2,9 @@ package ru.fix.distributed.job.manager.strategy;
 
 
 import org.junit.jupiter.api.Test;
-import ru.fix.distributed.job.manager.model.distribution.JobState;
-import ru.fix.distributed.job.manager.model.distribution.WorkItem;
-import ru.fix.distributed.job.manager.model.distribution.WorkerItem;
+import ru.fix.distributed.job.manager.model.JobState;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.WorkerItem;
 
 import java.util.Arrays;
 import java.util.Collection;

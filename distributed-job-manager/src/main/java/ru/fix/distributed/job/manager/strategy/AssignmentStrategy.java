@@ -1,8 +1,8 @@
 package ru.fix.distributed.job.manager.strategy;
 
-import ru.fix.distributed.job.manager.model.distribution.JobId;
-import ru.fix.distributed.job.manager.model.distribution.WorkItem;
-import ru.fix.distributed.job.manager.model.distribution.ZookeeperState;
+import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.ZookeeperState;
 
 import java.util.List;
 import java.util.Map;

@@ -1,4 +1,8 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager.strategy;
+
+import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.ZookeeperState;
 
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +19,14 @@ import java.util.stream.Collectors;
 class LexicographicalAssignmentStrategy implements AssignmentStrategy {
 
     @Override
+    public void reassignAndBalance(
+            ZookeeperState availability,
+            ZookeeperState prevAssignment,
+            ZookeeperState newAssignment,
+            Map<JobId, List<WorkItem>> itemsToAssign) {
+
+    }
+
     public Map<String, Set<String>> reassignAndBalance(
             Map<String, Set<String>> availableRepeatableJobs,
             Map<String, Set<String>> assignedRepeatableJobs) {

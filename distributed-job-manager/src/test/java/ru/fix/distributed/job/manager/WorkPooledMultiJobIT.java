@@ -10,6 +10,8 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.socket.proxy.ProxySocket;
 
@@ -36,10 +38,10 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldAddNewAvailableWorkPool() throws Exception {
-        final String workerName = "common-worker-1";
+        final String applicationId = "common-worker-1";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager1 = createNewJobManager(workerName, curator)
+                DistributedJobManager jobManager1 = createNewJobManager(applicationId, curator)
         ) {
 
             assertTimeout(
@@ -47,7 +49,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> {
                         String jobId = getJobId(1);
                         Stat commonWorkerPoolChecker = zkTestingServer.getClient().checkExists()
-                                .forPath(ZKPaths.makePath(paths.getAvailableWorkPoolPath(workerName, jobId),
+                                .forPath(ZKPaths.makePath(paths.getAvailableWorkPoolPath(applicationId, jobId),
                                         "work-item-1.1"));
                         return commonWorkerPoolChecker != null;
                     },
@@ -58,19 +60,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldDistributeCommonJobs() throws Exception {
-        final String[] workerNames = {"distr-worker-1", "distr-worker-2", "distr-worker-3"};
+        final String[] applicationIds = {"distr-worker-1", "distr-worker-2", "distr-worker-3"};
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager1 = createNewJobManager(workerNames[0], curator);
-                DistributedJobManager jobManager2 = createNewJobManager(workerNames[1], curator);
-                DistributedJobManager jobManager3 = createNewJobManager(workerNames[2], curator)
+                DistributedJobManager jobManager1 = createNewJobManager(applicationIds[0], curator);
+                DistributedJobManager jobManager2 = createNewJobManager(applicationIds[1], curator);
+                DistributedJobManager jobManager3 = createNewJobManager(applicationIds[2], curator)
         ) {
             String searchedWorkItem = "work-item-1.1";
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
                         // Work pool contains 3 work items. Then every distributed job should contains 1 work item.
-                        for (String workerName : workerNames) {
-                            String assignedWorkpoolPath = paths.getAssignedWorkPoolPath(workerName, getJobId(1));
+                        for (String applicationId : applicationIds) {
+                            String assignedWorkpoolPath = paths.getAssignedWorkPoolPath(applicationId, getJobId(1));
                             if (curator.checkExists().forPath(assignedWorkpoolPath) != null) {
                                 List<String> workPool = curator.getChildren().forPath(assignedWorkpoolPath);
                                 if (workPool.contains(searchedWorkItem)) {
@@ -183,16 +185,16 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldUnevenDistribute() throws Exception {
-        final String[] workerNames = {"uneven-worker-1", "uneven-worker-2"};
+        final String[] applicationIds = {"uneven-worker-1", "uneven-worker-2"};
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager1 = createNewJobManager(workerNames[0], curator);
-                DistributedJobManager jobManager2 = createNewJobManager(workerNames[1], curator)
+                DistributedJobManager jobManager1 = createNewJobManager(applicationIds[0], curator);
+                DistributedJobManager jobManager2 = createNewJobManager(applicationIds[1], curator)
         ) {
             assertTimeout(Duration.ofMillis(10_000),
                     () -> {
-                        String pathForWorker1 = paths.getAssignedWorkPoolPath(workerNames[0], getJobId(1));
-                        String pathForWorker2 = paths.getAssignedWorkPoolPath(workerNames[1], getJobId(1));
+                        String pathForWorker1 = paths.getAssignedWorkPoolPath(applicationIds[0], getJobId(1));
+                        String pathForWorker2 = paths.getAssignedWorkPoolPath(applicationIds[1], getJobId(1));
 
                         if (curator.checkExists().forPath(pathForWorker1) != null && curator.checkExists().forPath
                                 (pathForWorker2) != null) {
@@ -220,14 +222,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldRunDistributedJob() throws Exception {
-        final String workerName = "worker";
+        final String applicationId = "worker";
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager(workerName, curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), new AggregatingProfiler(),
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        applicationId,
+                        curator,
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(Duration.ofMillis(10_000),
                     () -> Mockito.mockingDetails(testJob).getInvocations()
@@ -238,15 +245,20 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldRunDistributedJob_whichThrowsException() throws Exception {
-        final String workerName = "worker";
+        final String applicationId = "worker";
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
         doThrow(new IllegalStateException("Exception in job :#)))")).when(testJob).run(any());
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager(workerName, curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), new AggregatingProfiler(),
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        applicationId,
+                        curator,
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(Duration.ofMillis(10_000),
                     () -> Mockito.mockingDetails(testJob).getInvocations()
@@ -259,16 +271,21 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldRunAndRebalanceDistributedJob() throws Exception {
-        final String workerName = "worker";
+        final String applicationId = "worker";
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10)));
         AggregatingProfiler profiler = new AggregatingProfiler();
 
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager(workerName, curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), profiler,
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        applicationId,
+                        curator,
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -278,10 +295,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             StubbedMultiJob testJob2 = new StubbedMultiJob(10, getWorkItems(10));
             try (
                     CuratorFramework curator2 = zkTestingServer.createClient();
-                    DistributedJobManager jobManager2 = new DistributedJobManager("worker-2", curator2,
-                            JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob2), profiler,
-                            getTerminationWaitTime(),
-                            serverId)
+                    DistributedJobManager jobManager2 = new DistributedJobManager(
+                            "worker-2",
+                            curator2,
+                            JOB_MANAGER_ZK_ROOT_PATH,
+                            Collections.singletonList(testJob2),
+                            AssignmentStrategyFactory.DEFAULT,
+                            profiler,
+                            getTerminationWaitTime()
+                    )
             ) {
                 assertTimeout(
                         Duration.ofMillis(30_000),
@@ -306,21 +328,26 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldRunAndRebalanceDistributedJob_AfterHardShutdown() throws Exception {
-        final String workerName = "worker";
+        final String applicationId = "worker";
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10)));
         AggregatingProfiler profiler = new AggregatingProfiler();
 
         JobManagerPaths paths = new JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH);
         // simulate hard shutdown where availability is not cleaned up
-        String availableWorkpoolPath = paths.getAvailableWorkPoolPath(workerName, testJob.getJobId());
+        String availableWorkpoolPath = paths.getAvailableWorkPoolPath(applicationId, testJob.getJobId());
         zkTestingServer.getClient().create().creatingParentsIfNeeded().forPath(availableWorkpoolPath);
 
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager(workerName, curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), profiler,
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        applicationId,
+                        curator,
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -334,10 +361,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10), Long.MAX_VALUE));
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager("worker", curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), new AggregatingProfiler(),
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        "app-1",
+                        curator,
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -356,10 +388,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         AggregatingProfiler profiler = new AggregatingProfiler();
 
         try (
-                DistributedJobManager jobManager = new DistributedJobManager("worker", zkTestingServer.createClient(),
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), profiler,
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        "app-1",
+                        zkTestingServer.getClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -368,11 +405,17 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             Thread.sleep(500);
             verify(testJob, times(1)).run(any());
 
-            try (DistributedJobManager jobManager2 = new DistributedJobManager("worker2", zkTestingServer
-                    .createClient(),
-                    JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob2), profiler,
-                    getTerminationWaitTime(),
-                    serverId)) {
+            try (
+                    DistributedJobManager jobManager2 = new DistributedJobManager(
+                            "app-2",
+                            zkTestingServer.createClient(),
+                            JOB_MANAGER_ZK_ROOT_PATH,
+                            Collections.singletonList(testJob),
+                            AssignmentStrategyFactory.DEFAULT,
+                            new AggregatingProfiler(),
+                            getTerminationWaitTime()
+                    )
+            ) {
                 assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                         () -> testJob2.getLocalWorkPool().size() == testJob2.getWorkPool().getItems().size(),
                         () -> "Single distributed job2 should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
@@ -387,10 +430,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10), 3600_000, false)); // don't pass too
         // big value here
         try (
-                DistributedJobManager jobManager = new DistributedJobManager("worker", zkTestingServer.getClient(),
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJob), new AggregatingProfiler(),
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        "app-1",
+                        zkTestingServer.createClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJob),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getAllWorkPools().size() == 3 &&
@@ -407,19 +455,27 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldUpdateWorkPool() throws Exception {
         StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
         StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
-        AggregatingProfiler profiler = new AggregatingProfiler();
 
         try (
-                CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager("worker", curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJobOnWorker1), profiler,
-                        getTerminationWaitTime(),
-                        serverId);
-                CuratorFramework curator2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = new DistributedJobManager("worker-2", curator2,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJobOnWorker2), profiler,
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager1 = new DistributedJobManager(
+                        "app-1",
+                        zkTestingServer.createClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJobOnWorker1),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                );
+                DistributedJobManager jobManager2 = new DistributedJobManager(
+                        "app-2",
+                        zkTestingServer.createClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJobOnWorker2),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
+
         ) {
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
@@ -464,15 +520,24 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                DistributedJobManager jobManager = new DistributedJobManager("worker", curator,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJobOnWorker1), profiler,
-                        getTerminationWaitTime(),
-                        serverId);
-                CuratorFramework curator2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = new DistributedJobManager("worker-2", curator2,
-                        JOB_MANAGER_ZK_ROOT_PATH, Collections.singletonList(testJobOnWorker2), profiler,
-                        getTerminationWaitTime(),
-                        serverId)
+                DistributedJobManager jobManager = new DistributedJobManager(
+                        "app-1",
+                        zkTestingServer.createClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJobOnWorker1),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                );
+                DistributedJobManager jobManager2 = new DistributedJobManager(
+                        "app-1",
+                        zkTestingServer.createClient(),
+                        JOB_MANAGER_ZK_ROOT_PATH,
+                        Collections.singletonList(testJobOnWorker2),
+                        AssignmentStrategyFactory.DEFAULT,
+                        new AggregatingProfiler(),
+                        getTerminationWaitTime()
+                )
         ) {
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
@@ -516,12 +581,12 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     //    @Test
     public void shouldAddAndRemoveDistributedJob() throws Exception {
-        final String[] workerNames = {"added-worker-1", "added-worker-2"};
+        final String[] applicationIds = {"added-worker-1", "added-worker-2"};
         CuratorFramework curator1 = zkTestingServer.createClient();
-        DistributedJobManager jobManager1 = createNewJobManager(workerNames[0], curator1);
+        DistributedJobManager jobManager1 = createNewJobManager(applicationIds[0], curator1);
         try (
                 CuratorFramework curator2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = createNewJobManager(workerNames[1], curator2)
+                DistributedJobManager jobManager2 = createNewJobManager(applicationIds[1], curator2)
         ) {
             jobManager1.close();
             curator1.close();
@@ -529,7 +594,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
                         List<String> workPoolForFirstJob = curator2.getChildren()
-                                .forPath(paths.getAssignedWorkPoolPath(workerNames[1], getJobId(1)));
+                                .forPath(paths.getAssignedWorkPoolPath(applicationIds[1], getJobId(1)));
                         return workPoolForFirstJob.size() == getWorkItems(1).size();
                     },
                     () -> "All work pool should be distributed on 1 alive worker" + printZkTree
@@ -537,16 +602,22 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
-    private DistributedJobManager createNewJobManager(String workerName, CuratorFramework curatorFramework) throws
-            Exception {
-        return new DistributedJobManager(workerName,
-                curatorFramework, JOB_MANAGER_ZK_ROOT_PATH, new HashSet<>(Arrays.asList(
-                new StubbedMultiJob(1, getWorkItems(1)),
-                new StubbedMultiJob(2, getWorkItems(2)),
-                new StubbedMultiJob(3, getWorkItems(3)))),
+    private DistributedJobManager createNewJobManager(
+            String applicationId,
+            CuratorFramework curatorFramework
+    ) throws Exception {
+        return new DistributedJobManager(
+                applicationId,
+                curatorFramework,
+                JOB_MANAGER_ZK_ROOT_PATH,
+                Arrays.asList(
+                        new StubbedMultiJob(1, getWorkItems(1)),
+                        new StubbedMultiJob(2, getWorkItems(2)),
+                        new StubbedMultiJob(3, getWorkItems(3))),
+                AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
-                getTerminationWaitTime(),
-                serverId);
+                getTerminationWaitTime()
+        );
     }
 
     private DynamicProperty<Long> getTerminationWaitTime() {

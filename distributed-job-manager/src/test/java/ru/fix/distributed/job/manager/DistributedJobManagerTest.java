@@ -3,15 +3,16 @@ package ru.fix.distributed.job.manager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.model.distribution.JobId;
-import ru.fix.distributed.job.manager.model.distribution.WorkItem;
-import ru.fix.distributed.job.manager.model.distribution.ZookeeperState;
+import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.ZookeeperState;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.testing.ZKTestingServer;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -136,7 +137,7 @@ class DistributedJobManagerTest {
                 ZookeeperState newAssignment,
                 Map<JobId, List<WorkItem>> itemsToAssign) {
 
-            // get all work items for rebill job from itemsToAssign
+            /*// get all work items for rebill job from itemsToAssign
             Map<JobId, List<WorkItem>> itemsToRebillJob = null;
             AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
                     availability, prevAssignment, newAssignment, itemsToRebillJob);
@@ -156,9 +157,9 @@ class DistributedJobManagerTest {
             itemsToAssign.remove(new JobId("ussd-job"));
 
             // get all work items for other jobs from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToOtherJobs = null;
+            Map<JobId, List<WorkItem>> itemsToOtherJobs = null;*/
             AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                   availability, prevAssignment, newAssignment, itemsToOtherJobs
+                   availability, prevAssignment, newAssignment, itemsToAssign
             );
         }
     }
@@ -170,7 +171,7 @@ class DistributedJobManagerTest {
                     "application-id",
                     new ZKTestingServer().createClient(),
                     "/root/path",
-                    List.of(new SmsJob(), new UssdJob(), new RebillJob()),
+                    Arrays.asList(new SmsJob(), new UssdJob(), new RebillJob()),
                     new CustomAssignmentStrategy(),
                     new AggregatingProfiler(),
                     DynamicProperty.of(10000L)

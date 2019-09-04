@@ -1,4 +1,4 @@
-package ru.fix.distributed.job.manager.model.distribution;
+package ru.fix.distributed.job.manager.model;
 
 import java.util.HashMap;
 import java.util.Map;

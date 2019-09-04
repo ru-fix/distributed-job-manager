@@ -1,4 +1,8 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager.strategy;
+
+import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.ZookeeperState;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -9,8 +13,13 @@ import java.util.stream.Collectors;
  *
  * @author Kamil Asfandiyarov
  */
-class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
+public class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
+
     @Override
+    public void reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment, ZookeeperState newAssignment, Map<JobId, List<WorkItem>> itemsToAssign) {
+
+    }
+
     public Map<String, Set<String>> reassignAndBalance(Map<String, Set<String>> availableRepeatableJobs,
                                                        Map<String, Set<String>> currentAssignment) {
 

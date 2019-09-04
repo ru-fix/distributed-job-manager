@@ -1,7 +1,8 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager.strategy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.fix.distributed.job.manager.strategy.MinimizedReassignmentAssignmentStrategy;
 
 import java.util.*;
 

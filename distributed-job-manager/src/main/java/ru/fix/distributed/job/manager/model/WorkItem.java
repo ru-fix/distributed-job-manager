@@ -1,25 +1,18 @@
-package ru.fix.distributed.job.manager.model.distribution;
+package ru.fix.distributed.job.manager.model;
 
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
-public class WorkerItem {
+public class WorkItem {
 
     private String id;
-    private Set<WorkItem> workPools = new HashSet<>();
 
-    public WorkerItem(String id) {
+    public WorkItem(String id) {
         Objects.requireNonNull(id);
         this.id = id;
     }
 
     public String getId() {
         return id;
-    }
-
-    public Set<WorkItem> getWorkPools() {
-        return workPools;
     }
 
     @Override
@@ -30,8 +23,9 @@ public class WorkerItem {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        WorkerItem that = (WorkerItem) o;
+        WorkItem that = (WorkItem) o;
         return id.equals(that.id);
+
     }
 
     @Override
@@ -41,9 +35,6 @@ public class WorkerItem {
 
     @Override
     public String toString() {
-        return "WorkerItem{" +
-                "id='" + id + '\'' +
-                ", workPools=" + workPools +
-                '}';
+        return "WorkPoolItem[" + id + ']';
     }
 }
