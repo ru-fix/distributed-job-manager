@@ -150,13 +150,14 @@ class Manager implements AutoCloseable {
                 String assignmentVersionNode = paths.getAssignmentVersion();
                 int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
-                // read-up required values
                 removeAssignmentsOnDeadNodes();
-
 
                 transactionalClient.checkPathWithVersion(assignmentVersionNode, version);
                 transactionalClient.setData(assignmentVersionNode, new byte[]{});
+
                 assignWorkPools(transactionalClient, getZookeeperGlobalState());
+
+
             });
         } catch (Exception e) {
             log.error("Failed to perform assignment", e);
@@ -181,6 +182,7 @@ class Manager implements AutoCloseable {
             ZookeeperGlobalState globalState
     ) throws Exception {
         ZookeeperState newAssignmentState = new ZookeeperState();
+        log.info("assignment!!!");
         assignmentStrategy.reassignAndBalance(
                 globalState.getAvailableState(),
                 globalState.getCurrentState(),
@@ -188,20 +190,36 @@ class Manager implements AutoCloseable {
                 globalState.getWorkItemsToAssign()
         );
 
-        newAssignmentState.forEach((k, v) -> {
-            // new logic
-        });
+        transactionalClient.deletePathWithChildrenIfNeeded(paths.getWorkersPath());
 
+        for (Map.Entry<JobId, Map<WorkerItem, WorkItem>> job : newAssignmentState.entrySet()) {
+            String jobId = job.getKey().getId();
+            Map<WorkerItem, WorkItem> globalWorkPool = job.getValue();
 
+            for (Map.Entry<WorkerItem, WorkItem> workItemEntry : globalWorkPool.entrySet()) {
+                String workerItem = workItemEntry.getKey().getId();
+                String workItem = workItemEntry.getValue().getId();
+
+                String newPath = ZKPaths.makePath(
+                        paths.rootPath,
+                        "workers",
+                        workerItem,
+                        "assigned",
+                        "work-pooled",
+                        jobId,
+                        "work-pool",
+                        workItem
+                );
+
+                transactionalClient.createPathWithParentsIfNeeded(newPath);
+            }
+
+        }
 
         /*for (Map.Entry<JobId, JobState> jobAvailability : availabilityState.entrySet()) {
             JobId jobId = jobAvailability.getKey();
             Set<WorkerItem> currentAssignment = assignmentState.get(jobId).getWorkers();
 
-
-            if (wpAssignmentStrategy == null) {
-                throw new IllegalStateException("Got null assignment strategy for job " + jobId.getId());
-            }
             JobState newJobState = wpAssignmentStrategy.reassignAndBalance(jobAvailability.getValue(),
                     assignmentState.get(jobId));
 
@@ -320,10 +338,14 @@ class Manager implements AutoCloseable {
                     .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
             for (String availableJobId : availableJobIds) {
-                Map<WorkerItem, WorkItem> workItemsForAvailableJob = curatorFramework.getChildren()
-                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId))
-                        .stream()
-                        .collect(Collectors.toMap(w -> new WorkerItem(worker), WorkItem::new));
+                List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
+                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
+
+                Map<WorkerItem, WorkItem> workItemsForAvailableJob = new HashMap<>();
+                for (String workItem : workItemsForAvailableJobList) {
+                    workItemsForAvailableJob.put(new WorkerItem(worker), new WorkItem(workItem));
+                }
+
                 availableState.put(new JobId(availableJobId), workItemsForAvailableJob);
             }
 
@@ -331,12 +353,15 @@ class Manager implements AutoCloseable {
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
             for (String assignedJobId : assignedJobIds) {
-                Map<WorkerItem, WorkItem> workItemsForAvailableJob = curatorFramework.getChildren()
-                        .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId))
-                        .stream()
-                        .collect(Collectors.toMap(w -> new WorkerItem(worker), WorkItem::new));
+                List<String> assignedJobWorkItems = curatorFramework.getChildren()
+                        .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
 
-                currentState.put(new JobId(assignedJobId), workItemsForAvailableJob);
+                Map<WorkerItem, WorkItem> workItemsForAssignedJob = new HashMap<>();
+                for (String workItem : assignedJobWorkItems) {
+                    workItemsForAssignedJob.put(new WorkerItem(worker), new WorkItem(workItem));
+                }
+
+                currentState.put(new JobId(assignedJobId), workItemsForAssignedJob);
             }
         }
 

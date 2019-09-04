@@ -12,9 +12,7 @@ import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.testing.ZKTestingServer;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class DistributedJobManagerTest {
     private static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
@@ -27,15 +25,29 @@ class DistributedJobManagerTest {
         zkTestingServer.start();
     }
 
-    public static class RebillJob implements DistributedJob {
+    public static class DistributedJobStub implements DistributedJob {
+        private final Long delay;
+        private final String jobId;
+        private final WorkPool workPool;
+
+        public DistributedJobStub(String jobId, WorkPool workPool) {
+            this(jobId, workPool, 1000L);
+        }
+
+        public DistributedJobStub(String jobId, WorkPool workPool, Long delay) {
+            this.jobId = jobId;
+            this.workPool = workPool;
+            this.delay = delay;
+        }
+
         @Override
         public String getJobId() {
-            return null;
+            return jobId;
         }
 
         @Override
         public Schedule getSchedule() {
-            return null;
+            return Schedule.withDelay(delay);
         }
 
         @Override
@@ -45,86 +57,22 @@ class DistributedJobManagerTest {
 
         @Override
         public long getInitialJobDelay() {
-            return 0;
+            return delay;
         }
 
         @Override
         public WorkPool getWorkPool() {
-            return null;
+            return workPool;
         }
 
         @Override
         public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return null;
+            return WorkPoolRunningStrategies.getSingleThreadStrategy();
         }
 
         @Override
         public long getWorkPoolCheckPeriod() {
             return 0;
-        }
-    }
-
-    public static class SmsJob implements DistributedJob {
-        @Override
-        public String getJobId() {
-            return null;
-        }
-
-        @Override
-        public Schedule getSchedule() {
-            return null;
-        }
-
-        @Override
-        public void run(DistributedJobContext context) throws Exception {
-
-        }
-
-        @Override
-        public long getInitialJobDelay() {
-            return 0;
-        }
-
-        @Override
-        public WorkPool getWorkPool() {
-            return null;
-        }
-
-        @Override
-        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return null;
-        }
-    }
-
-    public static class UssdJob implements DistributedJob {
-        @Override
-        public String getJobId() {
-            return null;
-        }
-
-        @Override
-        public Schedule getSchedule() {
-            return null;
-        }
-
-        @Override
-        public void run(DistributedJobContext context) throws Exception {
-
-        }
-
-        @Override
-        public long getInitialJobDelay() {
-            return 0;
-        }
-
-        @Override
-        public WorkPool getWorkPool() {
-            return null;
-        }
-
-        @Override
-        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return null;
         }
     }
 
@@ -159,25 +107,55 @@ class DistributedJobManagerTest {
             // get all work items for other jobs from itemsToAssign
             Map<JobId, List<WorkItem>> itemsToOtherJobs = null;*/
             AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                   availability, prevAssignment, newAssignment, itemsToAssign
+                    availability, prevAssignment, newAssignment, itemsToAssign
             );
         }
     }
 
     @Test
-    public void example() {
-        try {
-            DistributedJobManager distributedJobManager = new DistributedJobManager(
-                    "application-id",
-                    new ZKTestingServer().createClient(),
-                    "/root/path",
-                    Arrays.asList(new SmsJob(), new UssdJob(), new RebillJob()),
-                    new CustomAssignmentStrategy(),
-                    new AggregatingProfiler(),
-                    DynamicProperty.of(10000L)
-            );
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
+    public void example() throws Exception {
+        StubbedMultiJob testJob = new StubbedMultiJob(1, Set.of("11", "22", "33"));
+
+        DistributedJobManager distributedJobManager = new DistributedJobManager(
+                "worker-1",
+                zkTestingServer.createClient(),
+                "/root/path",
+                Arrays.asList(
+                        new DistributedJobStub("sms-job", createWorkPool("sms-job", 2), 2000L),
+                        new DistributedJobStub("ussd-job", createWorkPool("ussd-job", 3)),
+                        new DistributedJobStub("rebill-job", createWorkPool("rebill-job", 3))),
+                AssignmentStrategyFactory.RENDEZVOUS,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        DistributedJobManager distributedJobManager2 = new DistributedJobManager(
+                "worker-2",
+                zkTestingServer.createClient(),
+                "/root/path",
+                Arrays.asList(
+                        testJob,
+                        new DistributedJobStub("custom-job-1", createWorkPool("custom-job-1", 2), 500L),
+                        new DistributedJobStub("custom-job-2", createWorkPool("custom-job-2", 3), 0L),
+                        new DistributedJobStub("custom-job-3", createWorkPool("custom-job-3", 1), 0L)),
+                AssignmentStrategyFactory.RENDEZVOUS,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        testJob.updateWorkPool(Set.of("44", "33"));
+
+    }
+
+    private WorkPool createWorkPool(String jobId, int workItemsNumber) {
+        Set<String> workPool = new HashSet<>();
+
+        for (int i = 0; i < workItemsNumber; i++) {
+            workPool.add(jobId + ".work-item-" + i);
         }
+
+        return WorkPool.of(workPool);
     }
 }
