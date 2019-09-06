@@ -15,7 +15,7 @@ import java.util.Collection;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty, String)}
+ * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -116,7 +116,6 @@ public class DistributedJobManager implements AutoCloseable {
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
                 timeToWaitTermination,
-                applicationId,
                 printTree);
 
         workerInitTimespan.stop();
