@@ -58,7 +58,6 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private DynamicProperty<Long> timeToWaitTermination;
-    private final String serverId;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -69,21 +68,20 @@ class Worker implements AutoCloseable {
     private final AtomicProperty<Integer> threadPoolSize;
 
     Worker(CuratorFramework curatorFramework,
-           String workerId,
+           String applicationId,
            String rootPath,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
            DynamicProperty<Long> timeToWaitTermination,
-           String serverId,
            DynamicProperty<Boolean> printTree) {
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
-        this.workerId = workerId;
+        this.workerId = applicationId;
         this.availableJobs = distributedJobs;
         this.printTree = printTree;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "worker-" + workerId,
+                "worker-" + applicationId,
                 profiler);
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
@@ -102,13 +100,11 @@ class Worker implements AutoCloseable {
 
         this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
         this.timeToWaitTermination = timeToWaitTermination;
-        this.serverId = serverId;
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
                 paths,
-                workerId,
-                serverId,
+                applicationId,
                 profiler);
 
         distributedJobs.forEach(job ->
@@ -150,7 +146,7 @@ class Worker implements AutoCloseable {
         });
 
         curatorFramework.getConnectionStateListenable().addListener((client, event) -> {
-            log.info("sid={} start().connectionListener event={}", serverId, event);
+            log.info("wid={} start().connectionListener event={}", workerId, event);
             if (!isWorkerShutdown) {
                 switch (event) {
                     case SUSPENDED:
@@ -229,7 +225,7 @@ class Worker implements AutoCloseable {
 
         workPooledCache = new TreeCache(curatorFramework, paths.getAssignedWorkPooledJobsPath(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
-            log.info("sid={} registerWorkerAsAliveAndRegisterJobs event={}", serverId, event);
+            log.info("wid={} registerWorkerAsAliveAndRegisterJobs event={}", workerId, event);
             switch (event.getType()) {
                 case INITIALIZED:
                 case NODE_ADDED:
@@ -260,8 +256,8 @@ class Worker implements AutoCloseable {
             if (workPoolsPathExists && workerAliveFlagPathExists) {
                 Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
                 if (!currentWorkPools.equals(newWorkPool)) {
-                    log.info("sid={} updateWorkPoolForJob update for jobId={} from {} to {}",
-                            serverId,
+                    log.info("wid={} updateWorkPoolForJob update for jobId={} from {} to {}",
+                            workerId,
                             job.getJobId(),
                             currentWorkPools,
                             newWorkPool);
@@ -288,8 +284,8 @@ class Worker implements AutoCloseable {
                                 }
                             });
                 } else {
-                    log.info("sid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
-                            serverId,
+                    log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
+                            workerId,
                             job.getJobId(),
                             newWorkPool);
                 }
@@ -313,7 +309,7 @@ class Worker implements AutoCloseable {
         log.trace("Invoke Worker#onWorkPooledJobReassigned() in {} worker", workerId);
 
         if (printTree.get() && log.isInfoEnabled()) {
-            log.info("sid={} tree after reassign: \n {}", serverId, buildZkTreeDump());
+            log.info("wid={} tree after reassign: \n {}", workerId, buildZkTreeDump());
         }
 
         // get new assignment
@@ -324,7 +320,7 @@ class Worker implements AutoCloseable {
         reconfigureExecutors(threadCounts);
 
         // stop already running jobs which changed their states
-       scheduledJobManager.removeIf(scheduledEntry -> {
+        scheduledJobManager.removeIf(scheduledEntry -> {
             DistributedJob multiJob = scheduledEntry.getKey();
             List<ScheduledJobExecution> jobExecutions = scheduledEntry.getValue();
 
@@ -335,8 +331,8 @@ class Worker implements AutoCloseable {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());
             if (!runningWorkPools.equals(newWorkPool)) {
-                log.info("sid={} onWorkPooledJobReassigned reassigned jobId={} from {} to {}",
-                        serverId,
+                log.info("wid={} onWorkPooledJobReassigned reassigned jobId={} from {} to {}",
+                        workerId,
                         multiJob.getJobId(),
                         runningWorkPools,
                         newWorkPool);
@@ -346,8 +342,8 @@ class Worker implements AutoCloseable {
             } else {
                 jobExecutions.forEach(scheduledJobExecution -> {
                     if (scheduledJobExecution.isShutdowned()) {
-                        log.error("sid={} onWorkPooledJobReassigned jobId={} is down! Work share {}",
-                                serverId,
+                        log.error("wid={} onWorkPooledJobReassigned jobId={} is down! Work share {}",
+                                workerId,
                                 multiJob.getJobId(),
                                 scheduledJobExecution.getWorkShare());
                     }
@@ -365,8 +361,8 @@ class Worker implements AutoCloseable {
                 int groupsSize = newWorkPool.size() / threadCount;
 
                 for (List<String> workPoolToExecute : Lists.partition(newWorkPool, groupsSize)) {
-                    log.info("sid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
-                            serverId,
+                    log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
+                            workerId,
                             newMultiJob.getJobId(),
                             workPoolToExecute,
                             newMultiJob.getInitialJobDelay());
@@ -378,7 +374,6 @@ class Worker implements AutoCloseable {
                     );
 
                     if (!isWorkerShutdown) {
-
                         ScheduledFuture<?> scheduledFuture =
                                 jobReschedulableScheduler.schedule(
                                         newMultiJob::getSchedule,
@@ -387,8 +382,8 @@ class Worker implements AutoCloseable {
                         jobExecutionWrapper.setScheduledFuture(scheduledFuture);
                         scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
                     } else {
-                        log.warn("Cannot schedule sid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                                serverId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+                        log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
+                                workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
                     }
                 }
             }
@@ -406,9 +401,10 @@ class Worker implements AutoCloseable {
 
     private List<String> getWorkerWorkPool(DistributedJob job) throws Exception {
         try {
-            return curatorFramework.getChildren().forPath(paths.getAssignedWorkPoolPath(workerId, job.getJobId()));
+            return curatorFramework.getChildren()
+                    .forPath(paths.getAssignedWorkPoolPath(workerId, job.getJobId()));
         } catch (KeeperException.NoNodeException e) {
-            log.trace("Received event when NoNode for work pool path {}", e);
+            log.trace("Received event when NoNode for work pool path {}", e, e);
             return Collections.emptyList();
         }
     }
@@ -427,8 +423,8 @@ class Worker implements AutoCloseable {
         long totalTime = timeToWaitTermination.get();
         long startTime = System.currentTimeMillis();
         for (ScheduledJobExecution jobExecutionWrapper : jobExecutions) {
-            log.info("sid={} safelyTerminateJobs shutdown {}",
-                    serverId,
+            log.info("wid={} safelyTerminateJobs shutdown {}",
+                    workerId,
                     jobExecutionWrapper.getJobId());
             try {
                 long spend = System.currentTimeMillis() - startTime;
