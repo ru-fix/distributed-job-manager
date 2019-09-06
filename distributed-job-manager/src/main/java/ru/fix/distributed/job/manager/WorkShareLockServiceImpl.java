@@ -32,7 +32,6 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
     final CuratorFramework curatorFramework;
     final JobManagerPaths jobManagerPaths;
     final String workerId;
-    final String serverId;
     final ExecutorService persistenLockExecutor;
 
     final ReschedulableScheduler workItemProlongationTask;
@@ -66,7 +65,6 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
     public WorkShareLockServiceImpl(CuratorFramework curatorFramework,
                                     JobManagerPaths jobManagerPaths,
                                     String workerId,
-                                    String serverId,
                                     Profiler profiler) {
 
         workItemProlongationTask = NamedExecutors.newSingleThreadScheduler(
@@ -76,7 +74,6 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         this.curatorFramework = curatorFramework;
         this.jobManagerPaths = jobManagerPaths;
         this.workerId = workerId;
-        this.serverId = serverId;
 
         this.workItemProlongationTask.schedule(
                 () -> Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS),
@@ -84,8 +81,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                 () -> jobWorkItemLocks.forEach((job, workItemLocks) ->
                         workItemLocks.forEach((workItem, lock) -> {
                                     if (!checkAndProlong(job, workItem, lock.lock)) {
-                                        log.info("sid={} wid={} prolongation fail jobId={} item={}",
-                                                serverId,
+                                        log.info("wid={} prolongation fail jobId={} item={}",
                                                 workerId,
                                                 job.getJobId(),
                                                 workItem);
@@ -108,7 +104,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                     persistenLockExecutor,
                     workerId,
                     lockPath,
-                    serverId);
+                    workerId);
             if (!lock.expirableAcquire(DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_ACQUIRING_TIMEOUT_MS)) {
                 log.debug("Failed to acquire expirable lock. Acquire period: {}, timeout: {}, lock path: {}",
                         DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_ACQUIRING_TIMEOUT_MS, lockPath);
@@ -127,11 +123,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                 lock.close();
                 return false;
             }
-            log.info("sid={} wid={} acqired jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+            log.info("wid={} acqired jobId={} item={}",
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             return true;
 
         } catch (Exception exc) {
@@ -166,11 +161,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
 
         try {
             lock.release();
-            log.info("sid={} wid={} released jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+            log.info("wid={} released jobId={} item={}",
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             workItemLocks.remove(workItem);
         } finally {
             try {
@@ -188,10 +182,8 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
             log.info("checkAndProlong jobId={} item={}",
                     job.getJobId(),
                     workItem);
-            if (!lock.checkAndProlongIfExpiresIn(DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_EXPIRATION_PERIOD_MS)) {
-                return false;
-            }
-            return true;
+
+            return lock.checkAndProlongIfExpiresIn(DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_EXPIRATION_PERIOD_MS);
         } catch (Exception exc) {
             log.error("Failed to checkAndProlong persistent locks for job {} for workItem {}",
                     job.getJobId(), workItem, exc);
