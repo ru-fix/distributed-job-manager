@@ -180,48 +180,45 @@ class Worker implements AutoCloseable {
             }
         }
 
-        TransactionalClient.tryCommit(curatorFramework, REGISTRATION_COMMIT_RETRIES_COUNT, availableJobsTransaction -> {
-            // check node version
-            String checkNodePath = paths.getRegistrationVersion();
-            int version = curatorFramework.checkExists().forPath(checkNodePath).getVersion();
+        // check node version
+        String checkNodePath = paths.getRegistrationVersion();
+        int version = curatorFramework.checkExists().forPath(checkNodePath).getVersion();
 
-            availableJobsTransaction.checkPathWithVersion(checkNodePath, version);
-            availableJobsTransaction.setData(checkNodePath, new byte[]{});
+        curatorFramework.setData().forPath(checkNodePath, new byte[]{});
 
-            log.info("Registering worker {} (registration version {})", workerId, version);
+        log.info("Registering worker {} (registration version {})", workerId, version);
 
-            // register worker as alive
-            String nodeAlivePath = paths.getWorkerAliveFlagPath(workerId);
-            if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
-                availableJobsTransaction.deletePath(nodeAlivePath);
+        // register worker as alive
+        String nodeAlivePath = paths.getWorkerAliveFlagPath(workerId);
+        if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
+            curatorFramework.delete().forPath(nodeAlivePath);
+        }
+        curatorFramework.create().withMode(CreateMode.EPHEMERAL).forPath(nodeAlivePath);
+
+        // clean up all available jobs
+        String workerPath = paths.getWorkerPath(workerId);
+        if (curatorFramework.checkExists().forPath(workerPath) != null) {
+            curatorFramework.delete().deletingChildrenIfNeeded().forPath(workerPath);
+        }
+
+        // create availability and assignments directories
+        curatorFramework.create().forPath(paths.getWorkerPath(workerId));
+        curatorFramework.create().forPath(paths.getWorkerAvailableJobsPath(workerId));
+        curatorFramework.create().forPath(paths.getAvailableWorkPooledJobPath(workerId));
+        curatorFramework.create().forPath(paths.getWorkerAssignedJobsPath(workerId));
+        curatorFramework.create().forPath(paths.getAssignedWorkPooledJobsPath(workerId));
+
+        // register work pooled jobs
+        for (DistributedJob job : availableJobs) {
+            curatorFramework.create().forPath(
+                    ZKPaths.makePath(paths.getAvailableWorkPooledJobPath(workerId), job.getJobId()));
+            curatorFramework.create().forPath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()));
+
+            for (String workPool : workPools.get(job).getItems()) {
+                curatorFramework.create().forPath(
+                        ZKPaths.makePath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()), workPool));
             }
-            availableJobsTransaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
-
-            // clean up all available jobs
-            String workerPath = paths.getWorkerPath(workerId);
-            if (curatorFramework.checkExists().forPath(workerPath) != null) {
-                availableJobsTransaction.deletePathWithChildrenIfNeeded(workerPath);
-            }
-
-            // create availability and assignments directories
-            availableJobsTransaction.createPath(paths.getWorkerPath(workerId));
-            availableJobsTransaction.createPath(paths.getWorkerAvailableJobsPath(workerId));
-            availableJobsTransaction.createPath(paths.getAvailableWorkPooledJobPath(workerId));
-            availableJobsTransaction.createPath(paths.getWorkerAssignedJobsPath(workerId));
-            availableJobsTransaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
-
-            // register work pooled jobs
-            for (DistributedJob job : availableJobs) {
-                availableJobsTransaction.createPath(
-                        ZKPaths.makePath(paths.getAvailableWorkPooledJobPath(workerId), job.getJobId()));
-                availableJobsTransaction.createPath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()));
-
-                for (String workPool : workPools.get(job).getItems()) {
-                    availableJobsTransaction.createPath(
-                            ZKPaths.makePath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()), workPool));
-                }
-            }
-        });
+        }
 
         workPooledCache = new TreeCache(curatorFramework, paths.getAssignedWorkPooledJobsPath(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
@@ -261,7 +258,27 @@ class Worker implements AutoCloseable {
                             job.getJobId(),
                             currentWorkPools,
                             newWorkPool);
-                    TransactionalClient.tryCommit(curatorFramework, WORK_POOL_RETRIES_COUNT,
+
+                    curatorFramework.setData()
+                            .forPath(paths.getWorkerAliveFlagPath(workerId),
+                                    curatorFramework.getData().forPath(workerAliveFlagPath));
+
+                    Set<String> workPoolsToDelete = new HashSet<>(currentWorkPools);
+                    workPoolsToDelete.removeAll(newWorkPool);
+                    for (String workPoolToDelete : workPoolsToDelete) {
+                        curatorFramework.delete()
+                                .forPath(ZKPaths.makePath(workPoolsPath, workPoolToDelete));
+                    }
+
+                    // create new work pools
+                    Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
+                    workPoolsToAdd.removeAll(currentWorkPools);
+                    for (String workPoolToAdd : workPoolsToAdd) {
+                        curatorFramework.create()
+                                .forPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
+                    }
+
+                  /*  TransactionalClient.tryCommit(curatorFramework, WORK_POOL_RETRIES_COUNT,
                             availableJobsTransaction -> {
                                 // update alive flag to trigger update
                                 availableJobsTransaction.setData(
@@ -282,7 +299,7 @@ class Worker implements AutoCloseable {
                                 for (String workPoolToAdd : workPoolsToAdd) {
                                     availableJobsTransaction.createPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
                                 }
-                            });
+                            });*/
                 } else {
                     log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
                             workerId,
@@ -302,6 +319,7 @@ class Worker implements AutoCloseable {
     private void reconfigureExecutors(Map<DistributedJob, Integer> workPooledMultiJobThreadCounts) {
         int threadsCount = workPooledMultiJobThreadCounts.values().stream().mapToInt(v -> v).sum();
         log.trace("Pool size now is {}", threadsCount);
+        threadsCount = threadsCount == 0 ? 1 : threadsCount;
         threadPoolSize.set(threadsCount);
     }
 

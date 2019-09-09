@@ -77,8 +77,9 @@ public class DefaultAssignmentStrategy implements AssignmentStrategy {
     }
 
     @Override
-    public void reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment,
+    public ZookeeperState reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment,
                                    ZookeeperState newAssignment, Map<JobId, List<WorkItem>> itemsToAssign) {
+        return availability;
 
     }
 }

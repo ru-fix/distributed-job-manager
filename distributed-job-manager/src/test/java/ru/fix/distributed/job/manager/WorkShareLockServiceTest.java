@@ -30,7 +30,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new JobManagerPaths
-                        (rootPath), applicationId, serverId, new AggregatingProfiler())
+                        (rootPath), applicationId, new AggregatingProfiler())
         ) {
             ListenerContainer<ConnectionStateListener> listenable =
                     (ListenerContainer<ConnectionStateListener>) curator.getConnectionStateListenable();
@@ -57,7 +57,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
-                        new JobManagerPaths(rootPath), applicationId, serverId, new AggregatingProfiler())
+                        new JobManagerPaths(rootPath), applicationId, new AggregatingProfiler())
         ) {
             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
             assertThat(beforeAcquire, is(false));

@@ -530,7 +530,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         getTerminationWaitTime()
                 );
                 DistributedJobManager jobManager2 = new DistributedJobManager(
-                        "app-1",
+                        "app-2",
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJobOnWorker2),

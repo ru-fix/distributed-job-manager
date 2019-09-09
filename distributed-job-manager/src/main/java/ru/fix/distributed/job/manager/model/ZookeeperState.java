@@ -1,27 +1,50 @@
 package ru.fix.distributed.job.manager.model;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
- * ZookeeperState represent Map with mapping job to workers with work items
+ * ZookeeperState represent Map with mapping workers to  work items
  * and provide additional methods for easier Zookeeper state reconstruction
  */
-public class ZookeeperState extends HashMap<JobId, Map<WorkerItem, WorkItem>> {
+public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
 
-    public void addWorkerToJob(JobId job, WorkerItem worker) {
-
+    public void addWorkItem(WorkerItem worker, WorkItem workItem) {
+        if (this.containsKey(worker)) {
+            List<WorkItem> workItems = new ArrayList<>(this.get(worker));
+            workItems.add(workItem);
+            this.put(worker, workItems);
+        } else {
+            this.put(worker, Arrays.asList(workItem));
+        }
     }
 
-    public void removeWorkerFromJob(JobId job, WorkerItem worker) {
+    public WorkerItem getLessBusyWorker() {
+        WorkerItem lessBusyWorker = null;
+        int minWorkPool = Integer.MAX_VALUE;
 
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
+            List<WorkItem> workPool = worker.getValue();
+
+            if (workPool.size() < minWorkPool) {
+                minWorkPool = workPool.size();
+                lessBusyWorker = worker.getKey();
+            }
+        }
+        return lessBusyWorker;
     }
 
-    public void moveWorkItem(JobId job, WorkItem workItem, WorkerItem from, WorkItem to) {
-
+    public boolean containsWorkItem(WorkItem workItem) {
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
+            for (WorkItem work : worker.getValue()) {
+                if (workItem.equals(work)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
-    public HashMap<JobId, Map<WorkerItem, WorkItem>> getAsMap() {
+    public HashMap<WorkerItem, List<WorkItem>> getAsMap() {
         return this;
     }
 
@@ -29,17 +52,14 @@ public class ZookeeperState extends HashMap<JobId, Map<WorkerItem, WorkItem>> {
     public String toString() {
         StringBuilder result = new StringBuilder("Zookeeper state\n");
 
-        for (Map.Entry<JobId, Map<WorkerItem, WorkItem>> job : entrySet()) {
-            String jobId = job.getKey().getId();
-            Map<WorkerItem, WorkItem> globalWorkPool = job.getValue();
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
+            String workerId = worker.getKey().getId();
+            List<WorkItem> workItems = worker.getValue();
 
-            result.append("\t└ ").append(jobId).append("\n");
+            result.append("\t└ ").append(workerId).append("\n");
 
-            for (Map.Entry<WorkerItem, WorkItem> workItemEntry : globalWorkPool.entrySet()) {
-                String workerItem = workItemEntry.getKey().getId();
-                String workItem = workItemEntry.getValue().getId();
-
-                result.append("\t\t└ ").append(workerItem).append(" - ").append(workItem).append("\n");
+            for (WorkItem workItem : workItems) {
+                result.append("\t\t└ ").append(workItem.getJobId()).append(" - ").append(workItem.getId()).append("\n");
             }
 
         }

@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
 class LexicographicalAssignmentStrategy implements AssignmentStrategy {
 
     @Override
-    public void reassignAndBalance(
+    public ZookeeperState reassignAndBalance(
             ZookeeperState availability,
             ZookeeperState prevAssignment,
             ZookeeperState newAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign) {
-
+        return availability;
     }
 
     public Map<String, Set<String>> reassignAndBalance(

@@ -15,9 +15,7 @@ import ru.fix.zookeeper.testing.ZKTestingServer;
 import java.util.*;
 
 class DistributedJobManagerTest {
-    private static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
     private ZKTestingServer zkTestingServer;
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -72,14 +70,14 @@ class DistributedJobManagerTest {
 
         @Override
         public long getWorkPoolCheckPeriod() {
-            return 0;
+            return 100;
         }
     }
 
     public static class CustomAssignmentStrategy implements AssignmentStrategy {
 
         @Override
-        public void reassignAndBalance(
+        public ZookeeperState reassignAndBalance(
                 ZookeeperState availability,
                 ZookeeperState prevAssignment,
                 ZookeeperState newAssignment,
@@ -109,43 +107,14 @@ class DistributedJobManagerTest {
             AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
                     availability, prevAssignment, newAssignment, itemsToAssign
             );
+
+            return availability;
         }
     }
 
     @Test
     public void example() throws Exception {
-        StubbedMultiJob testJob = new StubbedMultiJob(1, Set.of("11", "22", "33"));
-
-        DistributedJobManager distributedJobManager = new DistributedJobManager(
-                "worker-1",
-                zkTestingServer.createClient(),
-                "/root/path",
-                Arrays.asList(
-                        new DistributedJobStub("sms-job", createWorkPool("sms-job", 2), 2000L),
-                        new DistributedJobStub("ussd-job", createWorkPool("ussd-job", 3)),
-                        new DistributedJobStub("rebill-job", createWorkPool("rebill-job", 3))),
-                AssignmentStrategyFactory.RENDEZVOUS,
-                new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(true)
-        );
-
-        DistributedJobManager distributedJobManager2 = new DistributedJobManager(
-                "worker-2",
-                zkTestingServer.createClient(),
-                "/root/path",
-                Arrays.asList(
-                        testJob,
-                        new DistributedJobStub("custom-job-1", createWorkPool("custom-job-1", 2), 500L),
-                        new DistributedJobStub("custom-job-2", createWorkPool("custom-job-2", 3), 0L),
-                        new DistributedJobStub("custom-job-3", createWorkPool("custom-job-3", 1), 0L)),
-                AssignmentStrategyFactory.RENDEZVOUS,
-                new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(true)
-        );
-
-        testJob.updateWorkPool(Set.of("44", "33"));
+        initDjm();
 
     }
 
@@ -157,5 +126,84 @@ class DistributedJobManagerTest {
         }
 
         return WorkPool.of(workPool);
+    }
+
+    private List<DistributedJobManager> createDjmPool(int count) throws Exception {
+        List<DistributedJobManager> distributedJobManagers = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            DistributedJobManager djm = new DistributedJobManager(
+                    "worker-" + i,
+                    zkTestingServer.createClient(),
+                    "/root/path",
+                    Arrays.asList(
+                            new StubbedMultiJob(1, createWorkPool("distr-job-id-1", 2).getItems(), 500L),
+                            new StubbedMultiJob(2, createWorkPool("distr-job-id-2", 3).getItems(), 0L),
+                            new StubbedMultiJob(3, createWorkPool("distr-job-id-3", 1).getItems(), 0L)),
+                    AssignmentStrategyFactory.RENDEZVOUS,
+                    new AggregatingProfiler(),
+                    DynamicProperty.of(10_000L),
+                    DynamicProperty.of(true)
+            );
+            distributedJobManagers.add(djm);
+        }
+        return distributedJobManagers;
+    }
+
+
+    private void initEmptyDjms(int countDjms) throws Exception {
+        for (int i = 0; i < countDjms; i++) {
+            DistributedJobManager djm = new DistributedJobManager(
+                    "worker-" + i,
+                    zkTestingServer.createClient(),
+                    "/root/path",
+                    Collections.emptyList(),
+                    AssignmentStrategyFactory.EVENLY_SPREAD,
+                    new AggregatingProfiler(),
+                    DynamicProperty.of(10_000L),
+                    DynamicProperty.of(true)
+            );
+        }
+    }
+
+    private void initDjm() throws Exception {
+        DistributedJobManager djm = new DistributedJobManager(
+                "worker-" + 0,
+                zkTestingServer.createClient(),
+                "/root/path",
+                Arrays.asList(
+                        new StubbedMultiJob(0, createWorkPool("distr-job-id-0", 1).getItems(), 5000L),
+                        new StubbedMultiJob(1, createWorkPool("distr-job-id-1", 6).getItems(), 5000L),
+                        new StubbedMultiJob(2, createWorkPool("distr-job-id-2", 2).getItems(), 5000L)
+                ),
+                AssignmentStrategyFactory.RENDEZVOUS,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        DistributedJobManager djm1 = new DistributedJobManager(
+                "worker-" + 1,
+                zkTestingServer.createClient(),
+                "/root/path",
+                Arrays.asList(),
+                AssignmentStrategyFactory.RENDEZVOUS,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        DistributedJobManager djm2 = new DistributedJobManager(
+                "worker-" + 2,
+                zkTestingServer.createClient(),
+                "/root/path",
+                Arrays.asList(),
+                AssignmentStrategyFactory.RENDEZVOUS,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        Thread.sleep(3000);
     }
 }

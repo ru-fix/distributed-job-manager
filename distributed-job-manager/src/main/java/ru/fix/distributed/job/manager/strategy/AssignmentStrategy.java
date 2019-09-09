@@ -20,7 +20,7 @@ public interface AssignmentStrategy {
      * @param newAssignment  assignment strategy result
      * @param itemsToAssign  items that should be assigned by this strategy
      */
-    void reassignAndBalance(
+    ZookeeperState reassignAndBalance(
             ZookeeperState availability,
             ZookeeperState prevAssignment,
             ZookeeperState newAssignment,
