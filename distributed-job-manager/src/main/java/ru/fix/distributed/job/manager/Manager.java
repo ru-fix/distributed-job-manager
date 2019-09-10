@@ -175,6 +175,9 @@ class Manager implements AutoCloseable {
 
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(ZookeeperGlobalState globalState) throws Exception {
+        log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
+        log.info("Current state before rebalance: " + globalState.getCurrentState().toString());
+        log.info("Items to assign: " + globalState.getWorkItemsToAssign().toString());
 
         ZookeeperState newAssignmentState = assignmentStrategy.reassignAndBalance(
                 globalState.getAvailableState(),
@@ -182,6 +185,8 @@ class Manager implements AutoCloseable {
                 globalState.getCurrentState(),
                 globalState.getWorkItemsToAssign()
         );
+
+        log.info("New assignment after rebalance: " + newAssignmentState);
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
