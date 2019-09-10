@@ -2,15 +2,16 @@ package ru.fix.distributed.job.manager.strategy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
 import ru.fix.distributed.job.manager.model.ZookeeperState;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
 
 class EvenlySpreadAssignmentStrategyTest {
     private EvenlySpreadAssignmentStrategy evenlySpread;
@@ -134,16 +135,14 @@ class EvenlySpreadAssignmentStrategyTest {
         ZookeeperState currentState = generateCurrentState(available, previous);
 
         assertFalse(currentState.isBalanced());
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
+
         ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
+
         assertTrue(newAssignment.isBalanced());
     }
 
@@ -182,58 +181,5 @@ class EvenlySpreadAssignmentStrategyTest {
         );
 
         assertTrue(newAssignment.isBalanced());
-    }
-
-    private void addWorkerWithItems(ZookeeperState state, String worker, int workItemsCount, int jobsCount) {
-        List<WorkItem> workItems = new ArrayList<>();
-
-        for (int i = 0; i < workItemsCount; i++) {
-            for (int j = 0; j < jobsCount; j++) {
-                workItems.add(new WorkItem("work-item-" + i, "job-" + j));
-            }
-        }
-        state.addWorkItems(new WorkerItem(worker), workItems);
-    }
-
-    private ZookeeperState generateCurrentState(ZookeeperState available, ZookeeperState current) {
-        ZookeeperState newAssignment = new ZookeeperState();
-
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
-            if (available.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), worker.getValue());
-            }
-        }
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {
-            if (!current.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
-            }
-        }
-        return newAssignment;
-    }
-
-    private Map<JobId, List<WorkItem>> generateItemsToAssign(
-            ZookeeperState availableState,
-            ZookeeperState currentState
-    ) {
-        Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
-
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
-            for (WorkItem workItem : worker.getValue()) {
-                String jobId = workItem.getJobId();
-
-                if (currentState.containsWorkItem(workItem)) {
-                    continue;
-                }
-
-                if (workItemsToAssign.containsKey(new JobId(jobId))) {
-                    List<WorkItem> workItemsOld = new ArrayList<>(workItemsToAssign.get(new JobId(jobId)));
-                    workItemsOld.add(workItem);
-                    workItemsToAssign.put(new JobId(jobId), workItemsOld);
-                } else {
-                    workItemsToAssign.put(new JobId(jobId), Collections.singletonList(workItem));
-                }
-            }
-        }
-        return workItemsToAssign;
     }
 }
