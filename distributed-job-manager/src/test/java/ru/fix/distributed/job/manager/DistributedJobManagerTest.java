@@ -80,35 +80,19 @@ class DistributedJobManagerTest {
         public ZookeeperState reassignAndBalance(
                 ZookeeperState availability,
                 ZookeeperState prevAssignment,
-                ZookeeperState newAssignment,
+                ZookeeperState currentAssignment,
                 Map<JobId, List<WorkItem>> itemsToAssign) {
 
-            /*// get all work items for rebill job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToRebillJob = null;
-            AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
-                    availability, prevAssignment, newAssignment, itemsToRebillJob);
-            // remove rebill job from itemsToAssign
-            itemsToAssign.remove(new JobId("rebill-job"));
 
-            // get all work items for ussd job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToUssdJob = null;
-            // here we implements custom logic for ussd job...
-            // remove ussd job from itemsToAssign
-            itemsToAssign.remove(new JobId("ussd-job"));
-
-            // get all work items for sms job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToSmsJob = null;
-            // here we implements custom logic for ussd job...
-            // remove ussd job from itemsToAssign
-            itemsToAssign.remove(new JobId("ussd-job"));
-
-            // get all work items for other jobs from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToOtherJobs = null;*/
             AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                    availability, prevAssignment, newAssignment, itemsToAssign
+                    availability, prevAssignment, currentAssignment, itemsToAssign
             );
 
-            return availability;
+            AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
+                    availability, prevAssignment, currentAssignment, itemsToAssign
+            );
+
+            return currentAssignment;
         }
     }
 
@@ -176,7 +160,7 @@ class DistributedJobManagerTest {
                         new StubbedMultiJob(1, createWorkPool("distr-job-id-1", 6).getItems(), 5000L),
                         new StubbedMultiJob(2, createWorkPool("distr-job-id-2", 2).getItems(), 5000L)
                 ),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.EVENLY_SPREAD,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
@@ -187,7 +171,7 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 "/root/path",
                 Arrays.asList(),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.EVENLY_SPREAD,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
@@ -198,7 +182,7 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 "/root/path",
                 Arrays.asList(),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.EVENLY_SPREAD,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
