@@ -332,13 +332,10 @@ class Manager implements AutoCloseable {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
-            WorkerItem workerItem = worker.getKey();
-
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
 
-                if (currentState.containsWorkItem(workItem) &&
-                        workerItem.equals(currentState.getWorkerOfWorkItem(workItem))) {
+                if (currentState.containsWorkItem(workItem)) {
                     continue;
                 }
 
