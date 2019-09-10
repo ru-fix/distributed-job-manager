@@ -2,8 +2,6 @@ package ru.fix.distributed.job.manager.strategy;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.Hashing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
@@ -11,12 +9,10 @@ import ru.fix.distributed.job.manager.model.ZookeeperState;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
-    private static final Logger log = LoggerFactory.getLogger(RendezvousHashAssignmentStrategy.class);
 
     @Override
     public ZookeeperState reassignAndBalance(
@@ -25,11 +21,6 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
             ZookeeperState newAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign
     ) {
-        log.info(availability.toString());
-        log.info(prevAssignment.toString());
-        log.info(newAssignment.toString());
-
-        log.info(itemsToAssign.toString());
 
         for (Map.Entry<JobId, List<WorkItem>> jobId : itemsToAssign.entrySet()) {
             WorkerItem worker = newAssignment.getLessBusyWorker();
