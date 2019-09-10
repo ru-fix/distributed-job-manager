@@ -18,40 +18,24 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
     public ZookeeperState reassignAndBalance(
             ZookeeperState availability,
             ZookeeperState prevAssignment,
-            ZookeeperState newAssignment,
+            ZookeeperState currentAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign
     ) {
+        final Funnel<String> stringFunnel = (from, into) -> into.putBytes(from.getBytes());
+        final RendezvousHash<String, String> hash = new RendezvousHash<>(
+                Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>());
 
-        for (Map.Entry<JobId, List<WorkItem>> jobId : itemsToAssign.entrySet()) {
-            WorkerItem worker = newAssignment.getLessBusyWorker();
-            for (WorkItem workItem : jobId.getValue()) {
-                newAssignment.addWorkItem(worker, workItem);
-            }
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availability.entrySet()) {
+            hash.add(worker.getKey().getId());
         }
 
-        final Funnel<String> strFunnel = (from, into) -> into.putBytes(from.getBytes());
-        final Funnel<WorkerItem> workerFunnel = (from, into) -> into.putBytes(from.getId().getBytes());
-
-        RendezvousHash<WorkerItem, String> hash = new RendezvousHash<>(
-                Hashing.murmur3_128(), workerFunnel, strFunnel, new ArrayList<>());
-
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : newAssignment.entrySet()) {
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availability.entrySet()) {
             for (WorkItem workItem : worker.getValue()) {
-                hash.add(workItem.getJobId() + "&&" + workItem.getId());
+                String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
+                currentAssignment.addWorkItem(new WorkerItem(workerId), workItem);
             }
         }
 
-        ZookeeperState assignmentAfterRendezvous = new ZookeeperState();
-
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : newAssignment.entrySet()) {
-            for (WorkItem workItem : worker.getValue()) {
-                String[] jobIdWorkItem = hash.get(worker.getKey()).split("&&");
-                WorkItem newWorkItem = new WorkItem(jobIdWorkItem[1], jobIdWorkItem[0]);
-
-                assignmentAfterRendezvous.addWorkItem(worker.getKey(), newWorkItem);
-            }
-        }
-
-        return assignmentAfterRendezvous;
+        return currentAssignment;
     }
 }

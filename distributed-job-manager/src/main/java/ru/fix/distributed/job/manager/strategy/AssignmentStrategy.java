@@ -12,18 +12,21 @@ import java.util.Map;
  */
 public interface AssignmentStrategy {
     /**
-     * At the beginning newAssignment is empty.
-     * After applying several assignment strategies we will end up with populated newAssignment
+     * At the beginning currentAssignment contains workers = ((available workers - workers from prev assignment) +
+     * + (workers from prev assignment - inaccessible workers))
+     * After applying several assignment strategies we fill currentAssignment with work items from itemsToAssign
      *
      * @param availability   where (on which workers) job can launch work-items
      * @param prevAssignment previous assignment state, where jobs and work-items was launch before reassignment
-     * @param newAssignment  assignment strategy result
+     * @param currentAssignment  ((available workers - workers from prev assignment)
+     *                          + (workers from prev assignment - inaccessible workers))
      * @param itemsToAssign  items that should be assigned by this strategy
+     * @return assignment strategy result after applying several strategies under currentAssignment
      */
     ZookeeperState reassignAndBalance(
             ZookeeperState availability,
             ZookeeperState prevAssignment,
-            ZookeeperState newAssignment,
-            Map<JobId, List<WorkItem>> itemsToAssign);
-
+            ZookeeperState currentAssignment,
+            Map<JobId, List<WorkItem>> itemsToAssign
+    );
 }

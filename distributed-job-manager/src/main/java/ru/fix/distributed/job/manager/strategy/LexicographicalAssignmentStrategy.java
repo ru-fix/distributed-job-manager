@@ -22,7 +22,7 @@ class LexicographicalAssignmentStrategy implements AssignmentStrategy {
     public ZookeeperState reassignAndBalance(
             ZookeeperState availability,
             ZookeeperState prevAssignment,
-            ZookeeperState newAssignment,
+            ZookeeperState currentAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign) {
         return availability;
     }

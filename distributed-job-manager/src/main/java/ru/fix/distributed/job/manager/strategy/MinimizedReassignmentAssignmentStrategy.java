@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class MinimizedReassignmentAssignmentStrategy implements AssignmentStrategy {
 
     @Override
-    public ZookeeperState reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment, ZookeeperState newAssignment, Map<JobId, List<WorkItem>> itemsToAssign) {
+    public ZookeeperState reassignAndBalance(ZookeeperState availability, ZookeeperState prevAssignment, ZookeeperState currentAssignment, Map<JobId, List<WorkItem>> itemsToAssign) {
         return availability;
     }
 
