@@ -22,7 +22,10 @@ public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
         }
     }
 
-
+    /**
+     * If worker exists, add new workItems to existed work pool,
+     * else create worker and put workItems
+     */
     public void addWorkItems(WorkerItem worker, List<WorkItem> workItems) {
         if (this.containsKey(worker)) {
             List<WorkItem> newWorkItems = new ArrayList<>(this.get(worker));
@@ -60,6 +63,20 @@ public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
             }
         }
         return false;
+    }
+
+    /**
+     * @return worker on which work item placed
+     */
+    public WorkerItem getWorkerOfWorkItem(WorkItem workItem) {
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
+            for (WorkItem work : worker.getValue()) {
+                if (workItem.equals(work)) {
+                    return worker.getKey();
+                }
+            }
+        }
+        return null;
     }
 
     public HashMap<WorkerItem, List<WorkItem>> getAsMap() {
