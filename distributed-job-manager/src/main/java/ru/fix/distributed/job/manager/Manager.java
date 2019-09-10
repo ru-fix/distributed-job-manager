@@ -1,19 +1,14 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.transaction.CuratorOp;
-import org.apache.curator.framework.api.transaction.CuratorTransaction;
-import org.apache.curator.framework.api.transaction.TransactionOp;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.utils.ZKPaths;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
@@ -23,13 +18,10 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
-import ru.fix.zookeeper.transactional.TransactionalClient;
-import ru.fix.zookeeper.transactional.impl.CreateOperation;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Only single manager is active on the cluster.
@@ -175,19 +167,32 @@ class Manager implements AutoCloseable {
 
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(ZookeeperGlobalState globalState) throws Exception {
+
+        ZookeeperState currentState = generateCurrentState(
+                globalState.getAvailableState(), globalState.getPreviousState()
+        );
+        Map<JobId, List<WorkItem>> itemsToAssign = generateItemsToAssign(
+                globalState.getAvailableState(), currentState
+        );
+
         log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
-        log.info("Current state before rebalance: " + globalState.getCurrentState().toString());
-        log.info("Items to assign: " + globalState.getWorkItemsToAssign().toString());
+        log.info("Previous state before rebalance: " + globalState.getPreviousState().toString());
+        log.info("Current state before rebalance: " + currentState.toString());
+        log.info("Items to assign: " + itemsToAssign.toString());
 
         ZookeeperState newAssignmentState = assignmentStrategy.reassignAndBalance(
                 globalState.getAvailableState(),
-                globalState.getCurrentState(),
-                globalState.getCurrentState(),
-                globalState.getWorkItemsToAssign()
+                globalState.getPreviousState(),
+                currentState,
+                generateItemsToAssign(globalState.getAvailableState(), currentState)
         );
 
         log.info("New assignment after rebalance: " + newAssignmentState);
 
+        rewriteZookeeperNodes(newAssignmentState);
+    }
+
+    private void rewriteZookeeperNodes(ZookeeperState newAssignmentState) throws Exception {
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
 
@@ -254,7 +259,6 @@ class Manager implements AutoCloseable {
     private ZookeeperGlobalState getZookeeperGlobalState() throws Exception {
         ZookeeperState availableState = new ZookeeperState();
         ZookeeperState currentState = new ZookeeperState();
-        Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
@@ -267,7 +271,6 @@ class Manager implements AutoCloseable {
             if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) == null) {
                 continue;
             }
-
             List<String> availableJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
@@ -285,7 +288,6 @@ class Manager implements AutoCloseable {
             if (curatorFramework.checkExists().forPath(paths.getAssignedWorkPooledJobsPath(worker)) == null) {
                 continue;
             }
-
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
@@ -301,11 +303,42 @@ class Manager implements AutoCloseable {
             currentState.put(new WorkerItem(worker), assignedWorkPool);
         }
 
+        return new ZookeeperGlobalState(availableState, currentState);
+    }
+
+    /**
+     * Add new workers from available state and remove inaccessible workers from current state
+     */
+    private ZookeeperState generateCurrentState(ZookeeperState available, ZookeeperState current) {
+        ZookeeperState newAssignment = new ZookeeperState();
+
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
+            if (available.containsKey(worker.getKey())) {
+                newAssignment.addWorkItems(worker.getKey(), worker.getValue());
+            }
+        }
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {
+            if (!current.containsKey(worker.getKey())) {
+                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
+            }
+        }
+        return newAssignment;
+    }
+
+    private Map<JobId, List<WorkItem>> generateItemsToAssign(
+            ZookeeperState availableState,
+            ZookeeperState currentState
+    ) {
+        Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
+
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
+            WorkerItem workerItem = worker.getKey();
+
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
 
-                if (currentState.containsWorkItem(workItem)) {
+                if (currentState.containsWorkItem(workItem) &&
+                        workerItem.equals(currentState.getWorkerOfWorkItem(workItem))) {
                     continue;
                 }
 
@@ -314,38 +347,28 @@ class Manager implements AutoCloseable {
                     workItemsOld.add(workItem);
                     workItemsToAssign.put(new JobId(jobId), workItemsOld);
                 } else {
-                    workItemsToAssign.put(new JobId(jobId), Arrays.asList(workItem));
+                    workItemsToAssign.put(new JobId(jobId), Collections.singletonList(workItem));
                 }
             }
         }
-
-        return new ZookeeperGlobalState(availableState, currentState, workItemsToAssign);
+        return workItemsToAssign;
     }
 
     private static class ZookeeperGlobalState {
         private ZookeeperState availableState;
         private ZookeeperState currentState;
-        private Map<JobId, List<WorkItem>> workItemsToAssign;
 
-        ZookeeperGlobalState(ZookeeperState availableState,
-                             ZookeeperState currentState,
-                             Map<JobId, List<WorkItem>> workItemsToAssign
-        ) {
+        ZookeeperGlobalState(ZookeeperState availableState, ZookeeperState currentState) {
             this.availableState = availableState;
             this.currentState = currentState;
-            this.workItemsToAssign = workItemsToAssign;
         }
 
         public ZookeeperState getAvailableState() {
             return availableState;
         }
 
-        public ZookeeperState getCurrentState() {
+        public ZookeeperState getPreviousState() {
             return currentState;
-        }
-
-        public Map<JobId, List<WorkItem>> getWorkItemsToAssign() {
-            return workItemsToAssign;
         }
     }
 
