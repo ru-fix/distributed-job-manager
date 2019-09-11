@@ -113,6 +113,12 @@ public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
         return true;
     }
 
+    public int globalPoolSize() {
+        return this.values().stream()
+                .mapToInt(List::size)
+                .sum();
+    }
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("Zookeeper state\n");
