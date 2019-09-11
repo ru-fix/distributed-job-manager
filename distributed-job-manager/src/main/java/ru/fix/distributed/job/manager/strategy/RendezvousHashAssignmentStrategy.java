@@ -25,12 +25,12 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
         final RendezvousHash<String, String> hash = new RendezvousHash<>(
                 Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>());
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availability.entrySet()) {
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : currentAssignment.entrySet()) {
             hash.add(worker.getKey().getId());
         }
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availability.entrySet()) {
-            for (WorkItem workItem : worker.getValue()) {
+        for (Map.Entry<JobId, List<WorkItem>> job : itemsToAssign.entrySet()) {
+            for (WorkItem workItem : job.getValue()) {
                 String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
                 currentAssignment.addWorkItem(new WorkerItem(workerId), workItem);
             }
