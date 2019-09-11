@@ -17,7 +17,7 @@ object Vers {
     const val jfix_socket = "1.0.42"
 
     const val validation_api = "2.0.1.Final"
-    const val curator = "4.2.0"
+    const val curator = "2.10.0"
     const val commons_io = "2.6"
 
     const val junit = "5.5.1"
