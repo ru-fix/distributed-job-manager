@@ -188,6 +188,6 @@ class DistributedJobManagerTest {
                 DynamicProperty.of(true)
         );
 
-        Thread.sleep(3000);
+//        Thread.sleep(3000);
     }
 }
