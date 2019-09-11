@@ -17,7 +17,6 @@ import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ProfiledScheduledThreadPoolExecutor;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
-import ru.fix.zookeeper.transactional.TransactionalClient;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
@@ -37,8 +36,6 @@ import java.util.stream.Collectors;
 class Worker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
 
-    private static final int REGISTRATION_COMMIT_RETRIES_COUNT = 10;
-    private static final int WORK_POOL_RETRIES_COUNT = 5;
     public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
 
     private final CuratorFramework curatorFramework;
@@ -63,7 +60,7 @@ class Worker implements AutoCloseable {
     /**
      * Acquires locks for job for workItems, prolongs them and releases
      */
-    final WorkShareLockService workShareLockService;
+    private final WorkShareLockService workShareLockService;
 
     private final AtomicProperty<Integer> threadPoolSize;
 
@@ -278,28 +275,6 @@ class Worker implements AutoCloseable {
                                 .forPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
                     }
 
-                  /*  TransactionalClient.tryCommit(curatorFramework, WORK_POOL_RETRIES_COUNT,
-                            availableJobsTransaction -> {
-                                // update alive flag to trigger update
-                                availableJobsTransaction.setData(
-                                        paths.getWorkerAliveFlagPath(workerId),
-                                        curatorFramework.getData().forPath(workerAliveFlagPath));
-
-                                // delete stale work pools
-                                Set<String> workPoolsToDelete = new HashSet<>(currentWorkPools);
-                                workPoolsToDelete.removeAll(newWorkPool);
-                                for (String workPoolToDelete : workPoolsToDelete) {
-                                    availableJobsTransaction.deletePath(ZKPaths.makePath(workPoolsPath,
-                                            workPoolToDelete));
-                                }
-
-                                // create new work pools
-                                Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
-                                workPoolsToAdd.removeAll(currentWorkPools);
-                                for (String workPoolToAdd : workPoolsToAdd) {
-                                    availableJobsTransaction.createPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
-                                }
-                            });*/
                 } else {
                     log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
                             workerId,
