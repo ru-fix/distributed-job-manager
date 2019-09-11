@@ -87,19 +87,17 @@ class EvenlySpreadAssignmentStrategyTest {
         ZookeeperState previous = new ZookeeperState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-2", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-0", "job-3"));
 
+        previous.addWorkItems(new WorkerItem("worker-1"), Arrays.asList(
+                new WorkItem("work-item-2", "job-3"),
+                new WorkItem("work-item-0", "job-3")
+        ));
         previous.addWorkItems(new WorkerItem("worker-0"), Arrays.asList(
                 new WorkItem("work-item-1", "job-3"),
                 new WorkItem("work-item-0", "job-0")
         ));
 
-
         ZookeeperState currentState = generateCurrentState(available, previous);
-
-        assertFalse(currentState.isBalanced());
 
         ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
                 available,

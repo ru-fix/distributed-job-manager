@@ -46,7 +46,6 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
                     (ListenerContainer<ConnectionStateListener>) curator.getConnectionStateListenable();
             int size = listenable2.size();
             assertEquals(sizeBefore, size);
-            curator.close();
         }
     }
 

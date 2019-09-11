@@ -9,8 +9,7 @@ import ru.fix.distributed.job.manager.model.ZookeeperState;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
 
 class RendezvousHashAssignmentStrategyTest {
@@ -44,7 +43,7 @@ class RendezvousHashAssignmentStrategyTest {
         System.err.println(available);
         System.err.println(previous);
         System.err.println(currentState);
-
+        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
@@ -52,7 +51,8 @@ class RendezvousHashAssignmentStrategyTest {
                 generateItemsToAssign(available, currentState)
         );
         System.err.println(newAssignment);
-        assertTrue(newAssignment.isBalanced());
+
+        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
 
     @Test
@@ -86,7 +86,7 @@ class RendezvousHashAssignmentStrategyTest {
         );
         System.err.println(newAssignment);
 
-        assertTrue(newAssignment.isBalanced());
+        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
 
     @Test
@@ -95,24 +95,22 @@ class RendezvousHashAssignmentStrategyTest {
         ZookeeperState previous = new ZookeeperState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-2", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-0", "job-3"));
 
+        previous.addWorkItems(new WorkerItem("worker-1"), Arrays.asList(
+                new WorkItem("work-item-2", "job-3"),
+                new WorkItem("work-item-0", "job-3")
+        ));
         previous.addWorkItems(new WorkerItem("worker-0"), Arrays.asList(
                 new WorkItem("work-item-1", "job-3"),
                 new WorkItem("work-item-0", "job-0")
         ));
 
-
         ZookeeperState currentState = generateCurrentState(available, previous);
-
-        assertFalse(currentState.isBalanced());
 
         System.err.println(available);
         System.err.println(previous);
         System.err.println(currentState);
-
+        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
@@ -121,7 +119,8 @@ class RendezvousHashAssignmentStrategyTest {
         );
         System.err.println(newAssignment);
 
-        assertTrue(newAssignment.isBalanced());
+        // 4, because 3 work item from available and 1 from current state
+        assertEquals(4, newAssignment.globalPoolSize());
     }
 
     @Test
@@ -141,8 +140,7 @@ class RendezvousHashAssignmentStrategyTest {
                 new WorkItem("work-item-0", "job-0")
         ));
         previous.addWorkItems(new WorkerItem("worker-1"), Arrays.asList(
-                new WorkItem("work-item-0", "job-3"),
-                new WorkItem("work-item-3", "job-0")
+                new WorkItem("work-item-0", "job-3")
         ));
 
         ZookeeperState currentState = generateCurrentState(available, previous);
@@ -161,7 +159,7 @@ class RendezvousHashAssignmentStrategyTest {
         );
         System.err.println(newAssignment);
 
-        assertTrue(newAssignment.isBalanced());
+        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
 
     @Test
@@ -190,14 +188,17 @@ class RendezvousHashAssignmentStrategyTest {
         ZookeeperState currentState = generateCurrentState(available, previous);
 
         assertFalse(currentState.isBalanced());
-
+        System.err.println(available);
+        System.err.println(previous);
+        System.err.println(currentState);
+        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-
-        assertTrue(newAssignment.isBalanced());
+        System.err.println(newAssignment);
+        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize());
     }
 }
