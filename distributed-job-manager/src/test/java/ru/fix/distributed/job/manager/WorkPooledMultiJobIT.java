@@ -377,7 +377,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree
                             (JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
-            verify(testJob, atMostOnce()).run(any());
+            verify(testJob, times(1)).run(any());
         }
     }
 
@@ -403,7 +403,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
-            verify(testJob, atMost(3)).run(any());
+            verify(testJob, times(1)).run(any());
 
             try (
                     DistributedJobManager jobManager2 = new DistributedJobManager(
@@ -419,7 +419,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                         () -> testJob2.getLocalWorkPool().size() == testJob2.getWorkPool().getItems().size(),
                         () -> "Single distributed job2 should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
-                verify(testJob, atMost(3)).run(any());
+                verify(testJob, times(1)).run(any());
             }
 
         }
@@ -446,8 +446,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                                     .size() == 3,
                     () -> "Single distributed job should has all work item" + printZkTree
                             (JOB_MANAGER_ZK_ROOT_PATH) + testJob.getAllWorkPools());
-            Thread.sleep(1000);
-            verify(testJob, atMost(3)).run(any());
+            Thread.sleep(500);
+            verify(testJob, times(1)).run(any());
         }
     }
 
