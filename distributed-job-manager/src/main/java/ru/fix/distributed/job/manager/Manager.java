@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.transaction.CuratorTransaction;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -18,6 +19,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
+import ru.fix.zookeeper.transactional.TransactionalClient;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -137,18 +139,24 @@ class Manager implements AutoCloseable {
         }
 
         try {
-            String assignmentVersionNode = paths.getAssignmentVersion();
-            int version = curatorFramework.checkExists()
-                    .forPath(assignmentVersionNode).getVersion();
+            TransactionalClient.tryCommit(
+                    curatorFramework,
+                    1,
+                    transaction -> {
+                        String assignmentVersionNode = paths.getAssignmentVersion();
 
-            removeAssignmentsOnDeadNodes();
-            curatorFramework.setData()
-                    .forPath(assignmentVersionNode)
-                    .setVersion(version);
+                        int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
-            assignWorkPools(getZookeeperGlobalState());
+                        removeAssignmentsOnDeadNodes();
+                        transaction.checkPathWithVersion(assignmentVersionNode, version);
+                        transaction.setData(assignmentVersionNode, new byte[]{});
+
+                        assignWorkPools(getZookeeperGlobalState(), transaction);
+                    }
+            );
+
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Can't reassign and balance tasks: ", e);
         }
 
         if (printTree.get()) {
@@ -166,7 +174,7 @@ class Manager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    private void assignWorkPools(ZookeeperGlobalState globalState) throws Exception {
+    private void assignWorkPools(ZookeeperGlobalState globalState, TransactionalClient transaction) throws Exception {
 
         ZookeeperState currentState = generateCurrentState(
                 globalState.getAvailableState(), globalState.getPreviousState()
@@ -189,48 +197,63 @@ class Manager implements AutoCloseable {
 
         log.info("New assignment after rebalance: " + newAssignmentState);
 
-        rewriteZookeeperNodes(newAssignmentState);
+        rewriteZookeeperNodes(newAssignmentState, transaction);
     }
 
-    private void rewriteZookeeperNodes(ZookeeperState newAssignmentState) throws Exception {
-        List<String> workersRoots = curatorFramework.getChildren()
-                .forPath(paths.getWorkersPath());
+    private void rewriteZookeeperNodes(ZookeeperState newAssignmentState, TransactionalClient transaction) throws Exception {
 
-        for (String worker : workersRoots) {
-            List<String> jobs = curatorFramework.getChildren()
-                    .forPath(paths.getAssignedWorkPooledJobsPath(worker));
-            for (String job : jobs) {
-                curatorFramework.delete()
-                        .deletingChildrenIfNeeded()
-                        .forPath(paths.getAssignedWorkPooledJobsPath(worker, job));
-            }
-        }
+        removePreviousAssignedWorkPools(transaction);
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : newAssignmentState.entrySet()) {
             String workerId = worker.getKey().getId();
             List<WorkItem> workItems = worker.getValue();
 
+           /* if (transaction.checkPath(paths.getAssignedWorkPooledJobsPath(workerId)) == null) {
+                transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
+            }*/
+
             for (WorkItem workItem : workItems) {
 
                 String newPath = ZKPaths.makePath(
-                        paths.rootPath,
-                        "workers",
-                        workerId,
-                        "assigned",
-                        "work-pooled",
-                        workItem.getJobId(),
-                        "work-pool",
+                        paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()),
+                        JobManagerPaths.WORK_POOL,
                         workItem.getId()
                 );
-
                 try {
-                    curatorFramework.create()
-                            .creatingParentsIfNeeded()
-                            .forPath(newPath);
+                    /*createPathIfNotExists(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+                    createPathIfNotExists(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+                    createPathIfNotExists(transaction, newPath);*/
+                    curatorFramework.create().creatingParentsIfNeeded().forPath(newPath);
                 } catch (KeeperException e) {
                     log.warn("Exception while path creating: ", e);
                 }
             }
+        }
+    }
+
+    private void createPathIfNotExists(TransactionalClient transaction, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) != null) {
+            transaction.deletePath(path);
+        }
+        transaction.createPath(path);
+    }
+
+    private void removePreviousAssignedWorkPools(TransactionalClient transaction) {
+        try {
+            List<String> workersRoots = curatorFramework.getChildren()
+                    .forPath(paths.getWorkersPath());
+
+            for (String worker : workersRoots) {
+
+                List<String> jobs = curatorFramework.getChildren()
+                        .forPath(paths.getAssignedWorkPooledJobsPath(worker));
+                for (String job : jobs) {
+                    transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker, job));
+                }
+
+            }
+        } catch (Exception e) {
+            log.warn("Unable remove previous assignment: ", e);
         }
     }
 

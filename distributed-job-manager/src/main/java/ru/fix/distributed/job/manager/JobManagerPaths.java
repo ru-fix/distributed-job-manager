@@ -5,7 +5,7 @@ import org.apache.curator.utils.ZKPaths;
 class JobManagerPaths {
     public static final String WORK_POOLED_JOB_ID = "work-pooled";
     public static final String WORK_POOL = "work-pool";
-    public static final String REGISTRATION_VERSION = "registration-verison";
+    public static final String REGISTRATION_VERSION = "registration-version";
     public static final String ASSIGNMENT_VERSION = "assignment-version";
 
     final String rootPath;
