@@ -208,22 +208,30 @@ class Manager implements AutoCloseable {
             String workerId = worker.getKey().getId();
             List<WorkItem> workItems = worker.getValue();
 
-           /* if (transaction.checkPath(paths.getAssignedWorkPooledJobsPath(workerId)) == null) {
+            if (transaction.checkPath(paths.getAssignedWorkPooledJobsPath(workerId)) == null) {
                 transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
-            }*/
+            }
 
             for (WorkItem workItem : workItems) {
-
                 String newPath = ZKPaths.makePath(
                         paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()),
                         JobManagerPaths.WORK_POOL,
                         workItem.getId()
                 );
+
                 try {
-                    /*createPathIfNotExists(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
-                    createPathIfNotExists(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
-                    createPathIfNotExists(transaction, newPath);*/
-                    curatorFramework.create().creatingParentsIfNeeded().forPath(newPath);
+                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+//                    createPathIfNotExists(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+//                    replacePathIfNeeded(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+//                    transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+
+                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+//                    transaction.createPath(paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+
+                    transaction.createPath(newPath);
+//                    transaction.createPath(newPath);
+
+//                    createPathIfNotExists(transaction, newPath);
                 } catch (KeeperException e) {
                     log.warn("Exception while path creating: ", e);
                 }
@@ -231,9 +239,21 @@ class Manager implements AutoCloseable {
         }
     }
 
+    public void createPathIfNotExistsInCurator(TransactionalClient transaction, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) == null) {
+            transaction.createPath(path);
+        }
+    }
+
     private void createPathIfNotExists(TransactionalClient transaction, String path) throws Exception {
-        if (curatorFramework.checkExists().forPath(path) != null) {
-            transaction.deletePath(path);
+        if (/*curatorFramework.checkExists().forPath(path) == null &&*/ transaction.checkPath(path) == null) {
+            transaction.createPath(path);
+        }
+    }
+
+    private void replacePathIfNeeded(TransactionalClient transaction, String path) throws Exception {
+        if (transaction.checkPath(path) != null) {
+            transaction.deletePathWithChildrenIfNeeded(path);
         }
         transaction.createPath(path);
     }
@@ -250,7 +270,9 @@ class Manager implements AutoCloseable {
                 for (String job : jobs) {
                     transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker, job));
                 }
-
+                /*if (paths.getAssignedWorkPooledJobsPath(worker) != null) {
+                    transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker));
+                }*/
             }
         } catch (Exception e) {
             log.warn("Unable remove previous assignment: ", e);
