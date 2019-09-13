@@ -9,7 +9,9 @@ dependencies {
 
     // JFIX
     compile(Libs.aggregating_profiler)
-    compile(Libs.jfix_zookeeper)
+    compile(Libs.jfix_zookeeper) {
+        exclude("org.apache.curator", "curator-recipes")
+    }
     compile(Libs.jfix_concurrency)
 
     // Common
