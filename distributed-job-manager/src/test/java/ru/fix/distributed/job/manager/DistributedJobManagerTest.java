@@ -73,9 +73,9 @@ class DistributedJobManagerTest {
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
-        List<String> nodes = List.of(
+        List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
