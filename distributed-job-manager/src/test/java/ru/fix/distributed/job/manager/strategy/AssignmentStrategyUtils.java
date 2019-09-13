@@ -24,7 +24,7 @@ class AssignmentStrategyUtils {
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
             if (available.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), worker.getValue());
+                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
             }
         }
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {

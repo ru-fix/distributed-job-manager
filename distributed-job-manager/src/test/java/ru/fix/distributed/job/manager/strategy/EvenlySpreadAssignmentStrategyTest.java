@@ -132,8 +132,6 @@ class EvenlySpreadAssignmentStrategyTest {
 
         ZookeeperState currentState = generateCurrentState(available, previous);
 
-        assertFalse(currentState.isBalanced());
-
         ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
@@ -168,8 +166,6 @@ class EvenlySpreadAssignmentStrategyTest {
         ));
 
         ZookeeperState currentState = generateCurrentState(available, previous);
-
-        assertFalse(currentState.isBalanced());
 
         ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
                 available,

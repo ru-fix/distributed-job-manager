@@ -39,18 +39,12 @@ class RendezvousHashAssignmentStrategyTest {
 
         ZookeeperState currentState = generateCurrentState(available, previous);
 
-        assertFalse(available.isBalanced());
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
-        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
@@ -74,17 +68,12 @@ class RendezvousHashAssignmentStrategyTest {
 
         assertFalse(available.isBalanced());
 
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
-
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
@@ -107,20 +96,14 @@ class RendezvousHashAssignmentStrategyTest {
 
         ZookeeperState currentState = generateCurrentState(available, previous);
 
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
-        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
 
-        // 4, because 3 work item from available and 1 from current state
-        assertEquals(4, newAssignment.globalPoolSize());
+        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
 
     @Test
@@ -145,19 +128,12 @@ class RendezvousHashAssignmentStrategyTest {
 
         ZookeeperState currentState = generateCurrentState(available, previous);
 
-        assertFalse(currentState.isBalanced());
-
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
-
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
     }
@@ -187,18 +163,13 @@ class RendezvousHashAssignmentStrategyTest {
 
         ZookeeperState currentState = generateCurrentState(available, previous);
 
-        assertFalse(currentState.isBalanced());
-        System.err.println(available);
-        System.err.println(previous);
-        System.err.println(currentState);
-        System.err.println(generateItemsToAssign(available, currentState));
         ZookeeperState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
                 generateItemsToAssign(available, currentState)
         );
-        System.err.println(newAssignment);
+
         assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize());
     }
 }
