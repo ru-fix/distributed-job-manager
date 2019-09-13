@@ -54,6 +54,24 @@ public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
         return lessBusyWorker;
     }
 
+    /**
+     * @return worker which has most work pool size (doesn't depends on job)
+     */
+    public WorkerItem getMostBusyWorker() {
+        WorkerItem mostBusyWorker = null;
+        int minWorkPool = Integer.MIN_VALUE;
+
+        for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
+            List<WorkItem> workPool = worker.getValue();
+
+            if (workPool.size() > minWorkPool) {
+                minWorkPool = workPool.size();
+                mostBusyWorker = worker.getKey();
+            }
+        }
+        return mostBusyWorker;
+    }
+
     public boolean containsWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : entrySet()) {
             for (WorkItem work : worker.getValue()) {
