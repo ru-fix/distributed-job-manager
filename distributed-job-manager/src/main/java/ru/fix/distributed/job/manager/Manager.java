@@ -32,10 +32,8 @@ import java.util.concurrent.TimeUnit;
  * @see Worker
  */
 class Manager implements AutoCloseable {
-
     private static final Logger log = LoggerFactory.getLogger(Manager.class);
-
-    private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 1;
+    private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 3;
 
     private final CuratorFramework curatorFramework;
     private final JobManagerPaths paths;
@@ -140,13 +138,13 @@ class Manager implements AutoCloseable {
         try {
             TransactionalClient.tryCommit(
                     curatorFramework,
-                    1,
+                    ASSIGNMENT_COMMIT_RETRIES_COUNT,
                     transaction -> {
                         String assignmentVersionNode = paths.getAssignmentVersion();
 
                         int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
-//                        removeAssignmentsOnDeadNodes();
+                        removeAssignmentsOnDeadNodes();
                         transaction.checkPathWithVersion(assignmentVersionNode, version);
                         transaction.setData(assignmentVersionNode, new byte[]{});
 
@@ -232,55 +230,7 @@ class Manager implements AutoCloseable {
                     transaction.createPath(newPath);
                 }
             }
-
-
-//            String newPath = ZKPaths.makePath(
-//                    paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()),
-//                    JobManagerPaths.WORK_POOL,
-//                    workItem.getId()
-//            );
-
-
-//            try {
-//                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
-//                    createPathIfNotExists(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
-//                    replacePathIfNeeded(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
-//                    transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
-
-//                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
-//                    createPathIfNotExists(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
-//                    transaction.createPath(paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
-//                    transaction.createPathWithParentsIfNeeded(paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
-
-
-//                    transaction.createPath(newPath);
-//                transaction.createPathWithParentsIfNeeded(newPath);
-//                    createPathIfNotExists(transaction, newPath);
-
-//            } catch (KeeperException e) {
-//                log.warn("Exception while path creating: ", e);
-//            }
         }
-    }
-
-
-    public void createPathIfNotExistsInCurator(TransactionalClient transaction, String path) throws Exception {
-        if (curatorFramework.checkExists().forPath(path) == null) {
-            transaction.createPath(path);
-        }
-    }
-
-    private void createPathIfNotExists(TransactionalClient transaction, String path) throws Exception {
-        if (transaction.checkPath(path) == null) {
-            transaction.createPath(path);
-        }
-    }
-
-    private void replacePathIfNeeded(TransactionalClient transaction, String path) throws Exception {
-        if (transaction.checkPath(path) != null) {
-            transaction.deletePathWithChildrenIfNeeded(path);
-        }
-        transaction.createPath(path);
     }
 
     private void removePreviousAssignedWorkPools(TransactionalClient transaction) {
@@ -295,9 +245,6 @@ class Manager implements AutoCloseable {
                 for (String job : jobs) {
                     transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker, job));
                 }
-                /*if (paths.getAssignedWorkPooledJobsPath(worker) != null) {
-                    transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker));
-                }*/
             }
         } catch (Exception e) {
             log.warn("Unable remove previous assignment: ", e);
@@ -322,7 +269,6 @@ class Manager implements AutoCloseable {
             } catch (KeeperException.NoNodeException e) {
                 log.info("Node was already deleted", e);
             }
-
         }
     }
 
@@ -338,9 +284,6 @@ class Manager implements AutoCloseable {
                 continue;
             }
 
-            /*if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) == null) {
-                continue;
-            }*/
             List<String> availableJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
@@ -355,9 +298,6 @@ class Manager implements AutoCloseable {
             }
             availableState.put(new WorkerItem(worker), workPool);
 
-            /*if (curatorFramework.checkExists().forPath(paths.getAssignedWorkPooledJobsPath(worker)) == null) {
-                continue;
-            }*/
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
@@ -430,20 +370,20 @@ private static class ZookeeperGlobalState {
         this.currentState = currentState;
     }
 
-    public ZookeeperState getAvailableState() {
+    ZookeeperState getAvailableState() {
         return availableState;
     }
 
-    public ZookeeperState getPreviousState() {
+    ZookeeperState getPreviousState() {
         return currentState;
     }
-
 }
 
     @Override
     public void close() throws Exception {
         long managerStopTime = System.currentTimeMillis();
         log.info("Closing DJM manager entity...");
+
         workersAliveChildrenCache.close();
         if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
             leaderLatch.close();
@@ -457,5 +397,4 @@ private static class ZookeeperGlobalState {
         }
         log.info("DJM manager was closed. Took {} ms", System.currentTimeMillis() - managerStopTime);
     }
-
 }

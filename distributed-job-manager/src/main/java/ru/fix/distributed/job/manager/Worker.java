@@ -223,7 +223,6 @@ class Worker implements AutoCloseable {
                 }
         );
 
-
         workPooledCache = new TreeCache(curatorFramework, paths.getAssignedWorkPooledJobsPath(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
             log.info("wid={} registerWorkerAsAliveAndRegisterJobs event={}", workerId, event);
@@ -305,7 +304,6 @@ class Worker implements AutoCloseable {
     private void reconfigureExecutors(Map<DistributedJob, Integer> workPooledMultiJobThreadCounts) {
         int threadsCount = workPooledMultiJobThreadCounts.values().stream().mapToInt(v -> v).sum();
         log.trace("Pool size now is {}", threadsCount);
-//        threadsCount = threadsCount == 0 ? 1 : threadsCount;
         threadPoolSize.set(threadsCount);
     }
 
