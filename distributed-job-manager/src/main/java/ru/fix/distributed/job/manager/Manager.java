@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.transaction.CuratorTransaction;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -147,7 +146,7 @@ class Manager implements AutoCloseable {
 
                         int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
-                        removeAssignmentsOnDeadNodes();
+//                        removeAssignmentsOnDeadNodes();
                         transaction.checkPathWithVersion(assignmentVersionNode, version);
                         transaction.setData(assignmentVersionNode, new byte[]{});
 
@@ -208,36 +207,62 @@ class Manager implements AutoCloseable {
             String workerId = worker.getKey().getId();
             List<WorkItem> workItems = worker.getValue();
 
-            if (transaction.checkPath(paths.getAssignedWorkPooledJobsPath(workerId)) == null) {
-                transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
+            Map<String, List<WorkItem>> jobs = new HashMap<>();
+            for (WorkItem workItem : workItems) {
+                if (jobs.containsKey(workItem.getJobId())) {
+                    List<WorkItem> newWorkItems = new ArrayList<>(jobs.get(workItem.getJobId()));
+                    newWorkItems.add(workItem);
+                    jobs.put(workItem.getJobId(), newWorkItems);
+                } else {
+                    jobs.put(workItem.getJobId(), Collections.singletonList(workItem));
+                }
             }
 
-            for (WorkItem workItem : workItems) {
-                String newPath = ZKPaths.makePath(
-                        paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()),
-                        JobManagerPaths.WORK_POOL,
-                        workItem.getId()
-                );
+            for (Map.Entry<String, List<WorkItem>> job : jobs.entrySet()) {
 
-                try {
-                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
+                transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId, job.getKey()));
+                transaction.createPath(paths.getAssignedWorkPoolPath(workerId, job.getKey()));
+
+                for (WorkItem workItem : job.getValue()) {
+                    String newPath = ZKPaths.makePath(
+                            paths.getAssignedWorkPooledJobsPath(workerId, job.getKey()),
+                            JobManagerPaths.WORK_POOL,
+                            workItem.getId()
+                    );
+                    transaction.createPath(newPath);
+                }
+            }
+
+
+//            String newPath = ZKPaths.makePath(
+//                    paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()),
+//                    JobManagerPaths.WORK_POOL,
+//                    workItem.getId()
+//            );
+
+
+//            try {
+//                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
 //                    createPathIfNotExists(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
 //                    replacePathIfNeeded(transaction, paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
 //                    transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId, workItem.getJobId()));
 
-                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+//                    createPathIfNotExistsInCurator(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+//                    createPathIfNotExists(transaction, paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
 //                    transaction.createPath(paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
+//                    transaction.createPathWithParentsIfNeeded(paths.getAssignedWorkPoolPath(workerId, workItem.getJobId()));
 
-                    transaction.createPath(newPath);
+
 //                    transaction.createPath(newPath);
-
+//                transaction.createPathWithParentsIfNeeded(newPath);
 //                    createPathIfNotExists(transaction, newPath);
-                } catch (KeeperException e) {
-                    log.warn("Exception while path creating: ", e);
-                }
-            }
+
+//            } catch (KeeperException e) {
+//                log.warn("Exception while path creating: ", e);
+//            }
         }
     }
+
 
     public void createPathIfNotExistsInCurator(TransactionalClient transaction, String path) throws Exception {
         if (curatorFramework.checkExists().forPath(path) == null) {
@@ -246,7 +271,7 @@ class Manager implements AutoCloseable {
     }
 
     private void createPathIfNotExists(TransactionalClient transaction, String path) throws Exception {
-        if (/*curatorFramework.checkExists().forPath(path) == null &&*/ transaction.checkPath(path) == null) {
+        if (transaction.checkPath(path) == null) {
             transaction.createPath(path);
         }
     }
@@ -313,9 +338,9 @@ class Manager implements AutoCloseable {
                 continue;
             }
 
-            if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) == null) {
+            /*if (curatorFramework.checkExists().forPath(paths.getAvailableWorkPooledJobPath(worker)) == null) {
                 continue;
-            }
+            }*/
             List<String> availableJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
@@ -330,9 +355,9 @@ class Manager implements AutoCloseable {
             }
             availableState.put(new WorkerItem(worker), workPool);
 
-            if (curatorFramework.checkExists().forPath(paths.getAssignedWorkPooledJobsPath(worker)) == null) {
+            /*if (curatorFramework.checkExists().forPath(paths.getAssignedWorkPooledJobsPath(worker)) == null) {
                 continue;
-            }
+            }*/
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
@@ -342,7 +367,7 @@ class Manager implements AutoCloseable {
                         .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
 
                 for (String workItem : assignedJobWorkItems) {
-                    workPool.add(new WorkItem(workItem, assignedJobId));
+                    assignedWorkPool.add(new WorkItem(workItem, assignedJobId));
                 }
             }
             currentState.put(new WorkerItem(worker), assignedWorkPool);
@@ -359,7 +384,7 @@ class Manager implements AutoCloseable {
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
             if (available.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), worker.getValue());
+                newAssignment.addWorkItems(worker.getKey(),  Collections.emptyList());
             }
         }
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {
@@ -396,23 +421,24 @@ class Manager implements AutoCloseable {
         return workItemsToAssign;
     }
 
-    private static class ZookeeperGlobalState {
-        private ZookeeperState availableState;
-        private ZookeeperState currentState;
+private static class ZookeeperGlobalState {
+    private ZookeeperState availableState;
+    private ZookeeperState currentState;
 
-        ZookeeperGlobalState(ZookeeperState availableState, ZookeeperState currentState) {
-            this.availableState = availableState;
-            this.currentState = currentState;
-        }
-
-        public ZookeeperState getAvailableState() {
-            return availableState;
-        }
-
-        public ZookeeperState getPreviousState() {
-            return currentState;
-        }
+    ZookeeperGlobalState(ZookeeperState availableState, ZookeeperState currentState) {
+        this.availableState = availableState;
+        this.currentState = currentState;
     }
+
+    public ZookeeperState getAvailableState() {
+        return availableState;
+    }
+
+    public ZookeeperState getPreviousState() {
+        return currentState;
+    }
+
+}
 
     @Override
     public void close() throws Exception {
