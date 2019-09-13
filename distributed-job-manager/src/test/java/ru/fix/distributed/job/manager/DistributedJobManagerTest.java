@@ -1,105 +1,97 @@
 package ru.fix.distributed.job.manager;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.model.JobId;
-import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
-import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.testing.ZKTestingServer;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class DistributedJobManagerTest {
+    private static final String rootPath = "/root/path";
     private ZKTestingServer zkTestingServer;
+    private JobManagerPaths paths;
 
     @BeforeEach
     public void setUp() throws Exception {
         zkTestingServer = new ZKTestingServer();
+        paths = new JobManagerPaths(rootPath);
         zkTestingServer.start();
     }
 
-    public static class DistributedJobStub implements DistributedJob {
-        private final Long delay;
-        private final String jobId;
-        private final WorkPool workPool;
-
-        public DistributedJobStub(String jobId, WorkPool workPool) {
-            this(jobId, workPool, 1000L);
-        }
-
-        public DistributedJobStub(String jobId, WorkPool workPool, Long delay) {
-            this.jobId = jobId;
-            this.workPool = workPool;
-            this.delay = delay;
-        }
-
-        @Override
-        public String getJobId() {
-            return jobId;
-        }
-
-        @Override
-        public Schedule getSchedule() {
-            return Schedule.withDelay(delay);
-        }
-
-        @Override
-        public void run(DistributedJobContext context) throws Exception {
-
-        }
-
-        @Override
-        public long getInitialJobDelay() {
-            return delay;
-        }
-
-        @Override
-        public WorkPool getWorkPool() {
-            return workPool;
-        }
-
-        @Override
-        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return WorkPoolRunningStrategies.getSingleThreadStrategy();
-        }
-
-        @Override
-        public long getWorkPoolCheckPeriod() {
-            return 100;
-        }
-    }
-
-    public static class CustomAssignmentStrategy implements AssignmentStrategy {
-
-        @Override
-        public ZookeeperState reassignAndBalance(
-                ZookeeperState availability,
-                ZookeeperState prevAssignment,
-                ZookeeperState currentAssignment,
-                Map<JobId, List<WorkItem>> itemsToAssign) {
-
-
-            AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                    availability, prevAssignment, currentAssignment, itemsToAssign
-            );
-
-            AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
-                    availability, prevAssignment, currentAssignment, itemsToAssign
-            );
-
-            return currentAssignment;
-        }
-    }
-
     @Test
-    public void example() throws Exception {
-        initDjm();
+    public void shouldEvenlyReassignWorkItemsForThreeWorkers() throws Exception {
+        StubbedMultiJob job1 = new StubbedMultiJob(
+                0, createWorkPool("distr-job-id-0", 1).getItems(), 50000L
+        );
+        StubbedMultiJob job2 = new StubbedMultiJob(
+                1, createWorkPool("distr-job-id-1", 6).getItems(), 50000L
+        );
+        StubbedMultiJob job3 = new StubbedMultiJob(
+                2, createWorkPool("distr-job-id-2", 2).getItems(), 50000L
+        );
+        CuratorFramework curator = zkTestingServer.createClient();
 
+        DistributedJobManager djm = new DistributedJobManager(
+                "worker-" + 0,
+                curator,
+                rootPath,
+                Arrays.asList(job1, job2, job3),
+                AssignmentStrategyFactory.EVENLY_SPREAD,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(true)
+        );
+
+        DistributedJobManager djm1 = new DistributedJobManager(
+                "worker-" + 1,
+                zkTestingServer.createClient(),
+                rootPath,
+                Collections.emptyList(),
+                AssignmentStrategyFactory.EVENLY_SPREAD,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(false)
+        );
+
+        DistributedJobManager djm2 = new DistributedJobManager(
+                "worker-" + 2,
+                zkTestingServer.createClient(),
+                rootPath,
+                Collections.emptyList(),
+                AssignmentStrategyFactory.EVENLY_SPREAD,
+                new AggregatingProfiler(),
+                DynamicProperty.of(10_000L),
+                DynamicProperty.of(false)
+        );
+        Thread.sleep(500);
+
+        List<String> nodes = List.of(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0")
+        );
+
+        for (String node : nodes) {
+            assertNotNull(curator.checkExists().forPath(node));
+        }
     }
 
     private WorkPool createWorkPool(String jobId, int workItemsNumber) {
@@ -110,84 +102,5 @@ class DistributedJobManagerTest {
         }
 
         return WorkPool.of(workPool);
-    }
-
-    private List<DistributedJobManager> createDjmPool(int count) throws Exception {
-        List<DistributedJobManager> distributedJobManagers = new ArrayList<>();
-
-        for (int i = 0; i < count; i++) {
-            DistributedJobManager djm = new DistributedJobManager(
-                    "worker-" + i,
-                    zkTestingServer.createClient(),
-                    "/root/path",
-                    Arrays.asList(
-                            new StubbedMultiJob(1, createWorkPool("distr-job-id-1", 2).getItems(), 500L),
-                            new StubbedMultiJob(2, createWorkPool("distr-job-id-2", 3).getItems(), 0L),
-                            new StubbedMultiJob(3, createWorkPool("distr-job-id-3", 1).getItems(), 0L)),
-                    AssignmentStrategyFactory.RENDEZVOUS,
-                    new AggregatingProfiler(),
-                    DynamicProperty.of(10_000L),
-                    DynamicProperty.of(true)
-            );
-            distributedJobManagers.add(djm);
-        }
-        return distributedJobManagers;
-    }
-
-
-    private void initEmptyDjms(int countDjms) throws Exception {
-        for (int i = 0; i < countDjms; i++) {
-            DistributedJobManager djm = new DistributedJobManager(
-                    "worker-" + i,
-                    zkTestingServer.createClient(),
-                    "/root/path",
-                    Collections.emptyList(),
-                    AssignmentStrategyFactory.EVENLY_SPREAD,
-                    new AggregatingProfiler(),
-                    DynamicProperty.of(10_000L),
-                    DynamicProperty.of(true)
-            );
-        }
-    }
-
-    private void initDjm() throws Exception {
-        DistributedJobManager djm = new DistributedJobManager(
-                "worker-" + 0,
-                zkTestingServer.createClient(),
-                "/root/path",
-                Arrays.asList(
-                        new StubbedMultiJob(0, createWorkPool("distr-job-id-0", 1).getItems(), 5000L),
-                        new StubbedMultiJob(1, createWorkPool("distr-job-id-1", 6).getItems(), 5000L),
-                        new StubbedMultiJob(2, createWorkPool("distr-job-id-2", 2).getItems(), 5000L)
-                ),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
-                new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(true)
-        );
-
-        DistributedJobManager djm1 = new DistributedJobManager(
-                "worker-" + 1,
-                zkTestingServer.createClient(),
-                "/root/path",
-                Arrays.asList(),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
-                new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(true)
-        );
-
-        DistributedJobManager djm2 = new DistributedJobManager(
-                "worker-" + 2,
-                zkTestingServer.createClient(),
-                "/root/path",
-                Arrays.asList(),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
-                new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(true)
-        );
-
-        Thread.sleep(3000);
     }
 }

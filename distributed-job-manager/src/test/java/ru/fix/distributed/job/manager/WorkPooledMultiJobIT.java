@@ -437,7 +437,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob),
                         AssignmentStrategyFactory.DEFAULT,
                         new AggregatingProfiler(),
-                        getTerminationWaitTime()
+                        getTerminationWaitTime(),
+                        DynamicProperty.of(true)
                 )
         ) {
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -446,8 +447,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                                     .size() == 3,
                     () -> "Single distributed job should has all work item" + printZkTree
                             (JOB_MANAGER_ZK_ROOT_PATH) + testJob.getAllWorkPools());
-            Thread.sleep(500);
-            verify(testJob, times(1)).run(any());
+            Thread.sleep(1000);
+            // 3 times, because one thread per work item
+            verify(testJob, times(3)).run(any());
         }
     }
 
