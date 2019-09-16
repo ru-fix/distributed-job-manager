@@ -1,8 +1,6 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
@@ -10,11 +8,9 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.zookeeper.testing.ZKTestingServer;
 
-import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DistributedJobManagerTest {
     private static final String rootPath = "/root/path";
@@ -73,7 +69,7 @@ class DistributedJobManagerTest {
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(1000);
+        Thread.sleep(500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
