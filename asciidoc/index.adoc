@@ -62,20 +62,13 @@ when number active workers changes. +
 DJM provides some implementations for the most common cases of distribution.
 Also you can implement AssigmentStrategy for your case by himself and inject it to your distributed job.
 
-* ClassifiedAssignmentStrategy +
-Intended for distribution classified (grouped by type) jobs,
-so one worker can't handle more than one job of the same class
-* DefaultAssignmentStrategy
-* LexicographicalAssignmentStrategy +
-Ignore current workers assignment. Assign jobs to workers and try balance loading uniformly
-* MinimizedReassignmentAssignmentStrategy +
-It minimize job reassignment within
-living workers when new worker added or one of workers removed
-* SingletonAssignmentStrategy +
-Ensures that with repeated distributions, one job will be launched on only one worker
-* FixedSizeWorkersAssignmentStrategy
-Ensures that with repeated distributions, worker will handle one work item of one job.
+* EvenlySpreadAssignmentStrategy +
+Intended for evenly distribution all available jobs on all available workers.
+It's ignores previous assignment
 
+* RendezvousHashAssignmentStrategy +
+It minimize job reassignment within
+living workers when new worker added or one of workers removed using Rendezvous hash
 
 === Example of bean configuration in Spring Framework
 [code]
@@ -104,35 +97,43 @@ public static class RebillJob implements DistributedJob {
 
     public class CustomAssignmentStrategy implements AssignmentStrategy {
 
-        public void reassignAndBalance(
-                ZookeeperState availability,
-                ZookeeperState prevAssignment,
-                ZookeeperState newAssignment,
+        public AssignmentState reassignAndBalance(
+                AssignmentState availability,
+                AssignmentState prevAssignment,
+                AssignmentState newAssignment,
                 Map<JobId, List<WorkItem>> itemsToAssign) {
 
             // get all work items for rebill job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToRebillJob = //
+            Map<JobId, List<WorkItem>> itemsToRebillJob = Collections.singletonMap(
+                new JobId("rebill-job"), itemsToAssign.get(new JobId("rebill-job"))
+            );
             AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
-                    availability, prevAssignment, newAssignment, itemsToRebillJob);
+                    availability, prevAssignment, newAssignment, itemsToRebillJob
+            );
             // remove rebill job from itemsToAssign
             itemsToAssign.remove(new JobId("rebill-job"));
 
             // get all work items for ussd job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToUssdJob = //
-            // here we implements custom logic for ussd job...
+            Map<JobId, List<WorkItem>> itemsToUssdJob = Collections.singletonMap(
+                new JobId("ussd-job"), itemsToAssign.get(new JobId("ussd-job"))
+            );
+            // here we implements custom logic for ussd job distribution...
+            ...
             // remove ussd job from itemsToAssign
             itemsToAssign.remove(new JobId("ussd-job"));
 
             // get all work items for sms job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToSmsJob = //
-            // here we implements custom logic for ussd job...
-            // remove ussd job from itemsToAssign
+            Map<JobId, List<WorkItem>> itemsToSmsJob = Collections.singletonMap(
+                new JobId("sms-job"), itemsToAssign.get(new JobId("sms-job"))
+            );
+            // here we implements custom logic for sms job distribution...
+            ...
+            // remove sms job from itemsToAssign
             itemsToAssign.remove(new JobId("ussd-job"));
 
-            // get all work items for other jobs from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToOtherJobs = //
+            // reassign rest items to assign
             AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                   availability, prevAssignment, newAssignment, itemsToOtherJobs
+                   availability, prevAssignment, newAssignment, itemsToAssign
             );
         }
     }
