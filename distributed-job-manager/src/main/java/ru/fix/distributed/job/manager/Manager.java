@@ -13,7 +13,7 @@ import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -171,25 +171,21 @@ class Manager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    private void assignWorkPools(ZookeeperGlobalState globalState, TransactionalClient transaction) throws Exception {
+    private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
 
-        ZookeeperState currentState = generateCurrentState(
-                globalState.getAvailableState(), globalState.getPreviousState()
-        );
-        Map<JobId, List<WorkItem>> itemsToAssign = generateItemsToAssign(
-                globalState.getAvailableState(), currentState
-        );
+        AssignmentState currentState = generateCurrentState(globalState.getAvailableState());
+        Map<JobId, List<WorkItem>> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
 
         log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
         log.info("Previous state before rebalance: " + globalState.getPreviousState().toString());
         log.info("Current state before rebalance: " + currentState.toString());
         log.info("Items to assign: " + itemsToAssign.toString());
 
-        ZookeeperState newAssignmentState = assignmentStrategy.reassignAndBalance(
+        AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
                 globalState.getAvailableState(),
                 globalState.getPreviousState(),
                 currentState,
-                generateItemsToAssign(globalState.getAvailableState(), currentState)
+                itemsToAssign
         );
 
         log.info("New assignment after rebalance: " + newAssignmentState);
@@ -197,7 +193,7 @@ class Manager implements AutoCloseable {
         rewriteZookeeperNodes(newAssignmentState, transaction);
     }
 
-    private void rewriteZookeeperNodes(ZookeeperState newAssignmentState, TransactionalClient transaction) throws Exception {
+    private void rewriteZookeeperNodes(AssignmentState newAssignmentState, TransactionalClient transaction) throws Exception {
 
         removePreviousAssignedWorkPools(transaction);
 
@@ -272,9 +268,9 @@ class Manager implements AutoCloseable {
         }
     }
 
-    private ZookeeperGlobalState getZookeeperGlobalState() throws Exception {
-        ZookeeperState availableState = new ZookeeperState();
-        ZookeeperState currentState = new ZookeeperState();
+    private GlobalAssignmentState getZookeeperGlobalState() throws Exception {
+        AssignmentState availableState = new AssignmentState();
+        AssignmentState previousState = new AssignmentState();
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
@@ -310,44 +306,27 @@ class Manager implements AutoCloseable {
                     assignedWorkPool.add(new WorkItem(workItem, assignedJobId));
                 }
             }
-            currentState.put(new WorkerItem(worker), assignedWorkPool);
+            previousState.put(new WorkerItem(worker), assignedWorkPool);
         }
 
-        return new ZookeeperGlobalState(availableState, currentState);
+        return new GlobalAssignmentState(availableState, previousState);
     }
 
-    /**
-     * Add new workers from available state and remove inaccessible workers from current state
-     */
-    private ZookeeperState generateCurrentState(ZookeeperState available, ZookeeperState current) {
-        ZookeeperState newAssignment = new ZookeeperState();
+    private AssignmentState generateCurrentState(AssignmentState available) {
+        AssignmentState newAssignment = new AssignmentState();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
-            if (available.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(),  Collections.emptyList());
-            }
-        }
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {
-            if (!current.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
-            }
+        for (Map.Entry<WorkerItem, List<WorkItem>> availableWorker : available.entrySet()) {
+            newAssignment.put(availableWorker.getKey(), Collections.emptyList());
         }
         return newAssignment;
     }
 
-    private Map<JobId, List<WorkItem>> generateItemsToAssign(
-            ZookeeperState availableState,
-            ZookeeperState currentState
-    ) {
+    private Map<JobId, List<WorkItem>> generateItemsToAssign(AssignmentState availableState) {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
-
-                if (currentState.containsWorkItem(workItem)) {
-                    continue;
-                }
 
                 if (workItemsToAssign.containsKey(new JobId(jobId))) {
                     List<WorkItem> workItemsOld = new ArrayList<>(workItemsToAssign.get(new JobId(jobId)));
@@ -361,20 +340,20 @@ class Manager implements AutoCloseable {
         return workItemsToAssign;
     }
 
-private static class ZookeeperGlobalState {
-    private ZookeeperState availableState;
-    private ZookeeperState currentState;
+private static class GlobalAssignmentState {
+    private AssignmentState availableState;
+    private AssignmentState currentState;
 
-    ZookeeperGlobalState(ZookeeperState availableState, ZookeeperState currentState) {
+    GlobalAssignmentState(AssignmentState availableState, AssignmentState currentState) {
         this.availableState = availableState;
         this.currentState = currentState;
     }
 
-    ZookeeperState getAvailableState() {
+    AssignmentState getAvailableState() {
         return availableState;
     }
 
-    ZookeeperState getPreviousState() {
+    AssignmentState getPreviousState() {
         return currentState;
     }
 }

@@ -1,21 +1,20 @@
 package ru.fix.distributed.job.manager.strategy;
 
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
 
     @Override
-    public ZookeeperState reassignAndBalance(
-            ZookeeperState availability,
-            ZookeeperState prevAssignment,
-            ZookeeperState currentAssignment,
+    public AssignmentState reassignAndBalance(
+            AssignmentState availability,
+            AssignmentState prevAssignment,
+            AssignmentState currentAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign
     ) {
 

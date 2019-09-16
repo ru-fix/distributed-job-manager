@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,8 +23,8 @@ class EvenlySpreadAssignmentStrategyTest {
 
     @Test
     public void reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
-        ZookeeperState available = new ZookeeperState();
-        ZookeeperState previous = new ZookeeperState();
+        AssignmentState available = new AssignmentState();
+        AssignmentState previous = new AssignmentState();
 
         available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-0", "job-0"));
         available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-1", "job-0"));
@@ -38,11 +38,11 @@ class EvenlySpreadAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        ZookeeperState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available, previous);
 
         assertFalse(available.isBalanced());
 
-        ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
+        AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
@@ -54,8 +54,8 @@ class EvenlySpreadAssignmentStrategyTest {
 
     @Test
     public void reassignAndBalanceWhenSomeWorkersHasJobs() {
-        ZookeeperState available = new ZookeeperState();
-        ZookeeperState previous = new ZookeeperState();
+        AssignmentState available = new AssignmentState();
+        AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 3);
         available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
@@ -67,11 +67,11 @@ class EvenlySpreadAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        ZookeeperState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available, previous);
 
         assertFalse(available.isBalanced());
 
-        ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
+        AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
@@ -83,8 +83,8 @@ class EvenlySpreadAssignmentStrategyTest {
 
     @Test
     public void reassignAndBalanceIfWorkerNotAvailable() {
-        ZookeeperState available = new ZookeeperState();
-        ZookeeperState previous = new ZookeeperState();
+        AssignmentState available = new AssignmentState();
+        AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
 
@@ -97,9 +97,9 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-0", "job-0")
         ));
 
-        ZookeeperState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available, previous);
 
-        ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
+        AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
@@ -111,8 +111,8 @@ class EvenlySpreadAssignmentStrategyTest {
 
     @Test
     public void reassignAndBalanceIfNewWorkersAdded() {
-        ZookeeperState available = new ZookeeperState();
-        ZookeeperState previous = new ZookeeperState();
+        AssignmentState available = new AssignmentState();
+        AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
         available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
@@ -130,9 +130,9 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-3", "job-0")
         ));
 
-        ZookeeperState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available, previous);
 
-        ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
+        AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
@@ -144,8 +144,8 @@ class EvenlySpreadAssignmentStrategyTest {
 
     @Test
     public void reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
-        ZookeeperState available = new ZookeeperState();
-        ZookeeperState previous = new ZookeeperState();
+        AssignmentState available = new AssignmentState();
+        AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
         available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
@@ -165,9 +165,9 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-2", "job-3")
         ));
 
-        ZookeeperState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available, previous);
 
-        ZookeeperState newAssignment = evenlySpread.reassignAndBalance(
+        AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,

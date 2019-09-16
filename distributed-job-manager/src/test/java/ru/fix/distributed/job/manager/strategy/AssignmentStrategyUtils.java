@@ -3,12 +3,12 @@ package ru.fix.distributed.job.manager.strategy;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.*;
 
 class AssignmentStrategyUtils {
-    static void addWorkerWithItems(ZookeeperState state, String worker, int workItemsCount, int jobsCount) {
+    static void addWorkerWithItems(AssignmentState state, String worker, int workItemsCount, int jobsCount) {
         List<WorkItem> workItems = new ArrayList<>();
 
         for (int i = 0; i < workItemsCount; i++) {
@@ -19,8 +19,8 @@ class AssignmentStrategyUtils {
         state.addWorkItems(new WorkerItem(worker), workItems);
     }
 
-    static ZookeeperState generateCurrentState(ZookeeperState available, ZookeeperState current) {
-        ZookeeperState newAssignment = new ZookeeperState();
+    static AssignmentState generateCurrentState(AssignmentState available, AssignmentState current) {
+        AssignmentState newAssignment = new AssignmentState();
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
             if (available.containsKey(worker.getKey())) {
@@ -36,8 +36,8 @@ class AssignmentStrategyUtils {
     }
 
     static Map<JobId, List<WorkItem>> generateItemsToAssign(
-            ZookeeperState availableState,
-            ZookeeperState currentState
+            AssignmentState availableState,
+            AssignmentState currentState
     ) {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 

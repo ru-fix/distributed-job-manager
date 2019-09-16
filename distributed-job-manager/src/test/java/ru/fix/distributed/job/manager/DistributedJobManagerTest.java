@@ -46,7 +46,7 @@ class DistributedJobManagerTest {
                 curator,
                 rootPath,
                 Arrays.asList(job1, job2, job3),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
+                AssignmentStrategyFactory.RENDEZVOUS,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
@@ -57,7 +57,7 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 rootPath,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
+                AssignmentStrategyFactory.RENDEZVOUS,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
@@ -68,12 +68,12 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 rootPath,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.EVENLY_SPREAD,
+                AssignmentStrategyFactory.RENDEZVOUS,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(1000);
+        Thread.sleep(3000);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),

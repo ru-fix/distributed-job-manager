@@ -5,7 +5,7 @@ import com.google.common.hash.Hashing;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerItem;
-import ru.fix.distributed.job.manager.model.ZookeeperState;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
 import java.util.ArrayList;
@@ -15,10 +15,10 @@ import java.util.Map;
 public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
 
     @Override
-    public ZookeeperState reassignAndBalance(
-            ZookeeperState availability,
-            ZookeeperState prevAssignment,
-            ZookeeperState currentAssignment,
+    public AssignmentState reassignAndBalance(
+            AssignmentState availability,
+            AssignmentState prevAssignment,
+            AssignmentState currentAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign
     ) {
         final Funnel<String> stringFunnel = (from, into) -> into.putBytes(from.getBytes());

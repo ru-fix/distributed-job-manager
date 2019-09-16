@@ -6,7 +6,7 @@ import java.util.*;
  * ZookeeperState represent Map with mapping workers to  work items
  * and provide additional methods for easier Zookeeper state reconstruction
  */
-public class ZookeeperState extends HashMap<WorkerItem, List<WorkItem>> {
+public class AssignmentState extends HashMap<WorkerItem, List<WorkItem>> {
 
     /**
      * If worker exists, add new work item to work item's list,
