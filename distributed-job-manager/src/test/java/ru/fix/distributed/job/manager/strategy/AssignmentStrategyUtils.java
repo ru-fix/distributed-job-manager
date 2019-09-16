@@ -19,35 +19,21 @@ class AssignmentStrategyUtils {
         state.addWorkItems(new WorkerItem(worker), workItems);
     }
 
-    static AssignmentState generateCurrentState(AssignmentState available, AssignmentState current) {
+    static AssignmentState generateCurrentState(AssignmentState available) {
         AssignmentState newAssignment = new AssignmentState();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : current.entrySet()) {
-            if (available.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
-            }
-        }
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : available.entrySet()) {
-            if (!current.containsKey(worker.getKey())) {
-                newAssignment.addWorkItems(worker.getKey(), Collections.emptyList());
-            }
+        for (Map.Entry<WorkerItem, List<WorkItem>> availableWorker : available.entrySet()) {
+            newAssignment.put(availableWorker.getKey(), Collections.emptyList());
         }
         return newAssignment;
     }
 
-    static Map<JobId, List<WorkItem>> generateItemsToAssign(
-            AssignmentState availableState,
-            AssignmentState currentState
-    ) {
+    static Map<JobId, List<WorkItem>> generateItemsToAssign(AssignmentState availableState) {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
         for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
-
-                if (currentState.containsWorkItem(workItem)) {
-                    continue;
-                }
 
                 if (workItemsToAssign.containsKey(new JobId(jobId))) {
                     List<WorkItem> workItemsOld = new ArrayList<>(workItemsToAssign.get(new JobId(jobId)));

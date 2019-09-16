@@ -46,7 +46,7 @@ class DistributedJobManagerTest {
                 curator,
                 rootPath,
                 Arrays.asList(job1, job2, job3),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
@@ -57,7 +57,7 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 rootPath,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
@@ -68,25 +68,25 @@ class DistributedJobManagerTest {
                 zkTestingServer.createClient(),
                 rootPath,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.RENDEZVOUS,
+                AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(3000);
+        Thread.sleep(1000);
 
         List<String> nodes = Arrays.asList(
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5"),
 
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-4"),
 
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0")
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-0")
         );
 
         for (String node : nodes) {

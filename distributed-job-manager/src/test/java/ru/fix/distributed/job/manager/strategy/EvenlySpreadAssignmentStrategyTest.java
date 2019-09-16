@@ -38,7 +38,7 @@ class EvenlySpreadAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         assertFalse(available.isBalanced());
 
@@ -46,7 +46,7 @@ class EvenlySpreadAssignmentStrategyTest {
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -67,7 +67,7 @@ class EvenlySpreadAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         assertFalse(available.isBalanced());
 
@@ -75,7 +75,7 @@ class EvenlySpreadAssignmentStrategyTest {
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -97,13 +97,13 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-0", "job-0")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -130,13 +130,13 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-3", "job-0")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -165,15 +165,14 @@ class EvenlySpreadAssignmentStrategyTest {
                 new WorkItem("work-item-2", "job-3")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
-
         assertTrue(newAssignment.isBalanced());
     }
 }

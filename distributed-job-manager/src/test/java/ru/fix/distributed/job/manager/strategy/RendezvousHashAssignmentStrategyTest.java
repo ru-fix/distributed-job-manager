@@ -37,13 +37,13 @@ class RendezvousHashAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -64,7 +64,7 @@ class RendezvousHashAssignmentStrategyTest {
         previous.put(new WorkerItem("worker-1"), Collections.emptyList());
         previous.put(new WorkerItem("worker-2"), Collections.emptyList());
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         assertFalse(available.isBalanced());
 
@@ -72,7 +72,7 @@ class RendezvousHashAssignmentStrategyTest {
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -94,13 +94,13 @@ class RendezvousHashAssignmentStrategyTest {
                 new WorkItem("work-item-0", "job-0")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -126,13 +126,13 @@ class RendezvousHashAssignmentStrategyTest {
                 new WorkItem("work-item-0", "job-3")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -161,13 +161,13 @@ class RendezvousHashAssignmentStrategyTest {
                 new WorkItem("work-item-2", "job-3")
         ));
 
-        AssignmentState currentState = generateCurrentState(available, previous);
+        AssignmentState currentState = generateCurrentState(available);
 
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 available,
                 previous,
                 currentState,
-                generateItemsToAssign(available, currentState)
+                generateItemsToAssign(available)
         );
 
         assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize());
