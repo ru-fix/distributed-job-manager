@@ -16,8 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
-
     /**
      * количество слушателей должно быть одинаковым до и после добавления и релиз 100 джоб
      *

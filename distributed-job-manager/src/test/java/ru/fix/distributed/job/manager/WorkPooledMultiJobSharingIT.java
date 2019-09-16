@@ -3,7 +3,6 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
@@ -18,8 +17,6 @@ import static org.mockito.Mockito.*;
 public class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
-
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
 
     @SuppressWarnings("unchecked")
     @Test

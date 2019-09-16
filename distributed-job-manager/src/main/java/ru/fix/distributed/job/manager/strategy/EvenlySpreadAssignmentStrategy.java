@@ -18,8 +18,11 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
             AssignmentState currentAssignment,
             Map<JobId, List<WorkItem>> itemsToAssign
     ) {
-
         int workersCount = currentAssignment.size();
+        if (workersCount == 0) {
+            return currentAssignment;
+        }
+
         int itemsToAssignSize = itemsToAssign.values().stream()
                 .mapToInt(List::size)
                 .sum();

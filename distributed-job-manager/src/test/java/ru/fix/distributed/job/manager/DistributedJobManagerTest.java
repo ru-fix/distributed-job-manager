@@ -12,17 +12,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class DistributedJobManagerTest {
-    private static final String rootPath = "/root/path";
-    private ZKTestingServer zkTestingServer;
-    private JobManagerPaths paths;
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        zkTestingServer = new ZKTestingServer();
-        paths = new JobManagerPaths(rootPath);
-        zkTestingServer.start();
-    }
+class DistributedJobManagerTest extends AbstractJobManagerTest {
 
     @Test
     public void shouldEvenlyReassignWorkItemsForThreeWorkers() throws Exception {
@@ -40,7 +30,7 @@ class DistributedJobManagerTest {
         DistributedJobManager djm = new DistributedJobManager(
                 "worker-" + 0,
                 curator,
-                rootPath,
+                JOB_MANAGER_ZK_ROOT_PATH,
                 Arrays.asList(job1, job2, job3),
                 AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
@@ -51,7 +41,7 @@ class DistributedJobManagerTest {
         DistributedJobManager djm1 = new DistributedJobManager(
                 "worker-" + 1,
                 zkTestingServer.createClient(),
-                rootPath,
+                JOB_MANAGER_ZK_ROOT_PATH,
                 Collections.emptyList(),
                 AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
@@ -62,14 +52,14 @@ class DistributedJobManagerTest {
         DistributedJobManager djm2 = new DistributedJobManager(
                 "worker-" + 2,
                 zkTestingServer.createClient(),
-                rootPath,
+                JOB_MANAGER_ZK_ROOT_PATH,
                 Collections.emptyList(),
                 AssignmentStrategyFactory.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(500);
+        Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),

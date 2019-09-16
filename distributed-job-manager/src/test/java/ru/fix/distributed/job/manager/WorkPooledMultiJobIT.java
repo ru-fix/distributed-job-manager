@@ -10,7 +10,6 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.socket.proxy.ProxySocket;
@@ -29,12 +28,9 @@ import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
  * @author Ayrat Zulkarnyaev
  */
 public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
-    private static final int DEFAULT_ITERATION_PERIOD = 200;
     private static final int DEFAULT_TIMEOUT = 15_000;
 
     private static final Logger logger = LoggerFactory.getLogger(WorkPooledMultiJobIT.class);
-
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
 
     @Test
     public void shouldAddNewAvailableWorkPool() throws Exception {
