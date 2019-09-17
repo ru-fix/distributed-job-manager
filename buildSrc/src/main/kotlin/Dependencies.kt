@@ -6,18 +6,17 @@ object Vers {
     const val asciidoctor = "1.5.9.2"
 
     //Dependencies
-    const val kotlin = "1.3.41"
+    const val kotlin = "1.3.50"
 
     const val slf4j = "1.7.28"
-    const val logback = "1.2.3"
 
-    const val aggregating_profiler = "1.4.13"
-    const val jfix_zookeeper = "1.0.4"
+    const val aggregating_profiler = "1.5.16"
+    const val jfix_zookeeper = "1.0.8"
     const val jfix_concurrency = "1.0.42"
     const val jfix_socket = "1.0.42"
 
     const val validation_api = "2.0.1.Final"
-    const val curator = "2.10.0"
+    const val curator = "4.2.0"
     const val commons_io = "2.6"
 
     const val junit = "5.5.1"
@@ -29,11 +28,11 @@ object Vers {
 
 object Libs {
     //Plugins
-    val gradle_release_plugin = "ru.fix:gradle-release-plugin:${Vers.gradle_release_plugin}"
-    val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokkav}"
-    val nexus_staging_plugin = "io.codearte.nexus-staging"
-    val nexus_publish_plugin = "de.marcphilipp.nexus-publish"
-    val asciidoctor = "org.asciidoctor:asciidoctor-gradle-plugin:${Vers.asciidoctor}"
+    const val gradle_release_plugin = "ru.fix:gradle-release-plugin:${Vers.gradle_release_plugin}"
+    const val dokka_gradle_plugin = "org.jetbrains.dokka:dokka-gradle-plugin:${Vers.dokkav}"
+    const val nexus_staging_plugin = "io.codearte.nexus-staging"
+    const val nexus_publish_plugin = "de.marcphilipp.nexus-publish"
+    const val asciidoctor = "org.asciidoctor:asciidoctor-gradle-plugin:${Vers.asciidoctor}"
 
     //Dependencies
 
@@ -53,9 +52,7 @@ object Libs {
     const val slf4j = "org.slf4j:slf4j-api:${Vers.slf4j}"
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
 
-    const val log4j = "org.apache.logging.log4j:log4j-api:${Vers.log4j}"
     const val log4j_core = "org.apache.logging.log4j:log4j-core:${Vers.log4j}"
-    const val log4j_kotlin = "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
     const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test
@@ -64,7 +61,6 @@ object Libs {
     // Test
     const val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
     const val junit_jupiter = "org.junit.jupiter:junit-jupiter-engine:${Vers.junit}"
-    const val logback = "ch.qos.logback:logback-classic:${Vers.logback}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
     const val hamkrest = "org.hamcrest:hamcrest-all:${Vers.hamkrest}"
