@@ -9,6 +9,7 @@ dependencies {
     compile(Libs.aggregating_profiler)
     compile(Libs.jfix_zookeeper)
     compile(Libs.jfix_concurrency)
+    compile(Libs.jfix_dynamic_property_api)
 
     // Common
     compile(Libs.slf4j)

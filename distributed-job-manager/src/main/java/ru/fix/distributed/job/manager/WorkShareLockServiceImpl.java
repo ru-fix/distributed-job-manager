@@ -4,6 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
@@ -79,7 +80,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         this.serverId = serverId;
 
         this.workItemProlongationTask.schedule(
-                () -> Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS),
+                DynamicProperty.of(() -> Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS)),
                 0,
                 () -> jobWorkItemLocks.forEach((job, workItemLocks) ->
                         workItemLocks.forEach((workItem, lock) -> {

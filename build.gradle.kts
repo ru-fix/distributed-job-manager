@@ -88,6 +88,10 @@ subprojects {
     val dokkaTask by tasks.creating(DokkaTask::class) {
         outputFormat = "javadoc"
         outputDirectory = "$buildDir/dokka"
+
+        //TODO: wait dokka support JDK11 - https://github.com/Kotlin/dokka/issues/428
+        //TODO: wait dokka fix https://github.com/Kotlin/dokka/issues/464
+        enabled = false
     }
 
     val dokkaJar by tasks.creating(Jar::class) {
