@@ -4,7 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.*;
@@ -32,7 +32,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 curator,
                 JOB_MANAGER_ZK_ROOT_PATH,
                 Arrays.asList(job1, job2, job3),
-                AssignmentStrategyFactory.DEFAULT,
+                AssignmentStrategies.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(true)
@@ -43,7 +43,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 zkTestingServer.createClient(),
                 JOB_MANAGER_ZK_ROOT_PATH,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.DEFAULT,
+                AssignmentStrategies.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
@@ -54,7 +54,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 zkTestingServer.createClient(),
                 JOB_MANAGER_ZK_ROOT_PATH,
                 Collections.emptyList(),
-                AssignmentStrategyFactory.DEFAULT,
+                AssignmentStrategies.DEFAULT,
                 new AggregatingProfiler(),
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)

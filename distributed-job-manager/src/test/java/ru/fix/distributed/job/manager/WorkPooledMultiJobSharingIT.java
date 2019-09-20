@@ -3,7 +3,7 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
@@ -29,7 +29,7 @@ public class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                      new HashSet<>(Collections.singletonList(
                              new SingleThreadMultiJob(
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))))),
-                     AssignmentStrategyFactory.DEFAULT,
+                     AssignmentStrategies.DEFAULT,
                      new AggregatingProfiler(),
                      getTerminationWaitTime())
         ) {

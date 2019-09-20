@@ -10,7 +10,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategyFactory;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.socket.proxy.ProxySocket;
 
@@ -227,7 +227,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -251,7 +251,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -278,7 +278,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -296,7 +296,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             curator2,
                             JOB_MANAGER_ZK_ROOT_PATH,
                             Collections.singletonList(testJob2),
-                            AssignmentStrategyFactory.DEFAULT,
+                            AssignmentStrategies.DEFAULT,
                             profiler,
                             getTerminationWaitTime()
                     )
@@ -340,7 +340,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -362,7 +362,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -389,7 +389,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.getClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -407,7 +407,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             zkTestingServer.createClient(),
                             JOB_MANAGER_ZK_ROOT_PATH,
                             Collections.singletonList(testJob),
-                            AssignmentStrategyFactory.DEFAULT,
+                            AssignmentStrategies.DEFAULT,
                             new AggregatingProfiler(),
                             getTerminationWaitTime()
                     )
@@ -431,7 +431,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJob),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime(),
                         DynamicProperty.of(true)
@@ -460,7 +460,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJobOnWorker1),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 );
@@ -469,7 +469,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJobOnWorker2),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -523,7 +523,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJobOnWorker1),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 );
@@ -532,7 +532,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         zkTestingServer.createClient(),
                         JOB_MANAGER_ZK_ROOT_PATH,
                         Collections.singletonList(testJobOnWorker2),
-                        AssignmentStrategyFactory.DEFAULT,
+                        AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
                         getTerminationWaitTime()
                 )
@@ -612,7 +612,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         new StubbedMultiJob(1, getWorkItems(1)),
                         new StubbedMultiJob(2, getWorkItems(2)),
                         new StubbedMultiJob(3, getWorkItems(3))),
-                AssignmentStrategyFactory.DEFAULT,
+                AssignmentStrategies.DEFAULT,
                 new AggregatingProfiler(),
                 getTerminationWaitTime()
         );
