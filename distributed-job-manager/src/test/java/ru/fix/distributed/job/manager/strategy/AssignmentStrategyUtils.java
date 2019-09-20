@@ -23,7 +23,7 @@ class AssignmentStrategyUtils {
         AssignmentState newAssignment = new AssignmentState();
 
         for (Map.Entry<WorkerId, List<WorkItem>> availableWorker : available.entrySet()) {
-            newAssignment.put(availableWorker.getKey(), Collections.emptyList());
+            newAssignment.put(availableWorker.getKey(), new ArrayList<>());
         }
         return newAssignment;
     }
@@ -40,7 +40,7 @@ class AssignmentStrategyUtils {
                     workItemsOld.add(workItem);
                     workItemsToAssign.put(new JobId(jobId), workItemsOld);
                 } else {
-                    workItemsToAssign.put(new JobId(jobId), Collections.singletonList(workItem));
+                    workItemsToAssign.put(new JobId(jobId), Arrays.asList(workItem));
                 }
             }
         }

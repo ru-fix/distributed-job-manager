@@ -13,13 +13,7 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
      * else create worker and add new work item
      */
     public void addWorkItem(WorkerId worker, WorkItem workItem) {
-        if (this.containsKey(worker)) {
-            List<WorkItem> workItems = new ArrayList<>(this.get(worker));
-            workItems.add(workItem);
-            this.put(worker, workItems);
-        } else {
-            this.put(worker, Collections.singletonList(workItem));
-        }
+        this.computeIfAbsent(worker, key -> new ArrayList<>()).add(workItem);
     }
 
     /**
