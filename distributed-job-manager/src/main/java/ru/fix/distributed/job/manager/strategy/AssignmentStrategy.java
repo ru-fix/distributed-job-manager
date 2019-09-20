@@ -6,6 +6,7 @@ import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Job assignment strategy which could manage work pools distribution on workers
@@ -25,6 +26,6 @@ public interface AssignmentStrategy {
             AssignmentState availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
-            Map<JobId, List<WorkItem>> itemsToAssign
+            Set<WorkItem> itemsToAssign
     );
 }

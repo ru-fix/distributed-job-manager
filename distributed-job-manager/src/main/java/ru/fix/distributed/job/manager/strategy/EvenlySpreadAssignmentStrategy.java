@@ -8,6 +8,7 @@ import ru.fix.distributed.job.manager.model.WorkerId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
 
@@ -16,16 +17,14 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
             AssignmentState availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
-            Map<JobId, List<WorkItem>> itemsToAssign
+            Set<WorkItem> itemsToAssign
     ) {
         int workersCount = currentAssignment.size();
         if (workersCount == 0) {
             return currentAssignment;
         }
 
-        int itemsToAssignSize = itemsToAssign.values().stream()
-                .mapToInt(List::size)
-                .sum();
+        int itemsToAssignSize = itemsToAssign.size(); // TODO !!!!
         int canBeTakenFromPreviousPerWorker = itemsToAssignSize / workersCount;
 
         for (Map.Entry<WorkerId, List<WorkItem>> worker : prevAssignment.entrySet()) {
@@ -33,7 +32,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
 
             for (WorkItem workItem : worker.getValue()) {
                 if (!currentAssignment.containsKey(worker.getKey())) {
-                   continue;
+                    continue;
                 }
                 if (itemsAddedFromPrevious >= canBeTakenFromPreviousPerWorker) {
                     break;
@@ -44,25 +43,18 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
             }
         }
 
-        for (Map.Entry<JobId, List<WorkItem>> jobId : itemsToAssign.entrySet()) {
-            for (WorkItem workItem : jobId.getValue()) {
-                WorkerId lessBusyWorker = currentAssignment.getLessBusyWorker();
-
-                currentAssignment.addWorkItem(lessBusyWorker, workItem);
-            }
+        for (WorkItem workItem : itemsToAssign) {
+            WorkerId lessBusyWorker = currentAssignment.getLessBusyWorker();
+            currentAssignment.addWorkItem(lessBusyWorker, workItem);
         }
 
         return currentAssignment;
     }
 
-    private void removeWorkItem(Map<JobId, List<WorkItem>> itemsToAssign, WorkItem workItemToRemove) {
-        for (Map.Entry<JobId, List<WorkItem>> jobId : itemsToAssign.entrySet()) {
-            for (WorkItem workItem : jobId.getValue()) {
-                if (workItem.equals(workItemToRemove)) {
-                    List<WorkItem> withoutRemoved = new ArrayList<>(jobId.getValue());
-                    withoutRemoved.remove(workItem);
-                    itemsToAssign.replace(jobId.getKey(), withoutRemoved);
-                }
+    private void removeWorkItem(Set<WorkItem> itemsToAssign, WorkItem workItemToRemove) {
+        for (WorkItem workItem : itemsToAssign) {
+            if (workItem.equals(workItemToRemove)) {
+                itemsToAssign.remove(workItem);
             }
         }
     }
