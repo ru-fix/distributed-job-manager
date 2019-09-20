@@ -13,6 +13,7 @@ dependencies {
         exclude("org.apache.curator", "curator-recipes")
     }
     compile(Libs.jfix_concurrency)
+    compile(Libs.jfix_dynamic_property_api)
 
     // Common
     compile(Libs.slf4j)

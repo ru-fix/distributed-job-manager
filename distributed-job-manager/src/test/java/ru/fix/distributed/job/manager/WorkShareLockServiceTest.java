@@ -1,7 +1,7 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.listen.ListenerContainer;
+import org.apache.curator.framework.listen.ListenerManager;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
@@ -30,9 +30,9 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new JobManagerPaths
                         (rootPath), applicationId, new AggregatingProfiler())
         ) {
-            ListenerContainer<ConnectionStateListener> listenable =
-                    (ListenerContainer<ConnectionStateListener>) curator.getConnectionStateListenable();
-            int sizeBefore = listenable.size();
+            ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
+                    (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
+            int sizeBefore = listenableBefore.size();
             for (int i = 0; i < 100; ++i) {
                 SimpleJob job = new SimpleJob();
                 workShareLockService.tryAcquire(job, "simple", () -> {
@@ -40,10 +40,10 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
                 workShareLockService.release(job, "simple");
             }
             workShareLockService.close();
-            ListenerContainer<ConnectionStateListener> listenable2 =
-                    (ListenerContainer<ConnectionStateListener>) curator.getConnectionStateListenable();
-            int size = listenable2.size();
-            assertEquals(sizeBefore, size);
+            ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableAfter =
+                    (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
+            int sizeAfter = listenableAfter.size();
+            assertEquals(sizeBefore, sizeAfter);
         }
     }
 
