@@ -57,10 +57,12 @@ void run(DistributedJobContext context) {
 ----
 
 === Assignment Strategies
-Assignment strategy is the behavior of how the distribution of work items by workers will change,
-when number active workers changes. +
-DJM provides some implementations for the most common cases of distribution.
-Also you can implement AssigmentStrategy for your case by himself and inject it to your distributed job.
+Number of active worker changes over time due to server reboot or crash. Jobs change number
+and composition of their work items. This events trigger DJM reassignment process.
+During reassignment DJM Manager uses an Assignment Strategy to decide to which worker
+particular work item will be assigned. +
+DJM provides several implementations for the most common cases of work item distribution among workers.
+You can implement custom AssigmentStrategy for your case and register it within DJM.
 
 * EvenlySpreadAssignmentStrategy +
 Intended for evenly distribution all available jobs on all available workers.
