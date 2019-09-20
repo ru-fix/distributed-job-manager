@@ -3,7 +3,7 @@ package ru.fix.distributed.job.manager.strategy;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
                 .sum();
         int canBeTakenFromPreviousPerWorker = itemsToAssignSize / workersCount;
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : prevAssignment.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> worker : prevAssignment.entrySet()) {
             int itemsAddedFromPrevious = 0;
 
             for (WorkItem workItem : worker.getValue()) {
@@ -46,7 +46,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
 
         for (Map.Entry<JobId, List<WorkItem>> jobId : itemsToAssign.entrySet()) {
             for (WorkItem workItem : jobId.getValue()) {
-                WorkerItem lessBusyWorker = currentAssignment.getLessBusyWorker();
+                WorkerId lessBusyWorker = currentAssignment.getLessBusyWorker();
 
                 currentAssignment.addWorkItem(lessBusyWorker, workItem);
             }

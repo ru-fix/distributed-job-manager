@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
@@ -197,7 +197,7 @@ class Manager implements AutoCloseable {
 
         removePreviousAssignedWorkPools(transaction);
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : newAssignmentState.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> worker : newAssignmentState.entrySet()) {
             String workerId = worker.getKey().getId();
             List<WorkItem> workItems = worker.getValue();
 
@@ -292,7 +292,7 @@ class Manager implements AutoCloseable {
                     workPool.add(new WorkItem(workItem, availableJobId));
                 }
             }
-            availableState.put(new WorkerItem(worker), workPool);
+            availableState.put(new WorkerId(worker), workPool);
 
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
@@ -306,7 +306,7 @@ class Manager implements AutoCloseable {
                     assignedWorkPool.add(new WorkItem(workItem, assignedJobId));
                 }
             }
-            previousState.put(new WorkerItem(worker), assignedWorkPool);
+            previousState.put(new WorkerId(worker), assignedWorkPool);
         }
 
         return new GlobalAssignmentState(availableState, previousState);
@@ -315,7 +315,7 @@ class Manager implements AutoCloseable {
     private AssignmentState generateCurrentState(AssignmentState available) {
         AssignmentState newAssignment = new AssignmentState();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> availableWorker : available.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> availableWorker : available.entrySet()) {
             newAssignment.put(availableWorker.getKey(), Collections.emptyList());
         }
         return newAssignment;
@@ -324,7 +324,7 @@ class Manager implements AutoCloseable {
     private Map<JobId, List<WorkItem>> generateItemsToAssign(AssignmentState availableState) {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> worker : availableState.entrySet()) {
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
 

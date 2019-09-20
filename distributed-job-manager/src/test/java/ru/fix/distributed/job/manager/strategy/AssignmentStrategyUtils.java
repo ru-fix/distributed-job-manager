@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager.strategy;
 
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.*;
@@ -16,13 +16,13 @@ class AssignmentStrategyUtils {
                 workItems.add(new WorkItem("work-item-" + i, "job-" + j));
             }
         }
-        state.addWorkItems(new WorkerItem(worker), workItems);
+        state.addWorkItems(new WorkerId(worker), workItems);
     }
 
     static AssignmentState generateCurrentState(AssignmentState available) {
         AssignmentState newAssignment = new AssignmentState();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> availableWorker : available.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> availableWorker : available.entrySet()) {
             newAssignment.put(availableWorker.getKey(), Collections.emptyList());
         }
         return newAssignment;
@@ -31,7 +31,7 @@ class AssignmentStrategyUtils {
     static Map<JobId, List<WorkItem>> generateItemsToAssign(AssignmentState availableState) {
         Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : availableState.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> worker : availableState.entrySet()) {
             for (WorkItem workItem : worker.getValue()) {
                 String jobId = workItem.getJobId();
 

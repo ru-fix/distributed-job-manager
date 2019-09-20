@@ -4,7 +4,7 @@ import com.google.common.hash.Funnel;
 import com.google.common.hash.Hashing;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
@@ -25,14 +25,14 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
         final RendezvousHash<String, String> hash = new RendezvousHash<>(
                 Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>());
 
-        for (Map.Entry<WorkerItem, List<WorkItem>> worker : currentAssignment.entrySet()) {
+        for (Map.Entry<WorkerId, List<WorkItem>> worker : currentAssignment.entrySet()) {
             hash.add(worker.getKey().getId());
         }
 
         for (Map.Entry<JobId, List<WorkItem>> job : itemsToAssign.entrySet()) {
             for (WorkItem workItem : job.getValue()) {
                 String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
-                currentAssignment.addWorkItem(new WorkerItem(workerId), workItem);
+                currentAssignment.addWorkItem(new WorkerId(workerId), workItem);
             }
         }
 

@@ -3,7 +3,7 @@ package ru.fix.distributed.job.manager.strategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.Arrays;
@@ -26,17 +26,17 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
-        available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-0", "job-0"));
-        available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-1", "job-0"));
-        available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-2", "job-0"));
-        available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-0", "job-1"));
-        available.addWorkItem(new WorkerItem("worker-0"), new WorkItem("work-item-1", "job-1"));
-        available.put(new WorkerItem("worker-1"), Collections.emptyList());
-        available.put(new WorkerItem("worker-2"), Collections.emptyList());
+        available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-0", "job-0"));
+        available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-1", "job-0"));
+        available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-2", "job-0"));
+        available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-0", "job-1"));
+        available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-1", "job-1"));
+        available.put(new WorkerId("worker-1"), Collections.emptyList());
+        available.put(new WorkerId("worker-2"), Collections.emptyList());
 
-        previous.put(new WorkerItem("worker-0"), Collections.emptyList());
-        previous.put(new WorkerItem("worker-1"), Collections.emptyList());
-        previous.put(new WorkerItem("worker-2"), Collections.emptyList());
+        previous.put(new WorkerId("worker-0"), Collections.emptyList());
+        previous.put(new WorkerId("worker-1"), Collections.emptyList());
+        previous.put(new WorkerId("worker-2"), Collections.emptyList());
 
         AssignmentState currentState = generateCurrentState(available);
 
@@ -58,14 +58,14 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 3);
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-2", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-0", "job-3"));
-        available.put(new WorkerItem("worker-2"), Collections.emptyList());
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
+        available.put(new WorkerId("worker-2"), Collections.emptyList());
 
-        previous.put(new WorkerItem("worker-0"), Collections.emptyList());
-        previous.put(new WorkerItem("worker-1"), Collections.emptyList());
-        previous.put(new WorkerItem("worker-2"), Collections.emptyList());
+        previous.put(new WorkerId("worker-0"), Collections.emptyList());
+        previous.put(new WorkerId("worker-1"), Collections.emptyList());
+        previous.put(new WorkerId("worker-2"), Collections.emptyList());
 
         AssignmentState currentState = generateCurrentState(available);
 
@@ -88,11 +88,11 @@ class EvenlySpreadAssignmentStrategyTest {
 
         addWorkerWithItems(available, "worker-0", 3, 1);
 
-        previous.addWorkItems(new WorkerItem("worker-1"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-1"), Arrays.asList(
                 new WorkItem("work-item-2", "job-3"),
                 new WorkItem("work-item-0", "job-3")
         ));
-        previous.addWorkItems(new WorkerItem("worker-0"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-0"), Arrays.asList(
                 new WorkItem("work-item-1", "job-3"),
                 new WorkItem("work-item-0", "job-0")
         ));
@@ -115,17 +115,17 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-2", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-0", "job-3"));
-        available.addWorkItems(new WorkerItem("worker-2"), Collections.emptyList());
-        available.addWorkItems(new WorkerItem("worker-3"), Collections.emptyList());
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
+        available.addWorkItems(new WorkerId("worker-2"), Collections.emptyList());
+        available.addWorkItems(new WorkerId("worker-3"), Collections.emptyList());
 
-        previous.addWorkItems(new WorkerItem("worker-0"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-0"), Arrays.asList(
                 new WorkItem("work-item-1", "job-3"),
                 new WorkItem("work-item-0", "job-0")
         ));
-        previous.addWorkItems(new WorkerItem("worker-1"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-1"), Arrays.asList(
                 new WorkItem("work-item-0", "job-3"),
                 new WorkItem("work-item-3", "job-0")
         ));
@@ -148,17 +148,17 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-1", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-2", "job-3"));
-        available.addWorkItem(new WorkerItem("worker-1"), new WorkItem("work-item-0", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
+        available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
 
         // Previous state contains worker-2 instead of worker-1.
         // It's emulate case, when worker-1 is not available, and worker-2 connected
-        previous.addWorkItems(new WorkerItem("worker-0"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-0"), Arrays.asList(
                 new WorkItem("work-item-1", "job-3"),
                 new WorkItem("work-item-0", "job-0")
         ));
-        previous.addWorkItems(new WorkerItem("worker-2"), Arrays.asList(
+        previous.addWorkItems(new WorkerId("worker-2"), Arrays.asList(
                 new WorkItem("work-item-0", "job-3"),
                 new WorkItem("work-item-2", "job-0"),
                 new WorkItem("work-item-1", "job-0"),
