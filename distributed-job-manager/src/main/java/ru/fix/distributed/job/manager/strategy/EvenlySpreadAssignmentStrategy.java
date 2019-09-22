@@ -4,6 +4,7 @@ import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +26,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
         int itemsToAssignSize = itemsToAssign.size(); // TODO !!!!
         int canBeTakenFromPreviousPerWorker = itemsToAssignSize / workersCount;
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : prevAssignment.entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : prevAssignment.entrySet()) {
             int itemsAddedFromPrevious = 0;
 
             for (WorkItem workItem : worker.getValue()) {

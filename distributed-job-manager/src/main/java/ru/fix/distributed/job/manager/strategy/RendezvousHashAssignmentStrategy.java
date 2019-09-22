@@ -4,16 +4,13 @@ import com.google.common.hash.Funnel;
 import com.google.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
-import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {

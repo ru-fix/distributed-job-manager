@@ -6,14 +6,14 @@ import java.util.*;
  * ZookeeperState represent Map with mapping workers to  work items
  * and provide additional methods for easier Zookeeper state reconstruction
  */
-public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
+public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     /**
      * If worker exists, add new work item to work item's list,
      * else create worker and add new work item
      */
     public void addWorkItem(WorkerId worker, WorkItem workItem) {
-        this.computeIfAbsent(worker, key -> new ArrayList<>()).add(workItem);
+        this.computeIfAbsent(worker, key -> new HashSet<>()).add(workItem);
     }
 
     /**
@@ -21,7 +21,7 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
      * else create worker and put workItems
      */
     public void addWorkItems(WorkerId worker, List<WorkItem> workItems) {
-        this.computeIfAbsent(worker, key -> new ArrayList<>()).addAll(workItems);
+        this.computeIfAbsent(worker, key -> new HashSet<>()).addAll(workItems);
     }
 
     /**
@@ -31,8 +31,8 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
         WorkerId lessBusyWorker = null;
         int minWorkPool = Integer.MAX_VALUE;
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
-            List<WorkItem> workPool = worker.getValue();
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            HashSet<WorkItem> workPool = worker.getValue();
 
             if (workPool.size() < minWorkPool) {
                 minWorkPool = workPool.size();
@@ -49,8 +49,8 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
         WorkerId mostBusyWorker = null;
         int minWorkPool = Integer.MIN_VALUE;
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
-            List<WorkItem> workPool = worker.getValue();
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            HashSet<WorkItem> workPool = worker.getValue();
 
             if (workPool.size() > minWorkPool) {
                 minWorkPool = workPool.size();
@@ -61,7 +61,7 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
     }
 
     public boolean containsWorkItem(WorkItem workItem) {
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             for (WorkItem work : worker.getValue()) {
                 if (workItem.equals(work)) {
                     return true;
@@ -75,7 +75,7 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
      * @return worker on which work item placed
      */
     public WorkerId getWorkerOfWorkItem(WorkItem workItem) {
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             for (WorkItem work : worker.getValue()) {
                 if (workItem.equals(work)) {
                     return worker.getKey();
@@ -83,10 +83,6 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
             }
         }
         return null;
-    }
-
-    public HashMap<WorkerId, List<WorkItem>> getAsMap() {
-        return this;
     }
 
     /**
@@ -105,10 +101,10 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
      * returns false
      */
     public boolean isBalanced() {
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             int workPoolSize = worker.getValue().size();
 
-            for (Map.Entry<WorkerId, List<WorkItem>> worker1 : entrySet()) {
+            for (Map.Entry<WorkerId, HashSet<WorkItem>> worker1 : entrySet()) {
                 int workPoolSize1 = worker1.getValue().size();
 
                 if (workPoolSize - workPoolSize1 > 1) {
@@ -121,7 +117,7 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
 
     public int globalPoolSize() {
         return this.values().stream()
-                .mapToInt(List::size)
+                .mapToInt(HashSet::size)
                 .sum();
     }
 
@@ -129,9 +125,9 @@ public class AssignmentState extends HashMap<WorkerId, List<WorkItem>> {
     public String toString() {
         StringBuilder result = new StringBuilder("Zookeeper state\n");
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             String workerId = worker.getKey().getId();
-            List<WorkItem> workItems = worker.getValue();
+            HashSet<WorkItem> workItems = worker.getValue();
 
             result.append("\t└ ").append(workerId).append("\n");
 

@@ -8,6 +8,7 @@ import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
@@ -30,12 +31,12 @@ class RendezvousHashAssignmentStrategyTest {
         available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-2", "job-0"));
         available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-0", "job-1"));
         available.addWorkItem(new WorkerId("worker-0"), new WorkItem("work-item-1", "job-1"));
-        available.put(new WorkerId("worker-1"), Collections.emptyList());
-        available.put(new WorkerId("worker-2"), Collections.emptyList());
+        available.put(new WorkerId("worker-1"), new HashSet<>());
+        available.put(new WorkerId("worker-2"), new HashSet<>());
 
-        previous.put(new WorkerId("worker-0"), Collections.emptyList());
-        previous.put(new WorkerId("worker-1"), Collections.emptyList());
-        previous.put(new WorkerId("worker-2"), Collections.emptyList());
+        previous.put(new WorkerId("worker-0"), new HashSet<>());
+        previous.put(new WorkerId("worker-1"), new HashSet<>());
+        previous.put(new WorkerId("worker-2"), new HashSet<>());
 
         AssignmentState currentState = generateCurrentState(available);
 
@@ -58,11 +59,11 @@ class RendezvousHashAssignmentStrategyTest {
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
-        available.put(new WorkerId("worker-2"), Collections.emptyList());
+        available.put(new WorkerId("worker-2"), new HashSet<>());
 
-        previous.put(new WorkerId("worker-0"), Collections.emptyList());
-        previous.put(new WorkerId("worker-1"), Collections.emptyList());
-        previous.put(new WorkerId("worker-2"), Collections.emptyList());
+        previous.put(new WorkerId("worker-0"), new HashSet<>());
+        previous.put(new WorkerId("worker-1"), new HashSet<>());
+        previous.put(new WorkerId("worker-2"), new HashSet<>());
 
         AssignmentState currentState = generateCurrentState(available);
 

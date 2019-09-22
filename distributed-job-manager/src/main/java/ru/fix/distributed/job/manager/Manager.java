@@ -198,9 +198,9 @@ class Manager implements AutoCloseable {
 
         removePreviousAssignedWorkPools(transaction);
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : newAssignmentState.entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : newAssignmentState.entrySet()) {
             String workerId = worker.getKey().getId();
-            List<WorkItem> workItems = worker.getValue();
+            HashSet<WorkItem> workItems = worker.getValue();
 
             Map<String, List<WorkItem>> jobs = new HashMap<>();
             jobs.computeIfAbsent(workerId, key -> new ArrayList<>()).addAll(workItems);
@@ -276,7 +276,7 @@ class Manager implements AutoCloseable {
             List<String> availableJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAvailableWorkPooledJobPath(worker));
 
-            List<WorkItem> workPool = new ArrayList<>();
+            HashSet<WorkItem> workPool = new HashSet<>();
             for (String availableJobId : availableJobIds) {
                 List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
                         .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
@@ -290,7 +290,7 @@ class Manager implements AutoCloseable {
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
-            List<WorkItem> assignedWorkPool = new ArrayList<>();
+            HashSet<WorkItem> assignedWorkPool = new HashSet<>();
             for (String assignedJobId : assignedJobIds) {
                 List<String> assignedJobWorkItems = curatorFramework.getChildren()
                         .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
@@ -307,7 +307,7 @@ class Manager implements AutoCloseable {
 
     private AssignmentState generateCurrentState(AssignmentState available) {
         AssignmentState newAssignment = new AssignmentState();
-        available.keySet().forEach(worker -> newAssignment.put(worker, Arrays.asList()));
+        available.keySet().forEach(worker -> newAssignment.put(worker, new HashSet<>()));
         return newAssignment;
     }
 
