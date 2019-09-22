@@ -23,6 +23,7 @@ import ru.fix.zookeeper.transactional.TransactionalClient;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Only single manager is active on the cluster.
@@ -174,7 +175,7 @@ class Manager implements AutoCloseable {
     private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
 
         AssignmentState currentState = generateCurrentState(globalState.getAvailableState());
-        Map<JobId, List<WorkItem>> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
+        Set<WorkItem> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
 
         log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
         log.info("Previous state before rebalance: " + globalState.getPreviousState().toString());
@@ -314,29 +315,13 @@ class Manager implements AutoCloseable {
 
     private AssignmentState generateCurrentState(AssignmentState available) {
         AssignmentState newAssignment = new AssignmentState();
-
-        for (Map.Entry<WorkerId, List<WorkItem>> availableWorker : available.entrySet()) {
-            newAssignment.put(availableWorker.getKey(), Collections.emptyList());
-        }
+        available.keySet().forEach(worker -> newAssignment.put(worker, Arrays.asList()));
         return newAssignment;
     }
 
-    private Map<JobId, List<WorkItem>> generateItemsToAssign(AssignmentState availableState) {
-        Map<JobId, List<WorkItem>> workItemsToAssign = new HashMap<>();
-
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : availableState.entrySet()) {
-            for (WorkItem workItem : worker.getValue()) {
-                String jobId = workItem.getJobId();
-
-                if (workItemsToAssign.containsKey(new JobId(jobId))) {
-                    List<WorkItem> workItemsOld = new ArrayList<>(workItemsToAssign.get(new JobId(jobId)));
-                    workItemsOld.add(workItem);
-                    workItemsToAssign.put(new JobId(jobId), workItemsOld);
-                } else {
-                    workItemsToAssign.put(new JobId(jobId), Collections.singletonList(workItem));
-                }
-            }
-        }
+    private Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
+        Set<WorkItem> workItemsToAssign = new HashSet<>();
+        availableState.values().forEach(workItemsToAssign::addAll);
         return workItemsToAssign;
     }
 
