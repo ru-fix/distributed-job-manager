@@ -1,11 +1,9 @@
 package ru.fix.distributed.job.manager.strategy;
 
 import ru.fix.distributed.job.manager.model.AssignmentState;
-import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

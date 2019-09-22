@@ -34,10 +34,11 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
             }
         };
         final RendezvousHash<String, String> hash = new RendezvousHash<>(
-                Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>());
+                Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>()
+        );
 
-        for (Map.Entry<WorkerId, List<WorkItem>> worker : currentAssignment.entrySet()) {
-            hash.add(worker.getKey().getId());
+        for (WorkerId worker : availability.keySet()) {
+            hash.add(worker.getId());
         }
 
         for (WorkItem workItem : itemsToAssign) {

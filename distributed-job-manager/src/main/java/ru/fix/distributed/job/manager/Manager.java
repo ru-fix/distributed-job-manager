@@ -203,15 +203,7 @@ class Manager implements AutoCloseable {
             List<WorkItem> workItems = worker.getValue();
 
             Map<String, List<WorkItem>> jobs = new HashMap<>();
-            for (WorkItem workItem : workItems) {
-                if (jobs.containsKey(workItem.getJobId())) {
-                    List<WorkItem> newWorkItems = new ArrayList<>(jobs.get(workItem.getJobId()));
-                    newWorkItems.add(workItem);
-                    jobs.put(workItem.getJobId(), newWorkItems);
-                } else {
-                    jobs.put(workItem.getJobId(), Collections.singletonList(workItem));
-                }
-            }
+            jobs.computeIfAbsent(workerId, key -> new ArrayList<>()).addAll(workItems);
 
             for (Map.Entry<String, List<WorkItem>> job : jobs.entrySet()) {
 
