@@ -37,7 +37,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
                     break;
                 }
                 currentAssignment.addWorkItem(worker.getKey(), workItem);
-                removeWorkItem(itemsToAssign, workItem);
+                itemsToAssign.remove(workItem);
                 itemsAddedFromPrevious++;
             }
         }
@@ -50,11 +50,4 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
         return currentAssignment;
     }
 
-    private void removeWorkItem(Set<WorkItem> itemsToAssign, WorkItem workItemToRemove) {
-        for (WorkItem workItem : itemsToAssign) {
-            if (workItem.equals(workItemToRemove)) {
-                itemsToAssign.remove(workItem);
-            }
-        }
-    }
 }
