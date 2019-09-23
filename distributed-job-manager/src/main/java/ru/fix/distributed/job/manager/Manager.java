@@ -174,7 +174,7 @@ class Manager implements AutoCloseable {
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
 
-        AssignmentState currentState = generateCurrentState(globalState.getAvailableState());
+        AssignmentState currentState = new AssignmentState();
         Set<WorkItem> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
 
         log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
@@ -303,12 +303,6 @@ class Manager implements AutoCloseable {
         }
 
         return new GlobalAssignmentState(availableState, previousState);
-    }
-
-    private AssignmentState generateCurrentState(AssignmentState available) {
-        AssignmentState newAssignment = new AssignmentState();
-        available.keySet().forEach(worker -> newAssignment.put(worker, new HashSet<>()));
-        return newAssignment;
     }
 
     private Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
