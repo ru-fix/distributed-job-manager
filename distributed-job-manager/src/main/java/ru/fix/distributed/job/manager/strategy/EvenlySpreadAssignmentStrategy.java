@@ -1,11 +1,12 @@
 package ru.fix.distributed.job.manager.strategy;
 
 import ru.fix.distributed.job.manager.model.AssignmentState;
+import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,12 +14,12 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
 
     @Override
     public AssignmentState reassignAndBalance(
-            AssignmentState availability,
+            Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
             Set<WorkItem> itemsToAssign
     ) {
-        int workersCount = currentAssignment.size();
+        /*int workersCount = currentAssignment.size();
         if (workersCount == 0) {
             return currentAssignment;
         }
@@ -40,11 +41,15 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
                 itemsToAssign.remove(workItem);
                 itemsAddedFromPrevious++;
             }
-        }
+        }*/
 
-        for (WorkItem workItem : itemsToAssign) {
-            WorkerId lessBusyWorker = currentAssignment.getLessBusyWorker();
-            currentAssignment.addWorkItem(lessBusyWorker, workItem);
+        for (AssignmentState ava : availability.values()) {
+            for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : ava.entrySet()) {
+                for (WorkItem item : worker.getValue()) {
+                    WorkerId lessBusyWorker = ava.getLessBusyWorker();
+                    currentAssignment.addWorkItem(lessBusyWorker, item);
+                }
+            }
         }
 
         return currentAssignment;

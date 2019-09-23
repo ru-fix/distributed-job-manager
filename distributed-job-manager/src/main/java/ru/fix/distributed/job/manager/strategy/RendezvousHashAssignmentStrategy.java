@@ -5,12 +5,15 @@ import com.google.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.model.AssignmentState;
+import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
@@ -18,7 +21,7 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
 
     @Override
     public AssignmentState reassignAndBalance(
-            AssignmentState availability,
+            Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
             Set<WorkItem> itemsToAssign
@@ -34,9 +37,7 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
                 Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>()
         );
 
-        for (WorkerId worker : availability.keySet()) {
-            hash.add(worker.getId());
-        }
+        availability.values().forEach(set -> set.forEach((worker, items) -> hash.add(worker.getId())));
 
         for (WorkItem workItem : itemsToAssign) {
             String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());

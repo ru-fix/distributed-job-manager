@@ -176,6 +176,7 @@ class Manager implements AutoCloseable {
 
         AssignmentState currentState = new AssignmentState();
         Set<WorkItem> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
+        Map<JobId, HashSet<WorkerId>> availability = generateAvailability(globalState.getAvailableState());
 
         log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
         log.info("Previous state before rebalance: " + globalState.getPreviousState().toString());
@@ -183,7 +184,7 @@ class Manager implements AutoCloseable {
         log.info("Items to assign: " + itemsToAssign.toString());
 
         AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
-                globalState.getAvailableState(),
+                availability,
                 globalState.getPreviousState(),
                 currentState,
                 itemsToAssign
@@ -264,6 +265,7 @@ class Manager implements AutoCloseable {
     private GlobalAssignmentState getZookeeperGlobalState() throws Exception {
         AssignmentState availableState = new AssignmentState();
         AssignmentState previousState = new AssignmentState();
+        Map<JobId, AssignmentState> availability = new HashMap<>();
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
@@ -302,32 +304,49 @@ class Manager implements AutoCloseable {
             previousState.put(new WorkerId(worker), assignedWorkPool);
         }
 
-        return new GlobalAssignmentState(availableState, previousState);
+        return new GlobalAssignmentState(availableState, availability);
     }
 
-    private Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
+/*    private Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
         Set<WorkItem> workItemsToAssign = new HashSet<>();
         availableState.values().forEach(workItemsToAssign::addAll);
         return workItemsToAssign;
-    }
+    }*/
 
-private static class GlobalAssignmentState {
-    private AssignmentState availableState;
-    private AssignmentState currentState;
+/*    private Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
+        Map<JobId, HashSet<WorkerId>> availability = new HashMap<>();
 
-    GlobalAssignmentState(AssignmentState availableState, AssignmentState currentState) {
-        this.availableState = availableState;
-        this.currentState = currentState;
-    }
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
+            for (WorkItem workItem : workerEntry.getValue()) {
+                availability.computeIfAbsent(
+                        new JobId(workItem.getJobId()), worker -> new HashSet<>()
+                ).add(workerEntry.getKey());
+            }
+        }
 
-    AssignmentState getAvailableState() {
-        return availableState;
-    }
+        return availability;
+    }*/
 
-    AssignmentState getPreviousState() {
-        return currentState;
+    private static class GlobalAssignmentState {
+        private AssignmentState currentState;
+        private Map<JobId, AssignmentState> availability;
+
+        GlobalAssignmentState(
+                AssignmentState currentState,
+                Map<JobId, AssignmentState> availability
+        ) {
+            this.currentState = currentState;
+            this.availability = availability;
+        }
+
+        AssignmentState getPreviousState() {
+            return currentState;
+        }
+
+        Map<JobId, AssignmentState> getAvailability() {
+            return availability;
+        }
     }
-}
 
     @Override
     public void close() throws Exception {

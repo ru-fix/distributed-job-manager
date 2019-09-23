@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DistributedJobManagerTest extends AbstractJobManagerTest {
 
-    @Disabled("The test successfully pass in single mode, but fails in build")
+//    @Disabled("The test successfully pass in single mode, but fails in build")
     @Test
     public void shouldEvenlyReassignWorkItemsForThreeWorkers() throws Exception {
         StubbedMultiJob job1 = new StubbedMultiJob(
@@ -59,7 +59,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 DynamicProperty.of(10_000L),
                 DynamicProperty.of(false)
         );
-        Thread.sleep(1500);
+        Thread.sleep(2500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),

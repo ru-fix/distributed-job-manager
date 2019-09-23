@@ -3,8 +3,10 @@ package ru.fix.distributed.job.manager.strategy;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.AssignmentState;
+import ru.fix.distributed.job.manager.model.WorkerId;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,7 +25,7 @@ public interface AssignmentStrategy {
      * @return assignment strategy result after applying several strategies under currentAssignment
      */
     AssignmentState reassignAndBalance(
-            AssignmentState availability,
+            Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
             Set<WorkItem> itemsToAssign
