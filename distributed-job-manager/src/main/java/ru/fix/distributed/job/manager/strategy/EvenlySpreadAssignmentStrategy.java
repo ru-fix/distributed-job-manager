@@ -16,8 +16,7 @@ public class EvenlySpreadAssignmentStrategy implements AssignmentStrategy {
     public AssignmentState reassignAndBalance(
             Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
-            AssignmentState currentAssignment,
-            Set<WorkItem> itemsToAssign
+            AssignmentState currentAssignment
     ) {
         /*int workersCount = currentAssignment.size();
         if (workersCount == 0) {

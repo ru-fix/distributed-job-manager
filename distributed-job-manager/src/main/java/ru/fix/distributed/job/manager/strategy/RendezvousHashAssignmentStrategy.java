@@ -23,8 +23,7 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
     public AssignmentState reassignAndBalance(
             Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
-            AssignmentState currentAssignment,
-            Set<WorkItem> itemsToAssign
+            AssignmentState currentAssignment
     ) {
         final Funnel<String> stringFunnel = (from, into) -> {
             try {
@@ -39,9 +38,13 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
 
         availability.values().forEach(set -> set.forEach((worker, items) -> hash.add(worker.getId())));
 
-        for (WorkItem workItem : itemsToAssign) {
-            String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
-            currentAssignment.addWorkItem(new WorkerId(workerId), workItem);
+        for (Map.Entry<JobId, AssignmentState> jobEntry : availability.entrySet()) {
+            for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : jobEntry.getValue().entrySet()) {
+                for (WorkItem workItem : workerEntry.getValue()) {
+                    String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
+                    currentAssignment.addWorkItem(new WorkerId(workerId), workItem);
+                }
+            }
         }
 
         return currentAssignment;

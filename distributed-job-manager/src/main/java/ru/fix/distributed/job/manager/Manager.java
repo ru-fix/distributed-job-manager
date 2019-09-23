@@ -173,21 +173,19 @@ class Manager implements AutoCloseable {
 
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
-
         AssignmentState currentState = new AssignmentState();
-        Set<WorkItem> itemsToAssign = generateItemsToAssign(globalState.getAvailableState());
-        Map<JobId, HashSet<WorkerId>> availability = generateAvailability(globalState.getAvailableState());
+        AssignmentState previousState = globalState.getPreviousState();
+        AssignmentState availableState = globalState.getAvailableState();
 
-        log.info("Available state before rebalance: " + globalState.getAvailableState().toString());
-        log.info("Previous state before rebalance: " + globalState.getPreviousState().toString());
-        log.info("Current state before rebalance: " + currentState.toString());
-        log.info("Items to assign: " + itemsToAssign.toString());
+        log.info("Availability before rebalance: " + generateAvailability(availableState));
+        log.info("Available state before rebalance: " + availableState);
+        log.info("Previous state before rebalance: " + previousState);
+        log.info("Current state before rebalance: " + currentState);
 
         AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
-                availability,
-                globalState.getPreviousState(),
-                currentState,
-                itemsToAssign
+                generateAvailability(availableState),
+                previousState,
+                currentState
         );
 
         log.info("New assignment after rebalance: " + newAssignmentState);
@@ -265,7 +263,6 @@ class Manager implements AutoCloseable {
     private GlobalAssignmentState getZookeeperGlobalState() throws Exception {
         AssignmentState availableState = new AssignmentState();
         AssignmentState previousState = new AssignmentState();
-        Map<JobId, AssignmentState> availability = new HashMap<>();
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
@@ -304,47 +301,42 @@ class Manager implements AutoCloseable {
             previousState.put(new WorkerId(worker), assignedWorkPool);
         }
 
-        return new GlobalAssignmentState(availableState, availability);
+        return new GlobalAssignmentState(availableState, previousState);
     }
 
-/*    private Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
-        Set<WorkItem> workItemsToAssign = new HashSet<>();
-        availableState.values().forEach(workItemsToAssign::addAll);
-        return workItemsToAssign;
-    }*/
-
-/*    private Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
-        Map<JobId, HashSet<WorkerId>> availability = new HashMap<>();
+    private Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
+        Map<JobId, AssignmentState> availability = new HashMap<>();
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {
                 availability.computeIfAbsent(
-                        new JobId(workItem.getJobId()), worker -> new HashSet<>()
-                ).add(workerEntry.getKey());
+                        new JobId(workItem.getJobId()), state -> new AssignmentState()
+                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue()
+                        .stream().filter(e -> e.getJobId().equals(workItem.getJobId())).collect(Collectors.toSet()));
             }
         }
 
         return availability;
-    }*/
+    }
 
     private static class GlobalAssignmentState {
-        private AssignmentState currentState;
-        private Map<JobId, AssignmentState> availability;
+        private AssignmentState availableState;
+        private AssignmentState previousState;
 
         GlobalAssignmentState(
-                AssignmentState currentState,
-                Map<JobId, AssignmentState> availability
+                AssignmentState availableState,
+                AssignmentState previousState
         ) {
-            this.currentState = currentState;
-            this.availability = availability;
+            this.availableState = availableState;
+            this.previousState = previousState;
         }
 
-        AssignmentState getPreviousState() {
-            return currentState;
+        public AssignmentState getAvailableState() {
+            return availableState;
         }
 
-        Map<JobId, AssignmentState> getAvailability() {
-            return availability;
+        public AssignmentState getPreviousState() {
+            return previousState;
         }
     }
 

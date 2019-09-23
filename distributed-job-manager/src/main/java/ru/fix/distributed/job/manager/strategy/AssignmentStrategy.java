@@ -27,7 +27,6 @@ public interface AssignmentStrategy {
     AssignmentState reassignAndBalance(
             Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
-            AssignmentState currentAssignment,
-            Set<WorkItem> itemsToAssign
+            AssignmentState currentAssignment
     );
 }

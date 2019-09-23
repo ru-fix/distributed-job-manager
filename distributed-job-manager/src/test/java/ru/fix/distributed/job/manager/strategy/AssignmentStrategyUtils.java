@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager.strategy;
 
+import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
@@ -9,7 +10,7 @@ import java.util.*;
 class AssignmentStrategyUtils {
 
     static void addWorkerWithItems(AssignmentState state, String worker, int workItemsCount, int jobsCount) {
-        List<WorkItem> workItems = new ArrayList<>();
+        HashSet<WorkItem> workItems = new HashSet<>();
 
         for (int i = 0; i < workItemsCount; i++) {
             for (int j = 0; j < jobsCount; j++) {
@@ -19,15 +20,17 @@ class AssignmentStrategyUtils {
         state.addWorkItems(new WorkerId(worker), workItems);
     }
 
-    static AssignmentState generateCurrentState(AssignmentState available) {
-        AssignmentState newAssignment = new AssignmentState();
-        available.keySet().forEach(worker -> newAssignment.put(worker, new HashSet<>()));
-        return newAssignment;
-    }
+    static Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
+        Map<JobId, AssignmentState> availability = new HashMap<>();
 
-    static Set<WorkItem> generateItemsToAssign(AssignmentState availableState) {
-        Set<WorkItem> workItemsToAssign = new HashSet<>();
-        availableState.values().forEach(workItemsToAssign::addAll);
-        return workItemsToAssign;
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
+            for (WorkItem workItem : workerEntry.getValue()) {
+                availability.computeIfAbsent(
+                        new JobId(workItem.getJobId()), worker -> new AssignmentState()
+                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue());
+            }
+        }
+
+        return availability;
     }
 }

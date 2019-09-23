@@ -20,7 +20,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * If worker exists, add new workItems to existed work pool,
      * else create worker and put workItems
      */
-    public void addWorkItems(WorkerId worker, List<WorkItem> workItems) {
+    public void addWorkItems(WorkerId worker, Set<WorkItem> workItems) {
         this.computeIfAbsent(worker, key -> new HashSet<>()).addAll(workItems);
     }
 
