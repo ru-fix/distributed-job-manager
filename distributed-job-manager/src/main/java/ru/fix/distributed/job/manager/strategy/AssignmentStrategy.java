@@ -13,12 +13,12 @@ import java.util.Set;
  */
 public interface AssignmentStrategy {
     /**
-     * At the beginning currentAssignment contains workers all workers from availability without work items
-     * After applying several assignment strategies we fill currentAssignment with work items from itemsToAssign
+     * Before running all assignment strategies currentAssignment is empty
+     * When we apply some assignment strategy, we fill currentAssignment with work items from itemsToAssign
      *
      * @param availability   where (on which workers) job can launch work-items
      * @param prevAssignment previous assignment state, where jobs and work-items was launch before reassignment
-     * @param currentAssignment  all workers from availability with empty lists of work items
+     * @param currentAssignment  assignment, that should be filled and returned
      * @param itemsToAssign  items that should be assigned by this strategy
      * @return assignment strategy result after applying several strategies under currentAssignment
      */
