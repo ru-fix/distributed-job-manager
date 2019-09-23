@@ -73,7 +73,7 @@ class EvenlySpreadAssignmentStrategyTest {
                 new AssignmentState()
         );
 
-        assertTrue(newAssignment.isBalanced());
+        assertTrue(!newAssignment.isBalanced());
     }
 
     @Test

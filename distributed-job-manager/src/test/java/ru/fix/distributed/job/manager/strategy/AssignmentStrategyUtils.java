@@ -6,6 +6,7 @@ import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 class AssignmentStrategyUtils {
 
@@ -26,8 +27,9 @@ class AssignmentStrategyUtils {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {
                 availability.computeIfAbsent(
-                        new JobId(workItem.getJobId()), worker -> new AssignmentState()
-                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue());
+                        new JobId(workItem.getJobId()), state -> new AssignmentState()
+                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue()
+                        .stream().filter(e -> e.getJobId().equals(workItem.getJobId())).collect(Collectors.toSet()));
             }
         }
 
