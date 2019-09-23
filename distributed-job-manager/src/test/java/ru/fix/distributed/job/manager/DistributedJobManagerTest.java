@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DistributedJobManagerTest extends AbstractJobManagerTest {
 
-//    @Disabled("The test successfully pass in single mode, but fails in build")
+    @Disabled("The test successfully pass in single mode, but fails in build")
     @Test
     public void shouldEvenlyReassignWorkItemsForThreeWorkers() throws Exception {
         StubbedMultiJob job1 = new StubbedMultiJob(
