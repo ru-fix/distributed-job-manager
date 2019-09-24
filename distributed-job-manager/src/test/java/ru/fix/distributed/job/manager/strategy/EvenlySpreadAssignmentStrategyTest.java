@@ -6,7 +6,6 @@ import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -55,7 +54,7 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
-        addWorkerWithItems(available, "worker-0", 3, 3);
+        addWorkerWithItems(available, "worker-0", 1, 3);
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
@@ -73,7 +72,7 @@ class EvenlySpreadAssignmentStrategyTest {
                 new AssignmentState()
         );
 
-        assertTrue(!newAssignment.isBalanced());
+        assertTrue(newAssignment.isBalanced());
     }
 
     @Test
@@ -107,11 +106,11 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
+        addWorkerWithItems(available, "worker-2", 3, 1);
+        addWorkerWithItems(available, "worker-3", 3, 1);
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
-        available.addWorkItems(new WorkerId("worker-2"), Collections.emptySet());
-        available.addWorkItems(new WorkerId("worker-3"), Collections.emptySet());
 
         previous.addWorkItems(new WorkerId("worker-0"), Set.of(
                 new WorkItem("work-item-1", "job-3"),
@@ -137,6 +136,7 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState previous = new AssignmentState();
 
         addWorkerWithItems(available, "worker-0", 3, 1);
+        addWorkerWithItems(available, "worker-1", 3, 1);
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-1", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-2", "job-3"));
         available.addWorkItem(new WorkerId("worker-1"), new WorkItem("work-item-0", "job-3"));
@@ -159,6 +159,9 @@ class EvenlySpreadAssignmentStrategyTest {
                 previous,
                 new AssignmentState()
         );
+
+        System.err.println(generateAvailability(available));
+        System.err.println(newAssignment);
 
         assertTrue(newAssignment.isBalanced());
     }
