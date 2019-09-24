@@ -100,42 +100,30 @@ public static class RebillJob implements DistributedJob {
     public class CustomAssignmentStrategy implements AssignmentStrategy {
 
         public AssignmentState reassignAndBalance(
-                AssignmentState availability,
+                Map<JobId, AssignmentState> availability,
                 AssignmentState prevAssignment,
-                AssignmentState newAssignment,
-                Map<JobId, List<WorkItem>> itemsToAssign) {
+                AssignmentState currentAssignment
+        ) {
 
-            // get all work items for rebill job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToRebillJob = Collections.singletonMap(
-                new JobId("rebill-job"), itemsToAssign.get(new JobId("rebill-job"))
+            AssignmentState newState = ussdAssignmentStrategy.reassignAndBalance(
+                    Map.of(new JobId("ussd-job"), availability.get(new JobId("ussd-job"))),
+                    prevAssignment,
+                    currentAssignment
             );
-            AssignmentStrategyFactory.EVENLY_SPREAD.reassignAndBalance(
-                    availability, prevAssignment, newAssignment, itemsToRebillJob
-            );
-            // remove rebill job from itemsToAssign
-            itemsToAssign.remove(new JobId("rebill-job"));
+            availability.remove(new JobId("ussd-job"));
 
-            // get all work items for ussd job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToUssdJob = Collections.singletonMap(
-                new JobId("ussd-job"), itemsToAssign.get(new JobId("ussd-job"))
+            newState = smsAssignmentStrategy.reassignAndBalance(
+                    Map.of(new JobId("sms-job"), availability.get(new JobId("sms-job"))),
+                    prevAssignment,
+                    newState
             );
-            // here we implements custom logic for ussd job distribution...
-            ...
-            // remove ussd job from itemsToAssign
-            itemsToAssign.remove(new JobId("ussd-job"));
+            availability.remove(new JobId("sms-job"));
 
-            // get all work items for sms job from itemsToAssign
-            Map<JobId, List<WorkItem>> itemsToSmsJob = Collections.singletonMap(
-                new JobId("sms-job"), itemsToAssign.get(new JobId("sms-job"))
-            );
-            // here we implements custom logic for sms job distribution...
-            ...
-            // remove sms job from itemsToAssign
-            itemsToAssign.remove(new JobId("ussd-job"));
-
-            // reassign rest items to assign
-            AssignmentStrategyFactory.RENDEZVOUS.reassignAndBalance(
-                   availability, prevAssignment, newAssignment, itemsToAssign
+            // reassign items of other jobs using evenly spread strategy
+            return AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
+                    availability,
+                    prevAssignment,
+                    newState
             );
         }
     }
