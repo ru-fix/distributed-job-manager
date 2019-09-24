@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DistributedJobManagerTest extends AbstractJobManagerTest {
 
-    //    @Disabled("The test successfully pass in single mode, but fails in build")
     @Test
     void shouldEvenlyReassignWorkItemsForEachDjm() throws Exception {
         createDjmWithEvenlySpread("worker-0", Collections.singletonList(distributedJobs().get(0)));

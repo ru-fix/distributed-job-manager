@@ -2,16 +2,17 @@ package ru.fix.distributed.job.manager.strategy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
-import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
+import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.addWorkerWithItems;
+import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.generateAvailability;
 
 class EvenlySpreadAssignmentStrategyTest {
     private EvenlySpreadAssignmentStrategy evenlySpread;
