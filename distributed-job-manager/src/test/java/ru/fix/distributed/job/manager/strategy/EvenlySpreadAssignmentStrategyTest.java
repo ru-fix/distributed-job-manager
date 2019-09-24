@@ -161,9 +161,6 @@ class EvenlySpreadAssignmentStrategyTest {
                 new AssignmentState()
         );
 
-        System.err.println(generateAvailability(available));
-        System.err.println(newAssignment);
-
         assertTrue(newAssignment.isBalanced());
     }
 }
