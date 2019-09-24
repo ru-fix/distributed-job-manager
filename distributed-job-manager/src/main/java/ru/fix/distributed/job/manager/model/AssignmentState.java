@@ -1,6 +1,9 @@
 package ru.fix.distributed.job.manager.model;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * ZookeeperState represent Map with mapping workers to  work items
@@ -43,6 +46,27 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
     /**
+     * @return worker from availableWorkers which has less work pool size (doesn't depends on job)
+     */
+    public WorkerId getLessBusyWorkerFromAvailableWorkers(Set<WorkerId> availableWorkers) {
+        WorkerId lessBusyWorker = null;
+        int minWorkPool = Integer.MAX_VALUE;
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            if (!availableWorkers.contains(worker.getKey())) {
+                continue;
+            }
+            HashSet<WorkItem> workPool = worker.getValue();
+
+            if (workPool.size() < minWorkPool) {
+                minWorkPool = workPool.size();
+                lessBusyWorker = worker.getKey();
+            }
+        }
+        return lessBusyWorker;
+    }
+
+    /**
      * @return worker which has most work pool size (doesn't depends on job)
      */
     public WorkerId getMostBusyWorker() {
@@ -62,10 +86,29 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     public boolean containsWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            for (WorkItem work : worker.getValue()) {
-                if (workItem.equals(work)) {
+            for (WorkItem item : worker.getValue()) {
+                if (workItem.equals(item)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    public boolean containsAnyWorkItemOfJob(WorkerId workerId, JobId jobId) {
+        for (WorkItem item : get(workerId)) {
+            if (jobId.getId().equals(item.getJobId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean containsWorkItemOnWorker(WorkerId workerId, WorkItem workItem) {
+        for (WorkItem item : get(workerId)) {
+            if (workItem.equals(item)) {
+                return true;
             }
         }
         return false;
