@@ -31,16 +31,23 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
                 log.warn("Can't reassign and balance: ", e);
             }
         };
-        final RendezvousHash<String, String> hash = new RendezvousHash<>(
-                Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>()
-        );
 
-        availability.values().forEach(set -> set.forEach((worker, items) -> hash.add(worker.getId())));
 
         for (Map.Entry<JobId, AssignmentState> jobEntry : availability.entrySet()) {
+            final RendezvousHash<String, String> hash = new RendezvousHash<>(
+                    Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>()
+            );
+            jobEntry.getValue().keySet().forEach(worker -> hash.add(worker.getId()));
+
             for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : jobEntry.getValue().entrySet()) {
+                currentAssignment.putIfAbsent(workerEntry.getKey(), new HashSet<>());
+
                 for (WorkItem workItem : workerEntry.getValue()) {
-                    String workerId = hash.get(workItem.getJobId() + "" + workItem.getId());
+                    if (currentAssignment.containsWorkItem(workItem)) {
+                        continue;
+                    }
+
+                    String workerId = hash.get(workItem.getJobId() + "_" + workItem.getId());
                     currentAssignment.addWorkItem(new WorkerId(workerId), workItem);
                 }
             }
