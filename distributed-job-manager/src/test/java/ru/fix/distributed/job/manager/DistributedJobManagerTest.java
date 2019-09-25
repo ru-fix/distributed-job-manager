@@ -133,7 +133,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 Map<JobId, Set<WorkerId>> availability,
                 AssignmentState prevAssignment,
                 AssignmentState currentAssignment,
-                HashSet<WorkItem> itemsToAssign
+                Set<WorkItem> itemsToAssign
         ) {
             for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
                 Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
@@ -159,7 +159,12 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
     // Strategy assign work items on workers, which doesn't contains of any work item of ussd job
     private AbstractAssignmentStrategy smsAssignmentStrategy = new AbstractAssignmentStrategy() {
         @Override
-        public AssignmentState reassignAndBalance(Map<JobId, Set<WorkerId>> availability, AssignmentState prevAssignment, AssignmentState currentAssignment, HashSet<WorkItem> itemsToAssign) {
+        public AssignmentState reassignAndBalance(
+                Map<JobId, Set<WorkerId>> availability,
+                AssignmentState prevAssignment,
+                AssignmentState currentAssignment,
+                Set<WorkItem> itemsToAssign
+        ) {
             for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
                 Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
                 Set<WorkerId> availableWorkers = new HashSet<>(jobEntry.getValue());

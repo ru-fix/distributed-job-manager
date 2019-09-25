@@ -24,7 +24,7 @@ public class RendezvousHashAssignmentStrategy extends AbstractAssignmentStrategy
             Map<JobId, Set<WorkerId>> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
-            HashSet<WorkItem> itemsToAssign
+            Set<WorkItem> itemsToAssign
     ) {
         final Funnel<String> stringFunnel = (from, into) -> {
             try {

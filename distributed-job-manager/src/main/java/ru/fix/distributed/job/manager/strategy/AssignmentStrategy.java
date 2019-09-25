@@ -28,6 +28,6 @@ public interface AssignmentStrategy {
             Map<JobId, Set<WorkerId>> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
-            HashSet<WorkItem> itemsToAssign
+            Set<WorkItem> itemsToAssign
     );
 }

@@ -16,7 +16,7 @@ public class EvenlySpreadAssignmentStrategy extends AbstractAssignmentStrategy {
             Map<JobId, Set<WorkerId>> availability,
             AssignmentState prevAssignment,
             AssignmentState currentAssignment,
-            HashSet<WorkItem> itemsToAssign
+            Set<WorkItem> itemsToAssign
     ) {
         for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
             Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
