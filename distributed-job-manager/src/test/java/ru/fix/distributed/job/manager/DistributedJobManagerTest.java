@@ -23,7 +23,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         createDjmWithEvenlySpread("worker-0", Collections.singletonList(distributedJobs().get(0)));
         createDjmWithEvenlySpread("worker-1", Collections.singletonList(distributedJobs().get(1)));
         createDjmWithEvenlySpread("worker-2", Collections.singletonList(distributedJobs().get(2)));
-        Thread.sleep(2500);
+        Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
@@ -50,7 +50,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         createDjmWithEvenlySpread("worker-0", distributedJobs());
         createDjmWithEvenlySpread("worker-1", distributedJobs());
         createDjmWithEvenlySpread("worker-2", distributedJobs());
-        Thread.sleep(2500);
+        Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
@@ -78,7 +78,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         createDjmWithRendezvous("worker-0", Collections.singletonList(distributedJobs().get(0)));
         createDjmWithRendezvous("worker-1", Collections.singletonList(distributedJobs().get(1)));
         createDjmWithRendezvous("worker-2", Collections.singletonList(distributedJobs().get(2)));
-        Thread.sleep(2500);
+        Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
@@ -105,7 +105,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         createDjmWithRendezvous("worker-0", distributedJobs());
         createDjmWithRendezvous("worker-1", distributedJobs());
         createDjmWithRendezvous("worker-2", distributedJobs());
-        Thread.sleep(2500);
+        Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
