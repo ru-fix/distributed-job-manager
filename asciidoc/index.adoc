@@ -100,22 +100,25 @@ public static class RebillJob implements DistributedJob {
     public class CustomAssignmentStrategy implements AssignmentStrategy {
 
         public AssignmentState reassignAndBalance(
-                Map<JobId, AssignmentState> availability,
+                Map<JobId, Set<WorkerId>> availability,
                 AssignmentState prevAssignment,
-                AssignmentState currentAssignment
+                AssignmentState currentAssignment,
+                HashSet<WorkItem> itemsToAssign
         ) {
 
             AssignmentState newState = ussdAssignmentStrategy.reassignAndBalance(
                     Map.of(new JobId("ussd-job"), availability.get(new JobId("ussd-job"))),
                     prevAssignment,
-                    currentAssignment
+                    currentAssignment,
+                    itemsToAssign
             );
             availability.remove(new JobId("ussd-job"));
 
             newState = smsAssignmentStrategy.reassignAndBalance(
                     Map.of(new JobId("sms-job"), availability.get(new JobId("sms-job"))),
                     prevAssignment,
-                    newState
+                    newState,
+                    itemsToAssign
             );
             availability.remove(new JobId("sms-job"));
 
@@ -123,7 +126,8 @@ public static class RebillJob implements DistributedJob {
             return AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
                     availability,
                     prevAssignment,
-                    newState
+                    newState,
+                    itemsToAssign
             );
         }
     }
