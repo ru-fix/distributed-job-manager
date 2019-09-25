@@ -7,6 +7,7 @@ import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
+import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -126,44 +127,53 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         }
     }
 
-    private AssignmentStrategy ussdAssignmentStrategy = (availability, prevAssignment, currentAssignment) -> {
-        for (AssignmentState availabilityState : availability.values()) {
-            HashSet<WorkItem> itemsToAssign = new HashSet<>();
-            availabilityState.values().forEach(itemsToAssign::addAll);
+    private AbstractAssignmentStrategy ussdAssignmentStrategy = new AbstractAssignmentStrategy() {
+        @Override
+        public AssignmentState reassignAndBalance(
+                Map<JobId, Set<WorkerId>> availability,
+                AssignmentState prevAssignment,
+                AssignmentState currentAssignment,
+                HashSet<WorkItem> itemsToAssign
+        ) {
+            for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
+                Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
 
-            for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : availabilityState.entrySet()) {
-                currentAssignment.putIfAbsent(workerEntry.getKey(), new HashSet<>());
-            }
+                jobEntry.getValue().forEach(workerId -> currentAssignment.putIfAbsent(workerId, new HashSet<>()));
 
-            for (WorkItem item : itemsToAssign) {
-                if (prevAssignment.containsWorkItem(item)) {
-                    WorkerId workerFromPrevious = prevAssignment.getWorkerOfWorkItem(item);
-                    currentAssignment.addWorkItem(workerFromPrevious, item);
-                } else {
-                    WorkerId lessBusyWorker = currentAssignment
-                            .getLessBusyWorkerFromAvailableWorkers(availabilityState.keySet());
-                    currentAssignment.addWorkItem(lessBusyWorker, item);
+                for (WorkItem item : itemsToAssignForJob) {
+                    if (prevAssignment.containsWorkItem(item)) {
+                        WorkerId workerFromPrevious = prevAssignment.getWorkerOfWorkItem(item);
+                        currentAssignment.addWorkItem(workerFromPrevious, item);
+                    } else {
+                        WorkerId lessBusyWorker = currentAssignment
+                                .getLessBusyWorkerFromAvailableWorkers(jobEntry.getValue());
+                        currentAssignment.addWorkItem(lessBusyWorker, item);
+                    }
                 }
-            }
 
+            }
+            return currentAssignment;
         }
-        return currentAssignment;
     };
 
-    // Strategy assign work items on workers, which doesn't contains of any work item of uss job
-    private AssignmentStrategy smsAssignmentStrategy = (availability, prevAssignment, currentAssignment) -> {
-        for (AssignmentState availabilityState : availability.values()) {
+    // Strategy assign work items on workers, which doesn't contains of any work item of ussd job
+    private AbstractAssignmentStrategy smsAssignmentStrategy = new AbstractAssignmentStrategy() {
+        @Override
+        public AssignmentState reassignAndBalance(Map<JobId, Set<WorkerId>> availability, AssignmentState prevAssignment, AssignmentState currentAssignment, HashSet<WorkItem> itemsToAssign) {
+            for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
+                Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
+                Set<WorkerId> availableWorkers = new HashSet<>(jobEntry.getValue());
 
-            for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : availabilityState.entrySet()) {
-                currentAssignment.putIfAbsent(workerEntry.getKey(), new HashSet<>());
-                Set<WorkerId> availableWorkers = new HashSet<>(availabilityState.keySet());
+                jobEntry.getValue().forEach(workerId -> {
+                    currentAssignment.putIfAbsent(workerId, new HashSet<>());
 
-                // ignore worker, where ussd job was launched
-                if (currentAssignment.containsAnyWorkItemOfJob(workerEntry.getKey(), new JobId("distr-job-id-1"))) {
-                    availableWorkers.remove(workerEntry.getKey());
-                }
+                    // ignore worker, where ussd job was launched
+                    if (currentAssignment.containsAnyWorkItemOfJob(workerId, new JobId("distr-job-id-1"))) {
+                        availableWorkers.remove(workerId);
+                    }
+                });
 
-                for (WorkItem item : workerEntry.getValue()) {
+                for (WorkItem item : itemsToAssignForJob) {
                     if (currentAssignment.containsWorkItem(item)) {
                         continue;
                     }
@@ -171,11 +181,11 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                     WorkerId lessBusyWorker = currentAssignment
                             .getLessBusyWorkerFromAvailableWorkers(availableWorkers);
                     currentAssignment.addWorkItem(lessBusyWorker, item);
-
+                    itemsToAssign.remove(item);
                 }
             }
+            return currentAssignment;
         }
-        return currentAssignment;
     };
 
     @Test
@@ -190,18 +200,20 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 2, createWorkPool("distr-job-id-2", 7).getItems(), 50000L
         );
 
-        AssignmentStrategy customStrategy = (availability, prevAssignment, currentAssignment) -> {
+        AssignmentStrategy customStrategy = (availability, prevAssignment, currentAssignment, itemsToAssign) -> {
             AssignmentState newState = ussdAssignmentStrategy.reassignAndBalance(
                     Map.of(new JobId("distr-job-id-1"), availability.get(new JobId("distr-job-id-1"))),
                     prevAssignment,
-                    currentAssignment
+                    currentAssignment,
+                    itemsToAssign
             );
             availability.remove(new JobId("distr-job-id-1"));
 
             newState = smsAssignmentStrategy.reassignAndBalance(
                     Map.of(new JobId("distr-job-id-0"), availability.get(new JobId("distr-job-id-0"))),
                     prevAssignment,
-                    newState
+                    newState,
+                    itemsToAssign
             );
             availability.remove(new JobId("distr-job-id-0"));
 
@@ -209,7 +221,8 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
             return AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
                     availability,
                     prevAssignment,
-                    newState
+                    newState,
+                    itemsToAssign
             );
         };
 

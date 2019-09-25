@@ -2,8 +2,12 @@ package ru.fix.distributed.job.manager.strategy;
 
 import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
+import ru.fix.distributed.job.manager.model.WorkItem;
+import ru.fix.distributed.job.manager.model.WorkerId;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Job assignment strategy which could manage work pools distribution on workers
@@ -47,8 +51,9 @@ public interface AssignmentStrategy {
      * @return assignment strategy result after applying several strategies under currentAssignment
      */
     AssignmentState reassignAndBalance(
-            Map<JobId, AssignmentState> availability,
+            Map<JobId, Set<WorkerId>> availability,
             AssignmentState prevAssignment,
-            AssignmentState currentAssignment
+            AssignmentState currentAssignment,
+            HashSet<WorkItem> itemsToAssign
     );
 }

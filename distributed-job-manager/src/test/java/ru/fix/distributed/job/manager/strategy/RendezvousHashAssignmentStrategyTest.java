@@ -12,8 +12,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.addWorkerWithItems;
-import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.generateAvailability;
+import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
 
 class RendezvousHashAssignmentStrategyTest {
     private RendezvousHashAssignmentStrategy rendezvous;
@@ -43,7 +42,8 @@ class RendezvousHashAssignmentStrategyTest {
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -69,7 +69,8 @@ class RendezvousHashAssignmentStrategyTest {
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -94,7 +95,8 @@ class RendezvousHashAssignmentStrategyTest {
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -123,7 +125,8 @@ class RendezvousHashAssignmentStrategyTest {
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize());
@@ -155,7 +158,8 @@ class RendezvousHashAssignmentStrategyTest {
         AssignmentState newAssignment = rendezvous.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize());

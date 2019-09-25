@@ -23,7 +23,6 @@ import ru.fix.zookeeper.transactional.TransactionalClient;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Only single manager is active on the cluster.
@@ -176,16 +175,18 @@ class Manager implements AutoCloseable {
         AssignmentState currentState = new AssignmentState();
         AssignmentState previousState = globalState.getPreviousState();
         AssignmentState availableState = globalState.getAvailableState();
+        Map<JobId, Set<WorkerId>> availability = generateAvailability(availableState);
 
-        log.info("Availability before rebalance: " + generateAvailability(availableState));
+        log.info("Availability before rebalance: " + availability);
         log.info("Available state before rebalance: " + availableState);
         log.info("Previous state before rebalance: " + previousState);
         log.info("Current state before rebalance: " + currentState);
 
         AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
-                generateAvailability(availableState),
+                availability,
                 previousState,
-                currentState
+                currentState,
+                generateItemsToAssign(availableState)
         );
 
         log.info("New assignment after rebalance: " + newAssignmentState);
@@ -312,19 +313,28 @@ class Manager implements AutoCloseable {
         return new GlobalAssignmentState(availableState, previousState);
     }
 
-    private Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
-        Map<JobId, AssignmentState> availability = new HashMap<>();
+    private Map<JobId, Set<WorkerId>> generateAvailability(AssignmentState assignmentState) {
+        Map<JobId, Set<WorkerId>> availability = new HashMap<>();
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {
                 availability.computeIfAbsent(
-                        new JobId(workItem.getJobId()), state -> new AssignmentState()
-                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue()
-                        .stream().filter(e -> e.getJobId().equals(workItem.getJobId())).collect(Collectors.toSet()));
+                        new JobId(workItem.getJobId()), state -> new HashSet<>()
+                ).add(workerEntry.getKey());
             }
         }
 
         return availability;
+    }
+
+    private HashSet<WorkItem> generateItemsToAssign(AssignmentState assignmentState) {
+        HashSet<WorkItem> itemsToAssign = new HashSet<>();
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
+            itemsToAssign.addAll(workerEntry.getValue());
+        }
+
+        return itemsToAssign;
     }
 
     private static class GlobalAssignmentState {
@@ -339,11 +349,11 @@ class Manager implements AutoCloseable {
             this.previousState = previousState;
         }
 
-        public AssignmentState getAvailableState() {
+        AssignmentState getAvailableState() {
             return availableState;
         }
 
-        public AssignmentState getPreviousState() {
+        AssignmentState getPreviousState() {
             return previousState;
         }
     }

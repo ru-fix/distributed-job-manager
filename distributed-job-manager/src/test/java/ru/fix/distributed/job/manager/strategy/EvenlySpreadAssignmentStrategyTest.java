@@ -11,8 +11,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.addWorkerWithItems;
-import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.generateAvailability;
+import static ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.*;
 
 class EvenlySpreadAssignmentStrategyTest {
     private EvenlySpreadAssignmentStrategy evenlySpread;
@@ -44,7 +43,8 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -70,7 +70,8 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -95,7 +96,8 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -125,7 +127,8 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());
@@ -158,7 +161,8 @@ class EvenlySpreadAssignmentStrategyTest {
         AssignmentState newAssignment = evenlySpread.reassignAndBalance(
                 generateAvailability(available),
                 previous,
-                new AssignmentState()
+                new AssignmentState(),
+                generateItemsToAssign(available)
         );
 
         assertTrue(newAssignment.isBalanced());

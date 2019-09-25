@@ -14,11 +14,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
-public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
+public class RendezvousHashAssignmentStrategy extends AbstractAssignmentStrategy {
     private static final Logger log = LoggerFactory.getLogger(RendezvousHashAssignmentStrategy.class);
 
-    @Override
     public AssignmentState reassignAndBalance(
             Map<JobId, AssignmentState> availability,
             AssignmentState prevAssignment,
@@ -28,7 +28,7 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
             try {
                 into.putBytes(from.getBytes("UTF-8"));
             } catch (UnsupportedEncodingException e) {
-                log.warn("Can't reassign and balance: ", e);
+                log.warn("Can't reassign and balance: unsupported encoding", e);
             }
         };
 
@@ -50,6 +50,45 @@ public class RendezvousHashAssignmentStrategy implements AssignmentStrategy {
                     String workerId = hash.get(workItem.getJobId() + "_" + workItem.getId());
                     currentAssignment.addWorkItem(new WorkerId(workerId), workItem);
                 }
+            }
+        }
+
+        return currentAssignment;
+    }
+
+    @Override
+    public AssignmentState reassignAndBalance(
+            Map<JobId, Set<WorkerId>> availability,
+            AssignmentState prevAssignment,
+            AssignmentState currentAssignment,
+            HashSet<WorkItem> itemsToAssign
+    ) {
+        final Funnel<String> stringFunnel = (from, into) -> {
+            try {
+                into.putBytes(from.getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                log.warn("Can't reassign and balance: unsupported encoding", e);
+            }
+        };
+
+        for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
+            final RendezvousHash<String, String> hash = new RendezvousHash<>(
+                    Hashing.murmur3_128(), stringFunnel, stringFunnel, new ArrayList<>()
+            );
+            jobEntry.getValue().forEach(worker -> {
+                hash.add(worker.getId());
+                currentAssignment.putIfAbsent(worker, new HashSet<>());
+            });
+
+            Set<WorkItem> availableItems = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
+            for (WorkItem item : availableItems) {
+                if (currentAssignment.containsWorkItem(item)) {
+                    continue;
+                }
+
+                String workerId = hash.get(item.getJobId() + "_" + item.getId());
+                currentAssignment.addWorkItem(new WorkerId(workerId), item);
+                itemsToAssign.remove(item);
             }
         }
 

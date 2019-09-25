@@ -21,18 +21,27 @@ class AssignmentStrategyUtils {
         state.addWorkItems(new WorkerId(worker), workItems);
     }
 
-    static Map<JobId, AssignmentState> generateAvailability(AssignmentState assignmentState) {
-        Map<JobId, AssignmentState> availability = new HashMap<>();
+    static Map<JobId, Set<WorkerId>> generateAvailability(AssignmentState assignmentState) {
+        Map<JobId, Set<WorkerId>> availability = new HashMap<>();
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {
                 availability.computeIfAbsent(
-                        new JobId(workItem.getJobId()), state -> new AssignmentState()
-                ).addWorkItems(workerEntry.getKey(), workerEntry.getValue()
-                        .stream().filter(e -> e.getJobId().equals(workItem.getJobId())).collect(Collectors.toSet()));
+                        new JobId(workItem.getJobId()), state -> new HashSet<>()
+                ).add(workerEntry.getKey());
             }
         }
 
         return availability;
+    }
+
+    static HashSet<WorkItem> generateItemsToAssign(AssignmentState assignmentState) {
+        HashSet<WorkItem> itemsToAssign = new HashSet<>();
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
+            itemsToAssign.addAll(workerEntry.getValue());
+        }
+
+        return itemsToAssign;
     }
 }
