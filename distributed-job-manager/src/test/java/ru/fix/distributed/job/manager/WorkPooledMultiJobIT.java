@@ -433,8 +433,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob),
                         AssignmentStrategies.DEFAULT,
                         new AggregatingProfiler(),
-                        getTerminationWaitTime(),
-                        DynamicProperty.of(true)
+                        getTerminationWaitTime()
                 )
         ) {
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),

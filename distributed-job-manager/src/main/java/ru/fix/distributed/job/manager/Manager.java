@@ -37,7 +37,6 @@ class Manager implements AutoCloseable {
 
     private final CuratorFramework curatorFramework;
     private final JobManagerPaths paths;
-    private final DynamicProperty<Boolean> printTree;
     private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
@@ -50,13 +49,12 @@ class Manager implements AutoCloseable {
             String rootPath,
             AssignmentStrategy assignmentStrategy,
             String nodeId,
-            Profiler profiler,
-            DynamicProperty<Boolean> printTree) {
+            Profiler profiler
+    ) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
         this.assignmentStrategy = assignmentStrategy;
-        this.printTree = printTree;
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
                 curatorFramework,
@@ -131,8 +129,8 @@ class Manager implements AutoCloseable {
             log.error("Ignore reassignAndBalanceTasks: lost connection to zookeeper");
             return;
         }
-        if (printTree.get()) {
-            log.info("nodeId={} tree before rebalance: \n {}", nodeId, buildZkTreeDump());
+        if (log.isTraceEnabled()) {
+            log.trace("nodeId={} tree before rebalance: \n {}", nodeId, buildZkTreeDump());
         }
 
         try {
@@ -156,8 +154,8 @@ class Manager implements AutoCloseable {
             log.warn("Can't reassign and balance tasks: ", e);
         }
 
-        if (printTree.get()) {
-            log.info("nodeId={} tree after rebalance: \n {}", nodeId, buildZkTreeDump());
+        if (log.isTraceEnabled()) {
+            log.trace("nodeId={} tree after rebalance: \n {}", nodeId, buildZkTreeDump());
         }
     }
 

@@ -15,7 +15,7 @@ import java.util.Collection;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
+ *String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -69,41 +69,19 @@ public class DistributedJobManager implements AutoCloseable {
     public DistributedJobManager(String nodeId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
-                                 Collection<DistributedJob> repeatableJobs,
-                                 AssignmentStrategy assignmentStrategy,
-                                 Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination) throws Exception {
-        this(nodeId,
-                curatorFramework,
-                rootPath,
-                repeatableJobs,
-                assignmentStrategy,
-                profiler,
-                timeToWaitTermination,
-                DynamicProperty.of(false));
-    }
-
-    @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String nodeId,
-                                 CuratorFramework curatorFramework,
-                                 String rootPath,
                                  Collection<DistributedJob> distributedJobs,
                                  AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination,
-                                 DynamicProperty<Boolean> printTree) throws Exception {
+                                 DynamicProperty<Long> timeToWaitTermination) throws Exception {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
-        log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}",
-                nodeId, rootPath);
-
+        log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
         initPaths(curatorFramework, rootPath);
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler, printTree);
+        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);
         managerInitTimespan.stop();
-
 
         final Timespan workerInitTimespan = new Timespan().start();
 
@@ -115,8 +93,7 @@ public class DistributedJobManager implements AutoCloseable {
                 rootPath,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
-                timeToWaitTermination,
-                printTree);
+                timeToWaitTermination);
 
         workerInitTimespan.stop();
 

@@ -42,7 +42,6 @@ class Worker implements AutoCloseable {
     private final CuratorFramework curatorFramework;
 
     private final Collection<DistributedJob> availableJobs;
-    private final DynamicProperty<Boolean> printTree;
     private final ScheduledJobManager scheduledJobManager = new ScheduledJobManager();
 
     private final JobManagerPaths paths;
@@ -70,13 +69,11 @@ class Worker implements AutoCloseable {
            String rootPath,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
-           DynamicProperty<Long> timeToWaitTermination,
-           DynamicProperty<Boolean> printTree) {
+           DynamicProperty<Long> timeToWaitTermination) {
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
         this.workerId = nodeId;
         this.availableJobs = distributedJobs;
-        this.printTree = printTree;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
                 "worker-" + nodeId,
@@ -310,8 +307,8 @@ class Worker implements AutoCloseable {
     private void onWorkPooledJobReassigned() throws Exception {
         log.trace("Invoke Worker#onWorkPooledJobReassigned() in {} worker", workerId);
 
-        if (printTree.get() && log.isInfoEnabled()) {
-            log.info("wid={} tree after reassign: \n {}", workerId, buildZkTreeDump());
+        if (log.isTraceEnabled()) {
+            log.trace("wid={} tree after reassign: \n {}", workerId, buildZkTreeDump());
         }
 
         // get new assignment

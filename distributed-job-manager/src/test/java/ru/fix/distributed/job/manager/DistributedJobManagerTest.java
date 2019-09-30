@@ -283,8 +283,7 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 jobs,
                 strategy,
                 new AggregatingProfiler(),
-                DynamicProperty.of(10_000L),
-                DynamicProperty.of(false)
+                DynamicProperty.of(10_000L)
         );
     }
 
