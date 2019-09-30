@@ -49,7 +49,7 @@ public class RendezvousHashAssignmentStrategy extends AbstractAssignmentStrategy
                     continue;
                 }
 
-                String workerId = hash.get(item.getJobId().getId() + "_" + item.getId());
+                String workerId = hash.get(item.getJobId().getId() + ":" + item.getId());
                 currentAssignment.addWorkItem(new WorkerId(workerId), item);
                 itemsToAssign.remove(item);
             }
