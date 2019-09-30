@@ -86,10 +86,8 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     public boolean containsWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            for (WorkItem item : worker.getValue()) {
-                if (workItem.equals(item)) {
-                    return true;
-                }
+            if (worker.getValue().contains(workItem)) {
+                return true;
             }
         }
         return false;
@@ -97,7 +95,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     public boolean containsAnyWorkItemOfJob(WorkerId workerId, JobId jobId) {
         for (WorkItem item : get(workerId)) {
-            if (jobId.getId().equals(item.getJobId())) {
+            if (jobId.equals(item.getJobId())) {
                 return true;
             }
         }

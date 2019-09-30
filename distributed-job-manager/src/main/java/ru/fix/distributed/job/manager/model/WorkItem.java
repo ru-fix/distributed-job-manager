@@ -5,9 +5,9 @@ import java.util.Objects;
 public class WorkItem {
 
     private String id;
-    private String jobId;
+    private JobId jobId;
 
-    public WorkItem(String id, String jobId) {
+    public WorkItem(String id, JobId jobId) {
         Objects.requireNonNull(id);
         this.id = id;
         this.jobId = jobId;
@@ -17,7 +17,7 @@ public class WorkItem {
         return id;
     }
 
-    public String getJobId() {
+    public JobId getJobId() {
         return jobId;
     }
 

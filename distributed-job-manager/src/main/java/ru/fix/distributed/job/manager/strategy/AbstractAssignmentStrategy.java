@@ -10,7 +10,7 @@ public abstract class AbstractAssignmentStrategy implements AssignmentStrategy {
 
     protected Set<WorkItem> getWorkItemsByJob(JobId jobId, Set<WorkItem> workItems) {
         return workItems.stream()
-                .filter(item -> item.getJobId().equals(jobId.getId()))
+                .filter(item -> item.getJobId().equals(jobId))
                 .collect(Collectors.toSet());
     }
 }

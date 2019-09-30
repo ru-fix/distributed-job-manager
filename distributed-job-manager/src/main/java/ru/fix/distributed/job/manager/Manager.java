@@ -204,12 +204,12 @@ class Manager implements AutoCloseable {
 
             Map<String, List<WorkItem>> jobs = new HashMap<>();
             for (WorkItem workItem : workItems) {
-                if (jobs.containsKey(workItem.getJobId())) {
-                    List<WorkItem> newWorkItems = new ArrayList<>(jobs.get(workItem.getJobId()));
+                if (jobs.containsKey(workItem.getJobId().getId())) {
+                    List<WorkItem> newWorkItems = new ArrayList<>(jobs.get(workItem.getJobId().getId()));
                     newWorkItems.add(workItem);
-                    jobs.put(workItem.getJobId(), newWorkItems);
+                    jobs.put(workItem.getJobId().getId(), newWorkItems);
                 } else {
-                    jobs.put(workItem.getJobId(), Collections.singletonList(workItem));
+                    jobs.put(workItem.getJobId().getId(), Collections.singletonList(workItem));
                 }
             }
 
@@ -290,7 +290,7 @@ class Manager implements AutoCloseable {
                         .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
 
                 for (String workItem : workItemsForAvailableJobList) {
-                    workPool.add(new WorkItem(workItem, availableJobId));
+                    workPool.add(new WorkItem(workItem, new JobId(availableJobId)));
                 }
             }
             availableState.put(new WorkerId(worker), workPool);
@@ -304,7 +304,7 @@ class Manager implements AutoCloseable {
                         .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId));
 
                 for (String workItem : assignedJobWorkItems) {
-                    assignedWorkPool.add(new WorkItem(workItem, assignedJobId));
+                    assignedWorkPool.add(new WorkItem(workItem, new JobId(assignedJobId)));
                 }
             }
             previousState.put(new WorkerId(worker), assignedWorkPool);
@@ -319,7 +319,7 @@ class Manager implements AutoCloseable {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {
                 availability.computeIfAbsent(
-                        new JobId(workItem.getJobId()), state -> new HashSet<>()
+                        workItem.getJobId(), state -> new HashSet<>()
                 ).add(workerEntry.getKey());
             }
         }

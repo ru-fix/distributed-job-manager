@@ -13,6 +13,8 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -53,17 +55,17 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         Thread.sleep(1500);
 
         List<String> nodes = Arrays.asList(
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
 
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
 
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-3"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-2")
         );
 
         CuratorFramework curator = zkTestingServer.createClient();
@@ -238,20 +240,20 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         Thread.sleep(2500);
 
         List<String> nodes = Arrays.asList(
-                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-0"),
-                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-5"),
                 paths.getAssignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2"),
+                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-6"),
+                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-4"),
 
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-2"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-0", "distr-job-id-0.work-item-1"),
 
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-6"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-3"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-5"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-2"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
 
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-4")
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-3")
         );
 
         CuratorFramework curator = zkTestingServer.createClient();
@@ -295,12 +297,8 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
     }
 
     private WorkPool createWorkPool(String jobId, int workItemsNumber) {
-        Set<String> workPool = new HashSet<>();
-
-        for (int i = 0; i < workItemsNumber; i++) {
-            workPool.add(jobId + ".work-item-" + i);
-        }
-
-        return WorkPool.of(workPool);
+        return WorkPool.of(IntStream.range(0, workItemsNumber)
+                .mapToObj(i -> jobId + ".work-item-" + i)
+                .collect(Collectors.toSet()));
     }
 }
