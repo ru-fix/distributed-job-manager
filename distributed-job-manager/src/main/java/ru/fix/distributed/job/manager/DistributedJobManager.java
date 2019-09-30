@@ -65,7 +65,6 @@ public class DistributedJobManager implements AutoCloseable {
         }
     }
 
-    @SuppressWarnings("squid:S3776")
     public DistributedJobManager(String nodeId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,

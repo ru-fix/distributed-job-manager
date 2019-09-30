@@ -18,7 +18,6 @@ public class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();

@@ -10,13 +10,12 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
-import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
-import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.zookeeper.transactional.TransactionalClient;
 
@@ -168,7 +167,6 @@ class Manager implements AutoCloseable {
         }
     }
 
-    @SuppressWarnings("squid:S3776")
     private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
         AssignmentState currentState = new AssignmentState();
         AssignmentState previousState = globalState.getAssignedState();
