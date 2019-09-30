@@ -66,7 +66,7 @@ class Worker implements AutoCloseable {
     private final AtomicProperty<Integer> threadPoolSize;
 
     Worker(CuratorFramework curatorFramework,
-           String applicationId,
+           String nodeId,
            String rootPath,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
@@ -74,12 +74,12 @@ class Worker implements AutoCloseable {
            DynamicProperty<Boolean> printTree) {
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
-        this.workerId = applicationId;
+        this.workerId = nodeId;
         this.availableJobs = distributedJobs;
         this.printTree = printTree;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "worker-" + applicationId,
+                "worker-" + nodeId,
                 profiler);
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
@@ -102,7 +102,7 @@ class Worker implements AutoCloseable {
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
                 paths,
-                applicationId,
+                nodeId,
                 profiler);
 
         distributedJobs.forEach(job ->

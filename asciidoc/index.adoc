@@ -163,7 +163,7 @@ image::djm.png[]
 
 === Launch DJM
 DJM requires list of ZooKeeper hosts and path within ZooKeeper that will be used to store DJM state. +
-DJM will use provided applicationId to identify application instance within cluster. +
+DJM will use provided nodeId to identify application instance within cluster. +
 
 [code]
 ----

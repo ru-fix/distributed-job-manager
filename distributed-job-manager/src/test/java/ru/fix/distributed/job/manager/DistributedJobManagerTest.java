@@ -275,9 +275,9 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 ));
     }
 
-    private void createDjm(String applicationId, List<DistributedJob> jobs, AssignmentStrategy strategy) throws Exception {
+    private void createDjm(String nodeId, List<DistributedJob> jobs, AssignmentStrategy strategy) throws Exception {
         new DistributedJobManager(
-                applicationId,
+                nodeId,
                 zkTestingServer.createClient(),
                 JOB_MANAGER_ZK_ROOT_PATH,
                 jobs,
@@ -288,12 +288,12 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         );
     }
 
-    private void createDjmWithEvenlySpread(String applicationId, List<DistributedJob> jobs) throws Exception {
-        createDjm(applicationId, jobs, AssignmentStrategies.EVENLY_SPREAD);
+    private void createDjmWithEvenlySpread(String nodeId, List<DistributedJob> jobs) throws Exception {
+        createDjm(nodeId, jobs, AssignmentStrategies.EVENLY_SPREAD);
     }
 
-    private void createDjmWithRendezvous(String applicationId, List<DistributedJob> jobs) throws Exception {
-        createDjm(applicationId, jobs, AssignmentStrategies.RENDEZVOUS);
+    private void createDjmWithRendezvous(String nodeId, List<DistributedJob> jobs) throws Exception {
+        createDjm(nodeId, jobs, AssignmentStrategies.RENDEZVOUS);
     }
 
     private WorkPool createWorkPool(String jobId, int workItemsNumber) {

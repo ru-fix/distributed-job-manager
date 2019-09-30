@@ -23,12 +23,12 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
      */
     @Test
     public void shouldCorrectRelease() throws Exception {
-        final String applicationId = "worker-1";
+        final String nodeId = "worker-1";
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new JobManagerPaths
-                        (rootPath), applicationId, new AggregatingProfiler())
+                        (rootPath), nodeId, new AggregatingProfiler())
         ) {
             ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
                     (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
@@ -49,12 +49,12 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
     @Test
     public void hasAcquiredLock_beforeAndAfterAcquire() {
-        final String applicationId = "worker-1";
+        final String nodeId = "worker-1";
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
-                        new JobManagerPaths(rootPath), applicationId, new AggregatingProfiler())
+                        new JobManagerPaths(rootPath), nodeId, new AggregatingProfiler())
         ) {
             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
             assertThat(beforeAcquire, is(false));

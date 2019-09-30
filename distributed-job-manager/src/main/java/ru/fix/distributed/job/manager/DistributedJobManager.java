@@ -44,7 +44,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     private final Worker worker;
     private final Manager manager;
-    private String applicationId;
+    private String nodeId;
 
     private static class Timespan {
         long startTimestamp;
@@ -66,14 +66,14 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String applicationId,
+    public DistributedJobManager(String nodeId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
                                  Collection<DistributedJob> repeatableJobs,
                                  AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
                                  DynamicProperty<Long> timeToWaitTermination) throws Exception {
-        this(applicationId,
+        this(nodeId,
                 curatorFramework,
                 rootPath,
                 repeatableJobs,
@@ -84,7 +84,7 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     @SuppressWarnings("squid:S3776")
-    public DistributedJobManager(String applicationId,
+    public DistributedJobManager(String nodeId,
                                  CuratorFramework curatorFramework,
                                  String rootPath,
                                  Collection<DistributedJob> distributedJobs,
@@ -95,23 +95,23 @@ public class DistributedJobManager implements AutoCloseable {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
-        log.trace("Starting DistributedJobManager for applicationId {} with zk-path {}",
-                applicationId, rootPath);
+        log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}",
+                nodeId, rootPath);
 
         initPaths(curatorFramework, rootPath);
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, applicationId, profiler, printTree);
+        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler, printTree);
         managerInitTimespan.stop();
 
 
         final Timespan workerInitTimespan = new Timespan().start();
 
-        this.applicationId = applicationId;
+        this.nodeId = nodeId;
 
         this.worker = new Worker(
                 curatorFramework,
-                applicationId,
+                nodeId,
                 rootPath,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
@@ -161,7 +161,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        log.info("Closing DJM with worker id {}", applicationId);
+        log.info("Closing DJM with worker id {}", nodeId);
 
         Timespan djmClosing = new Timespan().start();
 
@@ -177,7 +177,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         log.info("DJM closed in {}ms, Worker {} closed in {}ms, Manager closed in {}ms",
                 djmClosing.getTimespan(),
-                applicationId,
+                nodeId,
                 workerClosing.getTimespan(),
                 managerClosing.getTimespan());
     }

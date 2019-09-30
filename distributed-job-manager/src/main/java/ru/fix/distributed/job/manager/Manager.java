@@ -44,12 +44,12 @@ class Manager implements AutoCloseable {
 
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
-    private final String serverId;
+    private final String nodeId;
 
     Manager(CuratorFramework curatorFramework,
             String rootPath,
             AssignmentStrategy assignmentStrategy,
-            String serverId,
+            String nodeId,
             Profiler profiler,
             DynamicProperty<Boolean> printTree) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
@@ -62,13 +62,13 @@ class Manager implements AutoCloseable {
                 curatorFramework,
                 paths.getWorkersAlivePath(),
                 false);
-        this.serverId = serverId;
+        this.nodeId = nodeId;
     }
 
     public void start() throws Exception {
         workersAliveChildrenCache.getListenable().addListener((client, event) -> {
-            log.info("sid={} workersAliveChildrenCache event={}",
-                    serverId,
+            log.info("nodeId={} workersAliveChildrenCache event={}",
+                    nodeId,
                     event.toString());
             switch (event.getType()) {
                 case CONNECTION_RECONNECTED:
@@ -89,7 +89,7 @@ class Manager implements AutoCloseable {
                 case CONNECTION_SUSPENDED:
                     break;
                 default:
-                    log.warn("sid={} Invalid event type {}", serverId, event.getType());
+                    log.warn("nodeId={} Invalid event type {}", nodeId, event.getType());
             }
         });
 
@@ -102,7 +102,7 @@ class Manager implements AutoCloseable {
         latch.addListener(new LeaderLatchListener() {
             @Override
             public void isLeader() {
-                log.info("sid={} initLeaderLatch Became a leader", serverId);
+                log.info("nodeId={} initLeaderLatch Became a leader", nodeId);
                 synchronized (managerThread) {
                     if (managerThread.isShutdown()) {
                         return;
@@ -132,7 +132,7 @@ class Manager implements AutoCloseable {
             return;
         }
         if (printTree.get()) {
-            log.info("sid={} tree before rebalance: \n {}", serverId, buildZkTreeDump());
+            log.info("nodeId={} tree before rebalance: \n {}", nodeId, buildZkTreeDump());
         }
 
         try {
@@ -157,7 +157,7 @@ class Manager implements AutoCloseable {
         }
 
         if (printTree.get()) {
-            log.info("sid={} tree after rebalance: \n {}", serverId, buildZkTreeDump());
+            log.info("nodeId={} tree after rebalance: \n {}", nodeId, buildZkTreeDump());
         }
     }
 
@@ -173,7 +173,7 @@ class Manager implements AutoCloseable {
     @SuppressWarnings("squid:S3776")
     private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
         AssignmentState currentState = new AssignmentState();
-        AssignmentState previousState = globalState.getPreviousState();
+        AssignmentState previousState = globalState.getAssignedState();
         AssignmentState availableState = globalState.getAvailableState();
         Map<JobId, Set<WorkerId>> availability = generateAvailability(availableState);
 
@@ -257,8 +257,8 @@ class Manager implements AutoCloseable {
             }
 
             String workerAssignedJobsPath = paths.getAssignedWorkPooledJobsPath(worker);
-            log.info("sid={} Remove assignment on dead worker {}",
-                    serverId,
+            log.info("nodeId={} Remove assignment on dead worker {}",
+                    nodeId,
                     workerAssignedJobsPath);
             try {
                 ZKPaths.deleteChildren(curatorFramework.getZookeeperClient().getZooKeeper(),
@@ -271,7 +271,7 @@ class Manager implements AutoCloseable {
 
     private GlobalAssignmentState getZookeeperGlobalState() throws Exception {
         AssignmentState availableState = new AssignmentState();
-        AssignmentState previousState = new AssignmentState();
+        AssignmentState assignedState = new AssignmentState();
 
         List<String> workersRoots = curatorFramework.getChildren()
                 .forPath(paths.getWorkersPath());
@@ -307,10 +307,10 @@ class Manager implements AutoCloseable {
                     assignedWorkPool.add(new WorkItem(workItem, new JobId(assignedJobId)));
                 }
             }
-            previousState.put(new WorkerId(worker), assignedWorkPool);
+            assignedState.put(new WorkerId(worker), assignedWorkPool);
         }
 
-        return new GlobalAssignmentState(availableState, previousState);
+        return new GlobalAssignmentState(availableState, assignedState);
     }
 
     private Map<JobId, Set<WorkerId>> generateAvailability(AssignmentState assignmentState) {
@@ -339,22 +339,22 @@ class Manager implements AutoCloseable {
 
     private static class GlobalAssignmentState {
         private AssignmentState availableState;
-        private AssignmentState previousState;
+        private AssignmentState assignedState;
 
         GlobalAssignmentState(
                 AssignmentState availableState,
-                AssignmentState previousState
+                AssignmentState assignedState
         ) {
             this.availableState = availableState;
-            this.previousState = previousState;
+            this.assignedState = assignedState;
         }
 
         AssignmentState getAvailableState() {
             return availableState;
         }
 
-        AssignmentState getPreviousState() {
-            return previousState;
+        AssignmentState getAssignedState() {
+            return assignedState;
         }
     }
 
