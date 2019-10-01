@@ -173,10 +173,10 @@ class Manager implements AutoCloseable {
         AssignmentState availableState = globalState.getAvailableState();
         Map<JobId, Set<WorkerId>> availability = generateAvailability(availableState);
 
-        log.info("Availability before rebalance: " + availability);
-        log.info("Available state before rebalance: " + availableState);
-        log.info("Previous state before rebalance: " + previousState);
-        log.info("Current state before rebalance: " + currentState);
+        if (log.isTraceEnabled()) {
+            log.trace("Availability before rebalance: " + availability +
+                    "\nAvailable state before rebalance: " + availableState);
+        }
 
         AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
                 availability,
@@ -185,7 +185,10 @@ class Manager implements AutoCloseable {
                 generateItemsToAssign(availableState)
         );
 
-        log.info("New assignment after rebalance: " + newAssignmentState);
+        if (log.isTraceEnabled()) {
+            log.trace("Previous state before rebalance: " + previousState +
+                    "\nNew assignment after rebalance: " + newAssignmentState);
+        }
 
         rewriteZookeeperNodes(newAssignmentState, transaction);
     }
