@@ -42,4 +42,19 @@ class AssignmentStrategyUtils {
 
         return itemsToAssign;
     }
+
+    static int calculateReassignments(AssignmentState stateBefore, AssignmentState stateAfter) {
+        int count = 0;
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> stateEntry : stateBefore.entrySet()) {
+            WorkerId workerId = stateEntry.getKey();
+
+            for (WorkItem workItem : stateEntry.getValue()) {
+                if (!stateAfter.containsWorkItemOnWorker(workerId, workItem)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
 }
