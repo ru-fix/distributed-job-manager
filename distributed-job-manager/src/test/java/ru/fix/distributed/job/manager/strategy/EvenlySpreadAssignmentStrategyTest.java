@@ -18,12 +18,12 @@ class EvenlySpreadAssignmentStrategyTest {
     private EvenlySpreadAssignmentStrategy evenlySpread;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         evenlySpread = new EvenlySpreadAssignmentStrategy();
     }
 
     @Test
-    public void reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
+    void reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -52,7 +52,7 @@ class EvenlySpreadAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceWhenSomeWorkersHasJobs() {
+    void reassignAndBalanceWhenSomeWorkersHasJobs() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -79,7 +79,7 @@ class EvenlySpreadAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfWorkerNotAvailable() {
+    void reassignAndBalanceIfWorkerNotAvailable() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -105,7 +105,7 @@ class EvenlySpreadAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfNewWorkersAdded() {
+    void reassignAndBalanceIfNewWorkersAdded() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -136,7 +136,7 @@ class EvenlySpreadAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
+    void reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 

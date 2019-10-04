@@ -6,6 +6,8 @@ import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 class AssignmentStrategyUtils {
 
@@ -56,5 +58,11 @@ class AssignmentStrategyUtils {
             }
         }
         return count;
+    }
+
+    static Set<WorkItem> generateWorkItems(JobId jobId, int indexFromInclusive, int indexToExclusive) {
+        return IntStream.range(indexFromInclusive, indexToExclusive)
+                .mapToObj(index -> new WorkItem("work-item-" + index, jobId) )
+                .collect(Collectors.toSet());
     }
 }

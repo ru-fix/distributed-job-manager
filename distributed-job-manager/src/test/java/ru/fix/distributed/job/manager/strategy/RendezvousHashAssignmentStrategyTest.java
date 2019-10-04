@@ -24,7 +24,7 @@ class RendezvousHashAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
+    void reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -51,7 +51,7 @@ class RendezvousHashAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceWhenSomeWorkersHasJobs() {
+    void reassignAndBalanceWhenSomeWorkersHasJobs() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -78,7 +78,7 @@ class RendezvousHashAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfWorkerNotAvailable() {
+    void reassignAndBalanceIfWorkerNotAvailable() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -104,7 +104,7 @@ class RendezvousHashAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfNewWorkersAdded() {
+    void reassignAndBalanceIfNewWorkersAdded() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -134,7 +134,7 @@ class RendezvousHashAssignmentStrategyTest {
     }
 
     @Test
-    public void reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
+    void reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 

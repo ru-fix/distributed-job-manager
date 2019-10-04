@@ -41,7 +41,7 @@ public class EvenlySpreadAssignmentStrategy extends AbstractAssignmentStrategy {
 
                     int limitItemsOnWorkerInPreviousState = prevAssignment
                             .get(workerFromPrevious, jobEntry.getKey()).size();
-                    if (limitItemsOnWorkerInPreviousState == itemsAssignedFromPreviousCounter) {
+                    if (limitItemsOnWorkerInPreviousState <= itemsAssignedFromPreviousCounter) {
                         itemsAssignedFromPreviousCounter = 0;
                     }
                 } else {
