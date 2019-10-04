@@ -9,6 +9,7 @@ public class WorkItem {
 
     public WorkItem(String id, JobId jobId) {
         Objects.requireNonNull(id);
+        Objects.requireNonNull(jobId);
         this.id = id;
         this.jobId = jobId;
     }
