@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager.model;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -7,8 +8,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * ZookeeperState represent Map with mapping workers to  work items
- * and provide additional methods for easier Zookeeper state reconstruction
+ * AssignmentState represent Map with mapping workers to  work items
+ * and provide additional methods for easier manipulations with AssignmentState
  */
 public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
@@ -28,6 +29,11 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         this.computeIfAbsent(worker, key -> new HashSet<>()).addAll(workItems);
     }
 
+    /**
+     * @param workerId worker name, that contains work items
+     * @param jobId    job name, the work item that you want to get
+     * @return pool of work items of jobId, placed on workerId
+     */
     public Set<WorkItem> get(WorkerId workerId, JobId jobId) {
         return this.get(workerId).stream()
                 .filter(item -> item.getJobId().equals(jobId))
@@ -37,6 +43,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     /**
      * @return worker which has less work pool size (doesn't depends on job)
      */
+    @SuppressWarnings("unused")
     public WorkerId getLessBusyWorker() {
         WorkerId lessBusyWorker = null;
         int minWorkPool = Integer.MAX_VALUE;
@@ -52,11 +59,16 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return lessBusyWorker;
     }
 
+    /**
+     * @param jobId            job name for filtering work items on worker
+     * @param availableWorkers set of workers, that should be considered
+     * @return worker from availableWorkers, that have minimal work pool size of jobId
+     */
+    @SuppressWarnings("unused")
     public WorkerId getLessBusyWorkerWithJobIdFromAvailableWorkers(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId lessBusyWorker = null;
-        int minWorkPoolSize = Integer.MAX_VALUE;
-
         WorkerId globalLessBusyWorker = getLessBusyWorkerFromAvailableWorkers(availableWorkers);
+        WorkerId localLessBusyWorker = null;
+        int minWorkPoolSize = Integer.MAX_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             if (!availableWorkers.contains(worker.getKey())) {
@@ -68,16 +80,17 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
             if (workPoolSize <= minWorkPoolSize) {
                 minWorkPoolSize = workPoolSize;
-                lessBusyWorker = worker.getKey();
+                localLessBusyWorker = worker.getKey();
             }
-            if (globalLessBusyWorker.equals(lessBusyWorker)) {
-                return lessBusyWorker;
+            if (globalLessBusyWorker.equals(localLessBusyWorker)) {
+                return localLessBusyWorker;
             }
         }
-        return lessBusyWorker;
+        return localLessBusyWorker;
     }
 
     /**
+     * @param availableWorkers set of workers, that should be considered
      * @return worker from availableWorkers which has less work pool size (doesn't depends on job)
      */
     public WorkerId getLessBusyWorkerFromAvailableWorkers(Set<WorkerId> availableWorkers) {
@@ -98,62 +111,25 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return lessBusyWorker;
     }
 
-    public Set<WorkerId> getLocalMinimums(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId workerId = this.getLessBusyWorkerWithJobIdFromAvailableWorkers(jobId, availableWorkers);
-        int minWorkPoolSize = this.get(workerId).size();
-        Set<WorkerId> localMinimums = new HashSet<>();
-
+    /**
+     * @param workItem item, for which you need to find a worker
+     * @return worker on which work item placed
+     */
+    public WorkerId getWorkerOfWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            if (!availableWorkers.contains(worker.getKey())) {
-                continue;
-            }
-            int workPoolSize = (int) worker.getValue().stream()
-                    .filter(item -> jobId.equals(item.getJobId()))
-                    .count();
-
-            if (workPoolSize < minWorkPoolSize) {
-                localMinimums.add(worker.getKey());
+            for (WorkItem item : worker.getValue()) {
+                if (workItem.equals(item)) {
+                    return worker.getKey();
+                }
             }
         }
-        return localMinimums;
-    }
-
-    public Set<WorkerId> getLGlobalMinimums(Set<WorkerId> availableWorkers) {
-        WorkerId workerId = this.getLessBusyWorkerFromAvailableWorkers(availableWorkers);
-        int minWorkPoolSize = this.get(workerId).size();
-        Set<WorkerId> globalMinimums = new HashSet<>();
-
-        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            if (!availableWorkers.contains(worker.getKey())) {
-                continue;
-            }
-            HashSet<WorkItem> workPool = worker.getValue();
-
-            if (workPool.size() < minWorkPoolSize) {
-                globalMinimums.add(worker.getKey());
-            }
-        }
-        return globalMinimums;
+        return null;
     }
 
     /**
-     * @return worker which has most work pool size (doesn't depends on job)
+     * @param workItem item, which should be checked for content
+     * @return true, if contains workItem
      */
-    public WorkerId getMostBusyWorker() {
-        WorkerId mostBusyWorker = null;
-        int minWorkPool = Integer.MIN_VALUE;
-
-        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            HashSet<WorkItem> workPool = worker.getValue();
-
-            if (workPool.size() > minWorkPool) {
-                minWorkPool = workPool.size();
-                mostBusyWorker = worker.getKey();
-            }
-        }
-        return mostBusyWorker;
-    }
-
     public boolean containsWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             if (worker.getValue().contains(workItem)) {
@@ -163,18 +139,17 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return false;
     }
 
-    public boolean containsAnyWorkItemOfJob(WorkerId workerId, JobId jobId) {
-        for (WorkItem item : get(workerId)) {
-            if (jobId.equals(item.getJobId())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
+    /**
+     * @param workerId worker name, on which should be checked content
+     * @param workItem item, which should be checked for content
+     * @return true, if contains workItem on workerId
+     */
     public boolean containsWorkItemOnWorker(WorkerId workerId, WorkItem workItem) {
-        for (WorkItem item : get(workerId)) {
+        Set<WorkItem> items = get(workerId);
+        if (items == null) {
+            return false;
+        }
+        for (WorkItem item : items) {
             if (workItem.equals(item)) {
                 return true;
             }
@@ -183,17 +158,17 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
     /**
-     * @return worker on which work item placed
+     * @param workerId worker name, on which should be checked content
+     * @param jobId    job name for filtering work items on worker
+     * @return true, if contains any work item of jobId on workerId
      */
-    public WorkerId getWorkerOfWorkItem(WorkItem workItem) {
-        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            for (WorkItem work : worker.getValue()) {
-                if (workItem.equals(work)) {
-                    return worker.getKey();
-                }
+    public boolean containsAnyWorkItemOfJob(WorkerId workerId, JobId jobId) {
+        for (WorkItem item : get(workerId)) {
+            if (jobId.equals(item.getJobId())) {
+                return true;
             }
         }
-        return null;
+        return false;
     }
 
     /**
@@ -226,6 +201,10 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return true;
     }
 
+    /**
+     * @param jobId job name for filtering work items on worker
+     * @return true, if work pool sizes of jobId on various workers differ more than 1
+     */
     public boolean isBalancedByJobId(JobId jobId) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             long workPoolSize = worker.getValue().stream()
@@ -243,10 +222,25 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return true;
     }
 
+    /**
+     * @return number of all work items in AssignmentState
+     */
     public int globalPoolSize() {
         return this.values().stream()
                 .mapToInt(HashSet::size)
                 .sum();
+    }
+
+    /**
+     * @param jobId job name for filtering work items on worker
+     * @return number of work items of jobId in AssignmentState
+     */
+    @SuppressWarnings("unused")
+    public int localPoolSize(JobId jobId) {
+        return (int) this.values().stream()
+                .flatMap(Collection::stream)
+                .filter(item -> jobId.equals(item.getJobId()))
+                .count();
     }
 
     @Override
