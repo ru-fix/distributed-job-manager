@@ -5,7 +5,6 @@ import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 

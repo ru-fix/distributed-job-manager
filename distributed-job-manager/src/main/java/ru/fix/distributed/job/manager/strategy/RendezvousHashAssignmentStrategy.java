@@ -2,23 +2,21 @@ package ru.fix.distributed.job.manager.strategy;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.Hashing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.model.AssignmentState;
 import ru.fix.distributed.job.manager.model.JobId;
 import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.util.RendezvousHash;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 public class RendezvousHashAssignmentStrategy extends AbstractAssignmentStrategy {
-    private static final Logger log = LoggerFactory.getLogger(RendezvousHashAssignmentStrategy.class);
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public AssignmentState reassignAndBalance(
             Map<JobId, Set<WorkerId>> availability,
@@ -26,13 +24,7 @@ public class RendezvousHashAssignmentStrategy extends AbstractAssignmentStrategy
             AssignmentState currentAssignment,
             Set<WorkItem> itemsToAssign
     ) {
-        final Funnel<String> stringFunnel = (from, into) -> {
-            try {
-                into.putBytes(from.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                log.warn("Can't reassign and balance: unsupported encoding", e);
-            }
-        };
+        final Funnel<String> stringFunnel = (from, into) -> into.putBytes(from.getBytes(StandardCharsets.UTF_8));
 
         for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
             final RendezvousHash<String, String> hash = new RendezvousHash<>(
