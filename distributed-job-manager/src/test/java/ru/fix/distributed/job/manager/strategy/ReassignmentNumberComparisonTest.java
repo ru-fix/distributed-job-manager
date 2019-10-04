@@ -33,7 +33,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test1() {
+    void balanceItemsOfSingleJobBetweenTwoWorkers() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -56,7 +56,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test2() {
+    void balanceItemsOfSingleJobBetweenThreeWorkers() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -80,7 +80,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test3() {
+    void balanceAlreadyBalancedItems() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -108,7 +108,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test4() {
+    void balanceItemsWhenWorkItemsOfJobNotBalanced() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -143,7 +143,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test5() {
+    void balanceItemsOfThreeJobsWhenNewWorkerStarted() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -183,7 +183,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test6() {
+    void balanceItemsOfFourJobsWhenNewWorkerStarted() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -220,7 +220,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test7() {
+    void balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewWorkerStarted() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -245,7 +245,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test8() {
+    void balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewFiveWorkersStarted() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -280,7 +280,7 @@ class ReassignmentNumberComparisonTest {
 
 
     @Test
-    void test9() {
+    void balanceItemsOfSingleJobWhenWorkerDestroyed() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
@@ -314,7 +314,7 @@ class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    void test11() {
+    void balanceItemsOfSomeJobWhenWasAliveThreeWorkersAndOneWorkerDestroyed() {
         AssignmentState available = new AssignmentState();
         AssignmentState previous = new AssignmentState();
 
