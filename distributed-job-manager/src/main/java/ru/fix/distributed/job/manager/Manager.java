@@ -141,7 +141,6 @@ class Manager implements AutoCloseable {
 
                         int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
-                        removeAssignmentsOnDeadNodes();
                         transaction.checkPathWithVersion(assignmentVersionNode, version);
                         transaction.setData(assignmentVersionNode, new byte[]{});
 
@@ -190,82 +189,98 @@ class Manager implements AutoCloseable {
                     "\nNew assignment after rebalance: " + newAssignmentState);
         }
 
-        rewriteZookeeperNodes(newAssignmentState, transaction);
+        rewriteZookeeperNodes(previousState, newAssignmentState, transaction);
     }
 
-    private void rewriteZookeeperNodes(AssignmentState newAssignmentState, TransactionalClient transaction) throws Exception {
-
-        removePreviousAssignedWorkPools(transaction);
+    /**
+     * Add in zk paths of new work items, that contains in newAssignmentState, but doesn't in previousState and
+     * remove work items, that contains in previousState, but doesn't in newAssignmentState.
+     */
+    private void rewriteZookeeperNodes(
+            AssignmentState previousState,
+            AssignmentState newAssignmentState,
+            TransactionalClient transaction
+    ) throws Exception {
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : newAssignmentState.entrySet()) {
-            String workerId = worker.getKey().getId();
-            HashSet<WorkItem> workItems = worker.getValue();
+            WorkerId workerId = worker.getKey();
+            Map<JobId, List<WorkItem>> jobs = itemsToMap(worker.getValue());
 
-            Map<String, List<WorkItem>> jobs = new HashMap<>();
-            for (WorkItem workItem : workItems) {
-                if (jobs.containsKey(workItem.getJobId().getId())) {
-                    List<WorkItem> newWorkItems = new ArrayList<>(jobs.get(workItem.getJobId().getId()));
-                    newWorkItems.add(workItem);
-                    jobs.put(workItem.getJobId().getId(), newWorkItems);
-                } else {
-                    jobs.put(workItem.getJobId().getId(), Collections.singletonList(workItem));
-                }
+            if (curatorFramework.checkExists()
+                    .forPath(paths.getWorkerAliveFlagPath(workerId.getId())) == null) {
+                continue;
             }
-
-            for (Map.Entry<String, List<WorkItem>> job : jobs.entrySet()) {
-
-                transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId, job.getKey()));
-                transaction.createPath(paths.getAssignedWorkPoolPath(workerId, job.getKey()));
+            for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
+                createIfNotExist(transaction, paths.getAssignedWorkPooledJobsPath(
+                        workerId.getId(), job.getKey().getId())
+                );
+                createIfNotExist(transaction, paths.getAssignedWorkPoolPath(
+                        workerId.getId(), job.getKey().getId())
+                );
 
                 for (WorkItem workItem : job.getValue()) {
-                    String newPath = ZKPaths.makePath(
-                            paths.getAssignedWorkPooledJobsPath(workerId, job.getKey()),
-                            JobManagerPaths.WORK_POOL,
-                            workItem.getId()
-                    );
-                    transaction.createPath(newPath);
+                    if (!previousState.containsWorkItemOnWorker(workerId, workItem)) {
+                        String newPath = ZKPaths.makePath(
+                                paths.getAssignedWorkPooledJobsPath(workerId.getId(), job.getKey().getId()),
+                                JobManagerPaths.WORK_POOL,
+                                workItem.getId()
+                        );
+                        transaction.createPath(newPath);
+                    }
                 }
             }
         }
-    }
 
-    private void removePreviousAssignedWorkPools(TransactionalClient transaction) {
-        try {
-            List<String> workersRoots = curatorFramework.getChildren()
-                    .forPath(paths.getWorkersPath());
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : previousState.entrySet()) {
+            WorkerId workerId = worker.getKey();
+            Map<JobId, List<WorkItem>> jobs = itemsToMap(worker.getValue());
 
-            for (String worker : workersRoots) {
-
-                List<String> jobs = curatorFramework.getChildren()
-                        .forPath(paths.getAssignedWorkPooledJobsPath(worker));
-                for (String job : jobs) {
-                    transaction.deletePathWithChildrenIfNeeded(paths.getAssignedWorkPooledJobsPath(worker, job));
+            for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
+                for (WorkItem workItem : job.getValue()) {
+                    if (!newAssignmentState.containsWorkItemOnWorker(workerId, workItem)) {
+                        String newPath = ZKPaths.makePath(
+                                paths.getAssignedWorkPooledJobsPath(workerId.getId(), job.getKey().getId()),
+                                JobManagerPaths.WORK_POOL,
+                                workItem.getId()
+                        );
+                        transaction.deletePathWithChildrenIfNeeded(newPath);
+                    }
                 }
             }
-        } catch (Exception e) {
-            log.warn("Unable remove previous assignment: ", e);
+        }
+        removeAssignmentsOnDeadNodes(transaction);
+    }
+
+    private void createIfNotExist(TransactionalClient transactionalClient, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) == null) {
+            transactionalClient.createPath(path);
         }
     }
 
-    private void removeAssignmentsOnDeadNodes() throws Exception {
+    private void removeAssignmentsOnDeadNodes(TransactionalClient transaction) throws Exception {
         List<String> workersRoots = curatorFramework.getChildren().forPath(paths.getWorkersPath());
 
         for (String worker : workersRoots) {
             if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) != null) {
                 continue;
             }
+            log.info("nodeId={} Remove dead worker {}", nodeId, worker);
 
-            String workerAssignedJobsPath = paths.getAssignedWorkPooledJobsPath(worker);
-            log.info("nodeId={} Remove assignment on dead worker {}",
-                    nodeId,
-                    workerAssignedJobsPath);
             try {
-                ZKPaths.deleteChildren(curatorFramework.getZookeeperClient().getZooKeeper(),
-                        workerAssignedJobsPath, false);
+                transaction.deletePathWithChildrenIfNeeded(paths.getWorkerPath(worker));
             } catch (KeeperException.NoNodeException e) {
                 log.info("Node was already deleted", e);
             }
         }
+    }
+
+    private Map<JobId, List<WorkItem>> itemsToMap(Set<WorkItem> workItems) {
+        Map<JobId, List<WorkItem>> jobs = new HashMap<>();
+        for (WorkItem workItem : workItems) {
+            jobs.putIfAbsent(workItem.getJobId(), new ArrayList<>());
+            jobs.get(workItem.getJobId()).add(workItem);
+        }
+        return jobs;
     }
 
     private GlobalAssignmentState getZookeeperGlobalState() throws Exception {
@@ -276,24 +291,6 @@ class Manager implements AutoCloseable {
                 .forPath(paths.getWorkersPath());
 
         for (String worker : workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) == null) {
-                continue;
-            }
-
-            List<String> availableJobIds = curatorFramework.getChildren()
-                    .forPath(paths.getAvailableWorkPooledJobPath(worker));
-
-            HashSet<WorkItem> workPool = new HashSet<>();
-            for (String availableJobId : availableJobIds) {
-                List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
-                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
-
-                for (String workItem : workItemsForAvailableJobList) {
-                    workPool.add(new WorkItem(workItem, new JobId(availableJobId)));
-                }
-            }
-            availableState.put(new WorkerId(worker), workPool);
-
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
@@ -307,6 +304,28 @@ class Manager implements AutoCloseable {
                 }
             }
             assignedState.put(new WorkerId(worker), assignedWorkPool);
+        }
+
+        for (String worker : workersRoots) {
+            if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) == null) {
+                continue;
+            }
+
+            List<String> availableJobIds = curatorFramework.getChildren()
+                    .forPath(paths.getAvailableWorkPooledJobPath(worker));
+
+            HashSet<WorkItem> availableWorkPool = new HashSet<>();
+            for (String availableJobId : availableJobIds) {
+                List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
+                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId));
+
+                for (String workItem : workItemsForAvailableJobList) {
+                    availableWorkPool.add(new WorkItem(workItem, new JobId(availableJobId)));
+                }
+            }
+            availableState.put(new WorkerId(worker), availableWorkPool);
+
+
         }
 
         return new GlobalAssignmentState(availableState, assignedState);

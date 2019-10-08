@@ -129,6 +129,54 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         }
     }
 
+    @Test
+    void shouldEvenlyReassignIfOneWorkerDestroyed() throws Exception {
+        createDjmWithEvenlySpread("worker-0", distributedJobs());
+        createDjmWithEvenlySpread("worker-1", distributedJobs());
+        Thread.sleep(500);
+        DistributedJobManager destroyed = createDjmWithEvenlySpread("worker-2", distributedJobs());
+        Thread.sleep(1500);
+
+        List<String> nodes = Arrays.asList(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0")
+        );
+
+        CuratorFramework curator = zkTestingServer.createClient();
+        for (String node : nodes) {
+            assertNotNull(curator.checkExists().forPath(node));
+        }
+
+        destroyed.close();
+        Thread.sleep(1000);
+
+        List<String> nodesAfterDestroy = Arrays.asList(
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0")
+        );
+
+        for (String node : nodesAfterDestroy) {
+            assertNotNull(curator.checkExists().forPath(node));
+        }
+    }
+
     private AbstractAssignmentStrategy ussdAssignmentStrategy = new AbstractAssignmentStrategy() {
 
         @Override
@@ -277,8 +325,12 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
                 ));
     }
 
-    private void createDjm(String nodeId, List<DistributedJob> jobs, AssignmentStrategy strategy) throws Exception {
-        new DistributedJobManager(
+    private DistributedJobManager createDjm(
+            String nodeId,
+            List<DistributedJob> jobs,
+            AssignmentStrategy strategy
+    ) throws Exception {
+        return new DistributedJobManager(
                 nodeId,
                 zkTestingServer.createClient(),
                 JOB_MANAGER_ZK_ROOT_PATH,
@@ -289,12 +341,12 @@ class DistributedJobManagerTest extends AbstractJobManagerTest {
         );
     }
 
-    private void createDjmWithEvenlySpread(String nodeId, List<DistributedJob> jobs) throws Exception {
-        createDjm(nodeId, jobs, AssignmentStrategies.EVENLY_SPREAD);
+    private DistributedJobManager createDjmWithEvenlySpread(String nodeId, List<DistributedJob> jobs) throws Exception {
+        return createDjm(nodeId, jobs, AssignmentStrategies.EVENLY_SPREAD);
     }
 
-    private void createDjmWithRendezvous(String nodeId, List<DistributedJob> jobs) throws Exception {
-        createDjm(nodeId, jobs, AssignmentStrategies.RENDEZVOUS);
+    private DistributedJobManager createDjmWithRendezvous(String nodeId, List<DistributedJob> jobs) throws Exception {
+        return createDjm(nodeId, jobs, AssignmentStrategies.RENDEZVOUS);
     }
 
     private WorkPool createWorkPool(String jobId, int workItemsNumber) {

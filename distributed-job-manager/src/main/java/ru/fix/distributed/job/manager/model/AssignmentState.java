@@ -149,12 +149,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         if (items == null) {
             return false;
         }
-        for (WorkItem item : items) {
-            if (workItem.equals(item)) {
-                return true;
-            }
-        }
-        return false;
+        return items.contains(workItem);
     }
 
     /**
@@ -245,7 +240,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("Zookeeper state\n");
+        StringBuilder result = new StringBuilder("Assignment state\n");
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             String workerId = worker.getKey().getId();
