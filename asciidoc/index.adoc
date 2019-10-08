@@ -38,8 +38,8 @@ class MyJob implements DistributedJob{
 ----
 
 Job informs DJM about WorkPool. +
-DJM split work-items from WorkPool among all Workers evenly. +
-If Job define WorkPool with single work-item then it means that such a job will be launched by DJM
+DJM split work-items from WorkPool among all Workers according to assignment strategy. +
+If Job define WorkPool with single work-item then it means that such job will be launched by DJM
 only within single application in the cluster.
 
 When DJM launches Job it passes information about work-items that Job should process.
@@ -135,7 +135,7 @@ public static class RebillJob implements DistributedJob {
 @Bean
 DistributedJobManager distributedJobManager() throws Exception {
     return new DistributedJobManager(
-            "my-app-server-1", // application id
+            "my-app-instance-1", // node id
             CuratorFrameworkFactory.newClient(zkHosts, new ExponentialBackoffRetry(1000, 10)),
             "zk/root/path",
             Arrays.asList(
@@ -145,8 +145,7 @@ DistributedJobManager distributedJobManager() throws Exception {
             ),
             new CustomAssignmentStrategy(),
             new AggregationProfiler(),
-            DynamicProperty.of(180000), // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
-            DynamicProperty.of(true) // Log full tree during job rebalancing operation
+            DynamicProperty.of(180000) // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
     );
 }
 ----
