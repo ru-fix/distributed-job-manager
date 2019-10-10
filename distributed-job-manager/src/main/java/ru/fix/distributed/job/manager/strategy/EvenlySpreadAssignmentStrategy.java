@@ -19,10 +19,13 @@ public class EvenlySpreadAssignmentStrategy extends AbstractAssignmentStrategy {
             Set<WorkItem> itemsToAssign
     ) {
         for (Map.Entry<JobId, Set<WorkerId>> jobEntry : availability.entrySet()) {
-            Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobEntry.getKey(), itemsToAssign);
-            jobEntry.getValue().forEach(e -> currentAssignment.putIfAbsent(e, new HashSet<>()));
+            JobId jobId = jobEntry.getKey();
+            Set<WorkerId> availableWorkers = jobEntry.getValue();
 
-            int workersCount = jobEntry.getValue().size();
+            Set<WorkItem> itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign);
+            availableWorkers.forEach(e -> currentAssignment.putIfAbsent(e, new HashSet<>()));
+
+            int workersCount = availableWorkers.size();
             int workItemsCount = itemsToAssignForJob.size();
             int limitWorkItemsOnWorker = limitWorkItemsOnWorker(workItemsCount, workersCount);
             int itemsAssignedFromPreviousCounter = 0;
@@ -40,13 +43,13 @@ public class EvenlySpreadAssignmentStrategy extends AbstractAssignmentStrategy {
                     itemsAssignedFromPreviousCounter++;
 
                     int limitItemsOnWorkerInPreviousState = prevAssignment
-                            .get(workerFromPrevious, jobEntry.getKey()).size();
+                            .get(workerFromPrevious, jobId).size();
                     if (limitItemsOnWorkerInPreviousState <= itemsAssignedFromPreviousCounter) {
                         itemsAssignedFromPreviousCounter = 0;
                     }
                 } else {
                     WorkerId lessBusyWorker = currentAssignment
-                            .getLessBusyWorkerFromAvailableWorkers(jobEntry.getValue());
+                            .getLessBusyWorkerFromAvailableWorkers(availableWorkers);
                     currentAssignment.addWorkItem(lessBusyWorker, item);
                 }
                 itemsToAssign.remove(item);

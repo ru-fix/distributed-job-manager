@@ -1,10 +1,6 @@
 package ru.fix.distributed.job.manager.model;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +62,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      */
     @SuppressWarnings("unused")
     public WorkerId getLessBusyWorkerWithJobIdFromAvailableWorkers(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId globalLessBusyWorker = getLessBusyWorkerFromAvailableWorkers(availableWorkers);
         WorkerId localLessBusyWorker = null;
         int minWorkPoolSize = Integer.MAX_VALUE;
 
@@ -81,9 +76,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             if (workPoolSize <= minWorkPoolSize) {
                 minWorkPoolSize = workPoolSize;
                 localLessBusyWorker = worker.getKey();
-            }
-            if (globalLessBusyWorker.equals(localLessBusyWorker)) {
-                return localLessBusyWorker;
             }
         }
         return localLessBusyWorker;
@@ -114,13 +106,12 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     /**
      * @param workItem item, for which you need to find a worker
      * @return worker on which work item placed
+     * or null, if work item not found
      */
     public WorkerId getWorkerOfWorkItem(WorkItem workItem) {
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            for (WorkItem item : worker.getValue()) {
-                if (workItem.equals(item)) {
-                    return worker.getKey();
-                }
+            if (worker.getValue().contains(workItem)) {
+                return worker.getKey();
             }
         }
         return null;
@@ -182,18 +173,20 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * returns false
      */
     public boolean isBalanced() {
+        int minPoolSize = Integer.MAX_VALUE;
+        int maxPoolSize = Integer.MIN_VALUE;
+
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             int workPoolSize = worker.getValue().size();
 
-            for (Map.Entry<WorkerId, HashSet<WorkItem>> worker1 : entrySet()) {
-                int workPoolSize1 = worker1.getValue().size();
-
-                if (Math.abs(workPoolSize - workPoolSize1) > 1) {
-                    return false;
-                }
+            if (workPoolSize > maxPoolSize) {
+                maxPoolSize = workPoolSize;
+            }
+            if (workPoolSize < minPoolSize) {
+                minPoolSize = workPoolSize;
             }
         }
-        return true;
+        return maxPoolSize - minPoolSize < 2;
     }
 
     /**
@@ -201,20 +194,21 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @return true, if work pool sizes of jobId on various workers differ more than 1
      */
     public boolean isBalancedByJobId(JobId jobId) {
+        int minPoolSize = Integer.MAX_VALUE;
+        int maxPoolSize = Integer.MIN_VALUE;
+
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
-            long workPoolSize = worker.getValue().stream()
+            int workPoolSize = (int) worker.getValue().stream()
                     .filter(item -> jobId.equals(item.getJobId())).count();
 
-            for (Map.Entry<WorkerId, HashSet<WorkItem>> worker1 : entrySet()) {
-                long workPoolSize1 = worker1.getValue().stream()
-                        .filter(item -> jobId.equals(item.getJobId())).count();
-
-                if (Math.abs(workPoolSize - workPoolSize1) > 1) {
-                    return false;
-                }
+            if (workPoolSize > maxPoolSize) {
+                maxPoolSize = workPoolSize;
+            }
+            if (workPoolSize < minPoolSize) {
+                minPoolSize = workPoolSize;
             }
         }
-        return true;
+        return maxPoolSize - minPoolSize < 2;
     }
 
     /**
