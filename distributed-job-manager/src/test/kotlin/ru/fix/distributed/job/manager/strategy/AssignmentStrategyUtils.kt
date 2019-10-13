@@ -65,7 +65,6 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
     var count = 0
 
     for ((workerId, workItems) in stateBefore) {
-
         for (workItem in workItems) {
             if (!stateAfter.containsWorkItemOnWorker(workerId, workItem)) {
                 count++

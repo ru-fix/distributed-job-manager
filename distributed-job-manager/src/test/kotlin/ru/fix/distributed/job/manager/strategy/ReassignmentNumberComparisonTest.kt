@@ -31,7 +31,6 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfSingleJobBetweenTwoWorkers() {
-
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -67,22 +66,34 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfSingleJobBetweenThreeWorkers() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
 
-        val workItems = generateWorkItems(JobId("job-0"), 0, 4)
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-3", JobId("job-0")))
-        )
+        val previous = assignmentState {
+            "worker-0"{
+                "job-0"(
+                        "work-item-0",
+                        "work-item-1",
+                        "work-item-2"
+                )
+            }
+            "worker-1"{
+                "job-0"(
+                        "work-item-3"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(1, results.evenlySpreadReassignmentNumber)
@@ -91,26 +102,42 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceAlreadyBalancedItems() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
 
-        val workItems = generateWorkItems(JobId("job-0"), 0, 6)
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-2", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-2"), setOf(
-                WorkItem("work-item-4", JobId("job-0")),
-                WorkItem("work-item-5", JobId("job-0"))
-        ))
+        val previous = assignmentState {
+            "worker-0"{
+                "job-0"(
+                        "work-item-0",
+                        "work-item-1"
+                )
+            }
+            "worker-1"{
+                "job-0"(
+                        "work-item-2",
+                        "work-item-3"
+                )
+            }
+            "worker-2"{
+                "job-0"(
+                        "work-item-4",
+                        "work-item-5"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(0, results.evenlySpreadReassignmentNumber)
@@ -119,33 +146,44 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsWhenWorkItemsOfJobNotBalanced() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1"
+            )
+            "job-1"(
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1"))
-        ))
-        previous.addWorkItems(WorkerId("worker-2"), setOf(
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1"))
-        ))
+        val previous = assignmentState {
+            "worker-0"{
+                "job-0"(
+                        "work-item-0",
+                        "work-item-1"
+                )
+            }
+            "worker-1"{
+                "job-1"(
+                        "work-item-2",
+                        "work-item-3"
+                )
+            }
+            "worker-2"{
+                "job-1"(
+                        "work-item-4",
+                        "work-item-5"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(2, results.evenlySpreadReassignmentNumber)
@@ -154,100 +192,150 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfThreeJobsWhenNewWorkerStarted() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0"
+            )
+            "job-1"(
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5",
+                    "work-item-6"
+            )
+            "job-2"(
+                    "work-item-7",
+                    "work-item-8"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-1")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1")),
-                WorkItem("work-item-6", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-2")),
-                WorkItem("work-item-8", JobId("job-2"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-1", JobId("job-1")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-2")),
-                WorkItem("work-item-3", JobId("job-1"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1")),
-                WorkItem("work-item-6", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-2")),
-                WorkItem("work-item-0", JobId("job-0"))
-
-        ))
+        val previous = assignmentState {
+            "worker-0"{
+                "job-1"(
+                        "work-item-1",
+                        "work-item-2",
+                        "work-item-3"
+                )
+                "job-2"(
+                        "work-item-7"
+                )
+            }
+            "worker-1"{
+                "job-0"(
+                        "work-item-0"
+                )
+                "job-1"(
+                        "work-item-4",
+                        "work-item-5",
+                        "work-item-6"
+                )
+                "job-2"(
+                        "work-item-8"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(3, results.evenlySpreadReassignmentNumber)
-        assertEquals(6, results.rendezvousReassignmentNumber)
+        assertEquals(5, results.rendezvousReassignmentNumber)
     }
 
     @Test
     fun balanceItemsOfFourJobsWhenNewWorkerStarted() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1"
+            )
+            "job-1"(
+                    "work-item-2",
+                    "work-item-3"
+            )
+            "job-2"(
+                    "work-item-4",
+                    "work-item-5"
+            )
+            "job-3"(
+                    "work-item-6",
+                    "work-item-7"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-2")),
-                WorkItem("work-item-5", JobId("job-2")),
-                WorkItem("work-item-6", JobId("job-3")),
-                WorkItem("work-item-7", JobId("job-3"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-2")),
-                WorkItem("work-item-6", JobId("job-3"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-2")),
-                WorkItem("work-item-6", JobId("job-3"))
-        ))
+        val previous = assignmentState {
+            "worker-0"{
+                "job-0"(
+                        "work-item-0"
+                )
+                "job-1"(
+                        "work-item-2"
+                )
+                "job-2"(
+                        "work-item-4"
+                )
+                "job-3"(
+                        "work-item-6"
+                )
+            }
+            "worker-1"{
+                "job-0"(
+                        "work-item-1"
+                        )
+                "job-1"(
+                        "work-item-3"
+                )
+                "job-2"(
+                        "work-item-5"
+                )
+                "job-3"(
+                        "work-item-7"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(2, results.evenlySpreadReassignmentNumber)
-        assertEquals(7, results.rendezvousReassignmentNumber)
+        assertEquals(6, results.rendezvousReassignmentNumber)
     }
 
     @Test
     fun balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewWorkerStarted() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1"
+            )
+            "job-1"(
+                    "work-item-2",
+                    "work-item-3"
+            )
+            "job-2"(
+                    "work-item-4",
+                    "work-item-5"
+            )
+            "job-3"(
+                    "work-item-6",
+                    "work-item-7"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-2")),
-                WorkItem("work-item-5", JobId("job-2")),
-                WorkItem("work-item-6", JobId("job-3")),
-                WorkItem("work-item-7", JobId("job-3"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), workItems)
+        val previous = assignmentState {
+            "worker-0"(workPool)
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(4, results.evenlySpreadReassignmentNumber)
@@ -256,32 +344,41 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewFiveWorkersStarted() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4"
+            )
+            "job-1"(
+                    "work-item-5",
+                    "work-item-6",
+                    "work-item-7",
+                    "work-item-8",
+                    "work-item-9"
+            )
+            "job-2"(
+                    "work-item-10"
+            )
+            "job-3"(
+                    "work-item-11",
+                    "work-item-12"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+            "worker-4"(workPool)
+            "worker-5"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-0")),
-                WorkItem("work-item-4", JobId("job-0")),
-                WorkItem("work-item-5", JobId("job-1")),
-                WorkItem("work-item-6", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-1")),
-                WorkItem("work-item-8", JobId("job-1")),
-                WorkItem("work-item-9", JobId("job-1")),
-                WorkItem("work-item-10", JobId("job-2")),
-                WorkItem("work-item-11", JobId("job-3")),
-                WorkItem("work-item-12", JobId("job-3"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-        available.addWorkItems(WorkerId("worker-2"), workItems)
-        available.addWorkItems(WorkerId("worker-3"), workItems)
-        available.addWorkItems(WorkerId("worker-4"), workItems)
-        available.addWorkItems(WorkerId("worker-5"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), workItems)
+        val previous = assignmentState {
+            "worker-0"(workPool)
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(10, results.evenlySpreadReassignmentNumber)
@@ -291,32 +388,41 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfSingleJobWhenWorkerDestroyed() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-1"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-1")),
-                WorkItem("work-item-1", JobId("job-1")),
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-1")),
-                WorkItem("work-item-1", JobId("job-1"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-2", JobId("job-1")),
-                WorkItem("work-item-3", JobId("job-1"))
-        ))
-        previous.addWorkItems(WorkerId("worker-2"), setOf(
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1"))
-        ))
+        val previous = assignmentState {
+            "worker-0"{
+                "job-1"(
+                        "work-item-0",
+                        "work-item-1"
+                )
+            }
+            "worker-1"{
+                "job-1"(
+                        "work-item-2",
+                        "work-item-3"
+                )
+            }
+            "worker-2"{
+                "job-1"(
+                        "work-item-4",
+                        "work-item-5"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(2, results.evenlySpreadReassignmentNumber)
@@ -325,46 +431,75 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfSomeJobWhenWasAliveThreeWorkersAndOneWorkerDestroyed() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+            "job-1"(
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5",
+                    "work-item-6"
+            )
+            "job-2" (
+                    "work-item-7"
+            )
+            "job-3"(
+                    "work-item-8",
+                    "work-item-9",
+                    "work-item-10"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
 
-        val workItems = setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-4", JobId("job-1")),
-                WorkItem("work-item-5", JobId("job-1")),
-                WorkItem("work-item-6", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-2")),
-                WorkItem("work-item-8", JobId("job-3")),
-                WorkItem("work-item-9", JobId("job-3")),
-                WorkItem("work-item-10", JobId("job-3"))
-        )
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
-
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-6", JobId("job-1")),
-                WorkItem("work-item-9", JobId("job-3"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-3", JobId("job-1")),
-                WorkItem("work-item-7", JobId("job-2")),
-                WorkItem("work-item-10", JobId("job-3"))
-        ))
-        previous.addWorkItems(WorkerId("worker-2"), setOf(
-                WorkItem("work-item-2", JobId("job-0")),
-                WorkItem("work-item-5", JobId("job-1")),
-                WorkItem("work-item-8", JobId("job-3"))
-        ))
+        val previous = assignmentState {
+            "worker-0" {
+                "job-0"(
+                        "work-item-0"
+                )
+                "job-1"(
+                        "work-item-3",
+                        "work-item-6"
+                )
+                "job-3"(
+                        "work-item-9"
+                )
+            }
+            "worker-1" {
+                "job-0"(
+                        "work-item-1"
+                )
+                "job-1"(
+                        "work-item-4"
+                )
+                "job-2" (
+                        "work-item-7"
+                )
+                "job-3"(
+                        "work-item-9"
+                )
+            }
+            "worker-2" {
+                "job-0"(
+                        "work-item-2"
+                )
+                "job-1"(
+                        "work-item-5"
+                )
+                "job-3"(
+                        "work-item-8"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(4, results.evenlySpreadReassignmentNumber)
-        assertEquals(9, results.rendezvousReassignmentNumber)
+        assertEquals(10, results.rendezvousReassignmentNumber)
     }
 
     private fun reassignmentResults(available: AssignmentState, previous: AssignmentState): Results {
@@ -397,7 +532,6 @@ internal class ReassignmentNumberComparisonTest {
                     .rendezvousNewAssignment(newAssignmentRendezvous)
                     .build().toString()
         }
-
         return Results(
                 calculateReassignments(previous, newAssignmentEvenlySpread),
                 calculateReassignments(previous, newAssignmentRendezvous)
