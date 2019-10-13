@@ -38,6 +38,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     /**
      * @return worker which has less work pool size (doesn't depends on job)
+     * or return null, if assignment state doesn't contain any worker
      */
     @SuppressWarnings("unused")
     public WorkerId getLessBusyWorker() {
