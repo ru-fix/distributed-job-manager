@@ -31,21 +31,34 @@ internal class ReassignmentNumberComparisonTest {
 
     @Test
     fun balanceItemsOfSingleJobBetweenTwoWorkers() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
 
-        val workItems = generateWorkItems(JobId("job-0"), 0, 4)
-        available.addWorkItems(WorkerId("worker-0"), workItems)
-        available.addWorkItems(WorkerId("worker-1"), workItems)
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
 
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-0", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-3", JobId("job-0")))
-        )
+        val previous = assignmentState {
+            "worker-0"{
+                "job-0"(
+                        "work-item-0",
+                        "work-item-1",
+                        "work-item-2"
+                )
+            }
+            "worker-1"{
+                "job-0"(
+                        "work-item-3"
+                )
+            }
+        }
 
         val results = reassignmentResults(available, previous)
         assertEquals(1, results.evenlySpreadReassignmentNumber)
@@ -358,6 +371,14 @@ internal class ReassignmentNumberComparisonTest {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
 
+        logger.info {
+            Print.Builder()
+                    .availability(availability)
+                    .itemsToAssign(itemsToAssign)
+                    .previousAssignment(previous)
+                    .build().toString()
+        }
+
         val newAssignmentEvenlySpread = evenlySpread!!.reassignAndBalance(
                 availability,
                 previous,
@@ -368,14 +389,12 @@ internal class ReassignmentNumberComparisonTest {
                 availability,
                 previous,
                 AssignmentState(),
-                itemsToAssign
+                generateItemsToAssign(available)
         )
         logger.info {
             Print.Builder()
-                    .availability(availability)
-                    .itemsToAssign(itemsToAssign)
-                    .currentAssignment(newAssignmentEvenlySpread)
-                    .previousAssignment(previous)
+                    .evenlySpreadNewAssignment(newAssignmentEvenlySpread)
+                    .rendezvousNewAssignment(newAssignmentRendezvous)
                     .build().toString()
         }
 

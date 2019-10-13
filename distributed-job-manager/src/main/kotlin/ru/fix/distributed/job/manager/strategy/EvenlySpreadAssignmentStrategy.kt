@@ -4,13 +4,12 @@ import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
-
-import java.util.HashSet
+import java.util.*
 
 class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Map<JobId, Set<WorkerId>>,
+            availability: MutableMap<JobId, MutableSet<WorkerId>>,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>

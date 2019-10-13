@@ -1,33 +1,9 @@
 package ru.fix.distributed.job.manager
 
 import org.junit.jupiter.api.Test
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.strategy.assignmentState
 
 class AssignmentTest {
-
-    class WorkerScope(private val state: AssignmentState){
-        operator fun String.invoke(builder: JobScope.()->Unit){
-            builder(JobScope(state, this))
-        }
-    }
-
-    class JobScope(private val state: AssignmentState,
-                   private val worker:String){
-        operator fun String.invoke(vararg items: String){
-            for(item in items) {
-                state.addWorkItem(WorkerId(worker), WorkItem(item, JobId(this)))
-            }
-        }
-    }
-
-    fun assignmentState(builder: WorkerScope.()->Unit) =
-            AssignmentState().apply {
-                builder(WorkerScope(this))
-            }
-
 
     @Test
     fun `assignment of `() {
@@ -38,6 +14,7 @@ class AssignmentTest {
                         "wi2",
                         "wi3"
                 )
+
             }
             "w2"{
                 "j1"(
@@ -51,7 +28,6 @@ class AssignmentTest {
 
                 )
             }
-
         }
 
         println(current)

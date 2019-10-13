@@ -11,14 +11,13 @@ import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
-import kotlin.collections.HashSet
 
 internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: MutableMap<JobId, Set<WorkerId>>,
+                availability: MutableMap<JobId, MutableSet<WorkerId>>,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
@@ -48,7 +47,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: MutableMap<JobId, Set<WorkerId>>,
+                availability: MutableMap<JobId, MutableSet<WorkerId>>,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
@@ -258,7 +257,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
         val customStrategy = object : AbstractAssignmentStrategy() {
             override fun reassignAndBalance(
-                    availability: MutableMap<JobId, Set<WorkerId>>,
+                    availability: MutableMap<JobId, MutableSet<WorkerId>>,
                     prevAssignment: AssignmentState,
                     currentAssignment: AssignmentState,
                     itemsToAssign: MutableSet<WorkItem>
@@ -360,7 +359,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     private fun createWorkPool(jobId: String, workItemsNumber: Int): WorkPool {
-        return WorkPool.of((1..workItemsNumber)
+        return WorkPool.of((0 until workItemsNumber)
                 .map { i -> "$jobId.work-item-$i" }
                 .toCollection(HashSet()))
     }

@@ -7,15 +7,13 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.util.RendezvousHash
-
 import java.nio.charset.StandardCharsets
-import java.util.ArrayList
-import java.util.HashSet
+import java.util.*
 
 class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Map<JobId, Set<WorkerId>>,
+            availability: MutableMap<JobId, MutableSet<WorkerId>>,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
@@ -24,16 +22,16 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
             into.putBytes(from.toByteArray(StandardCharsets.UTF_8))
         }
 
-        for ((key, value) in availability) {
+        for ((jobId, availableWorkers) in availability) {
             val hash = RendezvousHash<String, String>(
                     Hashing.murmur3_128(), stringFunnel, stringFunnel, ArrayList()
             )
-            value.forEach { worker ->
+            availableWorkers.forEach { worker ->
                 hash.add(worker.id)
                 currentAssignment.putIfAbsent(worker, HashSet<WorkItem>())
             }
 
-            val availableItems = getWorkItemsByJob(key, itemsToAssign)
+            val availableItems = getWorkItemsByJob(jobId, itemsToAssign)
             for (item in availableItems) {
                 if (currentAssignment.containsWorkItem(item)) {
                     continue

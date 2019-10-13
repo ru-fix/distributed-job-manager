@@ -21,7 +21,7 @@ interface AssignmentStrategy {
      * @return assignment strategy result after applying several strategies under currentAssignment
      */
     fun reassignAndBalance(
-            availability: Map<JobId, Set<WorkerId>>,
+            availability: MutableMap<JobId, MutableSet<WorkerId>>,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
