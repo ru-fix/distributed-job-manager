@@ -18,7 +18,7 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
         for ((jobId, availableWorkers) in availability) {
 
             val itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign)
-            availableWorkers.forEach { e -> (currentAssignment as java.util.Map).putIfAbsent(e, HashSet<WorkItem>()) }
+            availableWorkers.forEach { currentAssignment.putIfAbsent(it, HashSet<WorkItem>()) }
 
             val workersCount = availableWorkers.size
             val workItemsCount = itemsToAssignForJob.size

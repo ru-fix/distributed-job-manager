@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager
 
-
-import org.apache.curator.framework.CuratorFramework
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -12,12 +11,6 @@ import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
-
-import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.IntStream
-
-import org.junit.jupiter.api.Assertions.assertNotNull
 import kotlin.collections.HashSet
 
 internal class DistributedJobManagerTest : AbstractJobManagerTest() {
@@ -25,10 +18,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: Map<JobId, Set<WorkerId>>,
+                availability: MutableMap<JobId, Set<WorkerId>>,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
-                itemsToAssign: Set<WorkItem>
+                itemsToAssign: MutableSet<WorkItem>
         ): AssignmentState {
             for ((key, value) in availability) {
                 val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
@@ -55,7 +48,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: Map<JobId, Set<WorkerId>>,
+                availability: MutableMap<JobId, Set<WorkerId>>,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
@@ -181,7 +174,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-2", distributedJobs())
         Thread.sleep(1000)
 
-        val nodes = Arrays.asList(
+        val nodes = listOf(
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
@@ -263,33 +256,38 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 2, createWorkPool("distr-job-id-2", 7).items, 50000L
         )
 
-        val customStrategy = { availability: Map<JobId, Set<WorkerId>>,
-                               prevAssignment: AssignmentState,
-                               currentAssignment: AssignmentState,
-                               itemsToAssign: MutableSet<WorkItem> ->
-            var newState = ussdAssignmentStrategy.reassignAndBalance(
-                    mapOf(JobId("distr-job-id-1") to availability.get(JobId("distr-job-id-1"))),
-                    prevAssignment,
-                    currentAssignment,
-                    itemsToAssign
-            )
-            availability.remove(JobId("distr-job-id-1"))
+        val customStrategy = object : AbstractAssignmentStrategy() {
+            override fun reassignAndBalance(
+                    availability: MutableMap<JobId, Set<WorkerId>>,
+                    prevAssignment: AssignmentState,
+                    currentAssignment: AssignmentState,
+                    itemsToAssign: MutableSet<WorkItem>
+            ): AssignmentState {
+                var newState = ussdAssignmentStrategy.reassignAndBalance(
+                        mutableMapOf(JobId("distr-job-id-1") to availability[JobId("distr-job-id-1")]!!),
+                        prevAssignment,
+                        currentAssignment,
+                        itemsToAssign
+                )
+                availability.remove(JobId("distr-job-id-1"))
 
-            newState = smsAssignmentStrategy.reassignAndBalance(
-                    mapOf(JobId("distr-job-id-0") to availability.get(JobId("distr-job-id-0"))),
-                    prevAssignment,
-                    newState,
-                    itemsToAssign
-            )
-            availability.remove(JobId("distr-job-id-0"))
+                newState = smsAssignmentStrategy.reassignAndBalance(
+                        mutableMapOf(JobId("distr-job-id-0") to availability[JobId("distr-job-id-0")]!!),
+                        prevAssignment,
+                        newState,
+                        itemsToAssign
+                )
+                availability.remove(JobId("distr-job-id-0"))
 
-            // reassign items of other jobs using evenly spread strategy
-            AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
-                    availability,
-                    prevAssignment,
-                    newState,
-                    itemsToAssign
-            )
+                // reassign items of other jobs using evenly spread strategy
+                AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
+                        availability,
+                        prevAssignment,
+                        newState,
+                        itemsToAssign
+                )
+                return newState
+            }
         }
 
         createDjm("worker-0", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
@@ -343,7 +341,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         return DistributedJobManager(
                 nodeId,
                 zkTestingServer.createClient(),
-                AbstractJobManagerTest.JOB_MANAGER_ZK_ROOT_PATH,
+                JOB_MANAGER_ZK_ROOT_PATH,
                 jobs,
                 strategy,
                 AggregatingProfiler(),

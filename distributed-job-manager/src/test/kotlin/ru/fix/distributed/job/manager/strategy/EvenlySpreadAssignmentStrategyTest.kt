@@ -11,7 +11,6 @@ import java.util.HashSet
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategyUtils.generateAvailability
 
 internal class EvenlySpreadAssignmentStrategyTest {
     private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
@@ -44,7 +43,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertTrue(newAssignment.isBalanced)
@@ -55,7 +54,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 1, 3)
+        addWorkerWithItems(available, "worker-0", 1, 3)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
@@ -68,10 +67,10 @@ internal class EvenlySpreadAssignmentStrategyTest {
         assertFalse(available.isBalanced)
 
         val newAssignment = evenlySpread!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertTrue(newAssignment.isBalanced)
@@ -82,22 +81,22 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
 
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-2", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-3"))
         ))
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
 
         val newAssignment = evenlySpread!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertTrue(newAssignment.isBalanced)
@@ -108,27 +107,27 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
-        INSTANCE.addWorkerWithItems(available, "worker-2", 3, 1)
-        INSTANCE.addWorkerWithItems(available, "worker-3", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-2", 3, 1)
+        addWorkerWithItems(available, "worker-3", 3, 1)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-0", JobId("job-3")),
                 WorkItem("work-item-3", JobId("job-0"))
         ))
 
         val newAssignment = evenlySpread!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertTrue(newAssignment.isBalanced)
@@ -139,19 +138,19 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
-        INSTANCE.addWorkerWithItems(available, "worker-1", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-1", 3, 1)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
 
         // Previous state contains worker-2 instead of worker-1.
         // It's emulate case, when worker-1 is not available, and worker-2 connected
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-0", JobId("job-3")),
                 WorkItem("work-item-2", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
@@ -159,10 +158,10 @@ internal class EvenlySpreadAssignmentStrategyTest {
         ))
 
         val newAssignment = evenlySpread!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertTrue(newAssignment.isBalanced)

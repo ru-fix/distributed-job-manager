@@ -20,7 +20,9 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
     ): AssignmentState {
-        val stringFunnel = { from, into -> into.putBytes(from.toByteArray(StandardCharsets.UTF_8)) }
+        val stringFunnel = Funnel<String> { from, into ->
+            into.putBytes(from.toByteArray(StandardCharsets.UTF_8))
+        }
 
         for ((key, value) in availability) {
             val hash = RendezvousHash<String, String>(
@@ -28,7 +30,7 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
             )
             value.forEach { worker ->
                 hash.add(worker.id)
-                (currentAssignment as java.util.Map).putIfAbsent(worker, HashSet<WorkItem>())
+                currentAssignment.putIfAbsent(worker, HashSet<WorkItem>())
             }
 
             val availableItems = getWorkItemsByJob(key, itemsToAssign)

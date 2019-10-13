@@ -24,6 +24,6 @@ interface AssignmentStrategy {
             availability: Map<JobId, Set<WorkerId>>,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
-            itemsToAssign: Set<WorkItem>
+            itemsToAssign: MutableSet<WorkItem>
     ): AssignmentState
 }

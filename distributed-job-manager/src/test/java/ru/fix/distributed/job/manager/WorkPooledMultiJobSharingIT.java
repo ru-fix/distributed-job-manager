@@ -14,12 +14,12 @@ import java.util.Set;
 
 import static org.mockito.Mockito.*;
 
-public class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
+class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
 
     @Test
-    public void shouldRunAllWorkItemsInSingleWorker() throws Exception {
+    void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
              DistributedJobManager ignored = new DistributedJobManager(
                      "work-name",
@@ -28,7 +28,7 @@ public class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                      new HashSet<>(Collections.singletonList(
                              new SingleThreadMultiJob(
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))))),
-                     AssignmentStrategies.DEFAULT,
+                     AssignmentStrategies.Companion.getDEFAULT(),
                      new AggregatingProfiler(),
                      getTerminationWaitTime())
         ) {

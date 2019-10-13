@@ -39,10 +39,10 @@ internal class RendezvousHashAssignmentStrategyTest {
         previous[WorkerId("worker-2")] = HashSet()
 
         val newAssignment = rendezvous!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
@@ -53,7 +53,7 @@ internal class RendezvousHashAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 3)
+        addWorkerWithItems(available, "worker-0", 3, 3)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
@@ -66,10 +66,10 @@ internal class RendezvousHashAssignmentStrategyTest {
         assertFalse(available.isBalanced)
 
         val newAssignment = rendezvous!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
@@ -80,22 +80,22 @@ internal class RendezvousHashAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
 
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-2", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-3"))
         ))
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
 
         val newAssignment = rendezvous!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
@@ -106,26 +106,26 @@ internal class RendezvousHashAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
         available.addWorkItems(WorkerId("worker-2"), emptySet())
         available.addWorkItems(WorkerId("worker-3"), emptySet())
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-0", JobId("job-3"))
         ))
 
         val newAssignment = rendezvous!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
@@ -136,18 +136,18 @@ internal class RendezvousHashAssignmentStrategyTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        INSTANCE.addWorkerWithItems(available, "worker-0", 3, 1)
+        addWorkerWithItems(available, "worker-0", 3, 1)
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
         available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
 
         // Previous state contains worker-2 instead of worker-1.
         // It's emulate case, when worker-1 is not available, and worker-2 connected
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-3")),
                 WorkItem("work-item-0", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-0", JobId("job-3")),
                 WorkItem("work-item-2", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
@@ -155,10 +155,10 @@ internal class RendezvousHashAssignmentStrategyTest {
         ))
 
         val newAssignment = rendezvous!!.reassignAndBalance(
-                INSTANCE.generateAvailability(available),
+                generateAvailability(available),
                 previous,
                 AssignmentState(),
-                INSTANCE.generateItemsToAssign(available)
+                generateItemsToAssign(available)
         )
 
         assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())

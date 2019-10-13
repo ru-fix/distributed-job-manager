@@ -1,12 +1,10 @@
 package ru.fix.distributed.job.manager.strategy
 
+import org.junit.platform.commons.logging.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
-import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.IntStream
 
 fun addWorkerWithItems(state: AssignmentState, worker: String, workItemsCount: Int, jobsCount: Int) {
     val workItems = HashSet<WorkItem>()
@@ -19,13 +17,12 @@ fun addWorkerWithItems(state: AssignmentState, worker: String, workItemsCount: I
     state.addWorkItems(WorkerId(worker), workItems)
 }
 
-fun generateAvailability(assignmentState: AssignmentState): Map<JobId, Set<WorkerId>> {
-    val availability = HashMap<JobId, Set<WorkerId>>()
+fun generateAvailability(assignmentState: AssignmentState): MutableMap<JobId, MutableSet<WorkerId>> {
+    val availability = mutableMapOf<JobId, MutableSet<WorkerId>>()
 
     for ((key, value) in assignmentState) {
         for (workItem in value) {
-            availability.computeIfAbsent(workItem.jobId) { HashSet() }
-                    .add(key)
+            availability.getOrPut(workItem.jobId) { mutableSetOf() }.add(key)
         }
     }
 
@@ -57,48 +54,65 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
 }
 
 fun generateWorkItems(jobId: JobId, indexFromInclusive: Int, indexToExclusive: Int): Set<WorkItem> {
-    return IntStream.range(indexFromInclusive, indexToExclusive)
-            .mapToObj { index -> WorkItem("work-item-$index", jobId) }
-            .collect<Set<WorkItem>, Any>(Collectors.toSet())
+    return (indexFromInclusive..indexToExclusive)
+            .map { WorkItem("work-item-$it", jobId) }
+            .toCollection(mutableSetOf())
 }
 
-fun print(
-        availability: Map<JobId, Set<WorkerId>>,
-        prevAssignment: AssignmentState,
-        currentAssignment: AssignmentState,
-        itemsToAssign: Set<WorkItem>
+class Print(
+        private val availability: Map<JobId, Set<WorkerId>>?,
+        private val prevAssignment: AssignmentState?,
+        private val currentAssignment: AssignmentState?,
+        private val itemsToAssign: Set<WorkItem>?
 ) {
-    logger.info(availability(availability)
-            .append("Previous $prevAssignment")
-            .append(itemsToAssign(itemsToAssign))
-            .append("New $currentAssignment")
-            .toString()
-    )
-}
 
-private fun itemsToAssign(itemsToAssign: Set<WorkItem>): StringBuilder {
-    val picture = StringBuilder("Items to assign:\n")
-    val jobs = HashMap<JobId, Set<WorkItem>>()
-
-    itemsToAssign.forEach { item ->
-        jobs.putIfAbsent(item.jobId, HashSet()).add(item)
+    override fun toString(): String {
+        return """
+                $availability
+                $itemsToAssign
+                $prevAssignment
+                $currentAssignment
+           """.trimIndent()
     }
 
-    jobs.forEach { (jobId, workItems) ->
-        picture.append("\t└ ").append(jobId).append("\n")
+    private fun itemsToAssign(itemsToAssign: Set<WorkItem>): StringBuilder {
+        val picture = StringBuilder("Items to assign:\n")
+        val jobs = HashMap<JobId, MutableSet<WorkItem>>()
 
-        workItems.forEach { workItem -> picture.append("\t\t└ ").append(workItem).append("\n") }
+        itemsToAssign.forEach { item ->
+            jobs.getOrPut(item.jobId) { mutableSetOf() }.add(item)
+        }
+
+        jobs.forEach { (jobId, workItems) ->
+            picture.append("\t└ ").append(jobId).append("\n")
+
+            workItems.forEach { workItem -> picture.append("\t\t└ ").append(workItem).append("\n") }
+        }
+        return picture
     }
-    return picture
+
+    private fun availability(availability: Map<JobId, Set<WorkerId>>): StringBuilder {
+        val picture = StringBuilder("Availability:\n")
+
+        availability.forEach { (jobId, workerIds) ->
+            picture.append("\t└ ").append(jobId).append("\n")
+
+            workerIds.forEach { workerId -> picture.append("\t\t└ ").append(workerId).append("\n") }
+        }
+        return picture
+    }
+
+    data class Builder(
+            private var availability: Map<JobId, Set<WorkerId>>? = null,
+            private var prevAssignment: AssignmentState? = null,
+            private var currentAssignment: AssignmentState? = null,
+            private var itemsToAssign: Set<WorkItem>? = null
+    ) {
+        fun availability(availability: Map<JobId, Set<WorkerId>>) = apply { this.availability = availability }
+        fun previousAssignment(assignment: AssignmentState) = apply { this.prevAssignment = assignment }
+        fun currentAssignment(assignment: AssignmentState) = apply { this.currentAssignment = assignment }
+        fun itemsToAssign(itemsToAssign: Set<WorkItem>) = apply { this.itemsToAssign = itemsToAssign }
+        fun build() = Print(availability, prevAssignment, currentAssignment, itemsToAssign)
+    }
 }
 
-private fun availability(availability: Map<JobId, Set<WorkerId>>): StringBuilder {
-    val picture = StringBuilder("Availability:\n")
-
-    availability.forEach { (jobId, workerIds) ->
-        picture.append("\t└ ").append(jobId).append("\n")
-
-        workerIds.forEach { workerId -> picture.append("\t\t└ ").append(workerId).append("\n") }
-    }
-    return picture
-}

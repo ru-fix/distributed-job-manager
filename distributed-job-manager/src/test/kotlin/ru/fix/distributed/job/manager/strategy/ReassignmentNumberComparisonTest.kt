@@ -1,17 +1,22 @@
 package ru.fix.distributed.job.manager.strategy
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.platform.commons.logging.Logger
+import org.junit.platform.commons.logging.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 
-import org.junit.jupiter.api.Assertions.assertEquals
-
 internal class ReassignmentNumberComparisonTest {
     private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
     private var rendezvous: RendezvousHashAssignmentStrategy? = null
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(ReassignmentNumberComparisonTest::class.java)
+    }
 
     @BeforeEach
     fun setUp() {
@@ -19,23 +24,26 @@ internal class ReassignmentNumberComparisonTest {
         rendezvous = RendezvousHashAssignmentStrategy()
     }
 
-    private class Results private constructor(internal val evenlySpreadReassignmentNumber: Int, internal val rendezvousReassignmentNumber: Int)
+    private class Results(
+            internal val evenlySpreadReassignmentNumber: Int,
+            internal val rendezvousReassignmentNumber: Int
+    )
 
     @Test
     fun balanceItemsOfSingleJobBetweenTwoWorkers() {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = INSTANCE.generateWorkItems(JobId("job-0"), 0, 4)
+        val workItems = generateWorkItems(JobId("job-0"), 0, 4)
         available.addWorkItems(WorkerId("worker-0"), workItems)
         available.addWorkItems(WorkerId("worker-1"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-3", JobId("job-0")))
         )
 
@@ -49,17 +57,17 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = INSTANCE.generateWorkItems(JobId("job-0"), 0, 4)
+        val workItems = generateWorkItems(JobId("job-0"), 0, 4)
         available.addWorkItems(WorkerId("worker-0"), workItems)
         available.addWorkItems(WorkerId("worker-1"), workItems)
         available.addWorkItems(WorkerId("worker-2"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-3", JobId("job-0")))
         )
 
@@ -73,20 +81,20 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = INSTANCE.generateWorkItems(JobId("job-0"), 0, 6)
+        val workItems = generateWorkItems(JobId("job-0"), 0, 6)
         available.addWorkItems(WorkerId("worker-0"), workItems)
         available.addWorkItems(WorkerId("worker-1"), workItems)
         available.addWorkItems(WorkerId("worker-2"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-2", JobId("job-0")),
                 WorkItem("work-item-3", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-4", JobId("job-0")),
                 WorkItem("work-item-5", JobId("job-0"))
         ))
@@ -101,7 +109,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-1")),
@@ -113,15 +121,15 @@ internal class ReassignmentNumberComparisonTest {
         available.addWorkItems(WorkerId("worker-1"), workItems)
         available.addWorkItems(WorkerId("worker-2"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-2", JobId("job-1")),
                 WorkItem("work-item-3", JobId("job-1"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-4", JobId("job-1")),
                 WorkItem("work-item-5", JobId("job-1"))
         ))
@@ -136,7 +144,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-1")),
                 WorkItem("work-item-2", JobId("job-1")),
@@ -151,13 +159,13 @@ internal class ReassignmentNumberComparisonTest {
         available.addWorkItems(WorkerId("worker-1"), workItems)
         available.addWorkItems(WorkerId("worker-2"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-1", JobId("job-1")),
                 WorkItem("work-item-2", JobId("job-1")),
                 WorkItem("work-item-7", JobId("job-2")),
                 WorkItem("work-item-3", JobId("job-1"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-4", JobId("job-1")),
                 WorkItem("work-item-5", JobId("job-1")),
                 WorkItem("work-item-6", JobId("job-1")),
@@ -176,7 +184,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-1")),
@@ -190,13 +198,13 @@ internal class ReassignmentNumberComparisonTest {
         available.addWorkItems(WorkerId("worker-1"), workItems)
         available.addWorkItems(WorkerId("worker-2"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-1")),
                 WorkItem("work-item-4", JobId("job-2")),
                 WorkItem("work-item-6", JobId("job-3"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-3", JobId("job-1")),
                 WorkItem("work-item-5", JobId("job-2")),
@@ -213,7 +221,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-1")),
@@ -238,7 +246,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-0")),
@@ -273,7 +281,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-1")),
                 WorkItem("work-item-1", JobId("job-1")),
                 WorkItem("work-item-2", JobId("job-1")),
@@ -284,15 +292,15 @@ internal class ReassignmentNumberComparisonTest {
         available.addWorkItems(WorkerId("worker-0"), workItems)
         available.addWorkItems(WorkerId("worker-1"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-1")),
                 WorkItem("work-item-1", JobId("job-1"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-2", JobId("job-1")),
                 WorkItem("work-item-3", JobId("job-1"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-4", JobId("job-1")),
                 WorkItem("work-item-5", JobId("job-1"))
         ))
@@ -307,7 +315,7 @@ internal class ReassignmentNumberComparisonTest {
         val available = AssignmentState()
         val previous = AssignmentState()
 
-        val workItems = Set.of<WorkItem>(
+        val workItems = setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-2", JobId("job-0")),
@@ -323,19 +331,19 @@ internal class ReassignmentNumberComparisonTest {
         available.addWorkItems(WorkerId("worker-0"), workItems)
         available.addWorkItems(WorkerId("worker-1"), workItems)
 
-        previous.addWorkItems(WorkerId("worker-0"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-0"), setOf(
                 WorkItem("work-item-0", JobId("job-0")),
                 WorkItem("work-item-3", JobId("job-1")),
                 WorkItem("work-item-6", JobId("job-1")),
                 WorkItem("work-item-9", JobId("job-3"))
         ))
-        previous.addWorkItems(WorkerId("worker-1"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-1"), setOf(
                 WorkItem("work-item-1", JobId("job-0")),
                 WorkItem("work-item-3", JobId("job-1")),
                 WorkItem("work-item-7", JobId("job-2")),
                 WorkItem("work-item-10", JobId("job-3"))
         ))
-        previous.addWorkItems(WorkerId("worker-2"), Set.of<WorkItem>(
+        previous.addWorkItems(WorkerId("worker-2"), setOf(
                 WorkItem("work-item-2", JobId("job-0")),
                 WorkItem("work-item-5", JobId("job-1")),
                 WorkItem("work-item-8", JobId("job-3"))
@@ -347,8 +355,8 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     private fun reassignmentResults(available: AssignmentState, previous: AssignmentState): Results {
-        val availability = INSTANCE.generateAvailability(available)
-        val itemsToAssign = INSTANCE.generateItemsToAssign(available)
+        val availability = generateAvailability(available)
+        val itemsToAssign = generateItemsToAssign(available)
 
         val newAssignmentEvenlySpread = evenlySpread!!.reassignAndBalance(
                 availability,
@@ -362,15 +370,18 @@ internal class ReassignmentNumberComparisonTest {
                 AssignmentState(),
                 itemsToAssign
         )
-        INSTANCE.print(
-                availability,
-                previous,
-                newAssignmentRendezvous,
-                itemsToAssign
-        )
+        logger.info {
+            Print.Builder()
+                    .availability(availability)
+                    .itemsToAssign(itemsToAssign)
+                    .currentAssignment(newAssignmentEvenlySpread)
+                    .previousAssignment(previous)
+                    .build().toString()
+        }
+
         return Results(
-                INSTANCE.calculateReassignments(previous, newAssignmentEvenlySpread),
-                INSTANCE.calculateReassignments(previous, newAssignmentRendezvous)
+                calculateReassignments(previous, newAssignmentEvenlySpread),
+                calculateReassignments(previous, newAssignmentRendezvous)
         )
     }
 }
