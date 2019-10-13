@@ -71,6 +71,13 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
             }
         }
     }
+    for ((workerId, workItems) in stateAfter) {
+        for (workItem in workItems) {
+            if (!stateBefore.containsWorkItem(workItem)) {
+                count++
+            }
+        }
+    }
     return count
 }
 
