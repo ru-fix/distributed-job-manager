@@ -235,7 +235,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("Assignment state\n");
+        StringBuilder result = new StringBuilder("assignment state:\n");
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             String workerId = worker.getKey().getId();
