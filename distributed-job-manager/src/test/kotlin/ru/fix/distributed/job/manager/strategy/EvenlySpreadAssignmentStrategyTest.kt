@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.JobId
 
 internal class EvenlySpreadAssignmentStrategyTest {
     private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
@@ -114,6 +115,86 @@ internal class EvenlySpreadAssignmentStrategyTest {
         assertTrue(newAssignment.isBalanced)
     }
 
+    @Test
+    fun `reassign when new worker added and local work pools evenly reassigned, but not global`() {
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+            "job-1"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+            "job-2"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+            "job-3"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+        }
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
+        val previous = assignmentState {
+            "worker-0" {
+                "job-0"(
+                        "work-item-0"
+                )
+                "job-1"(
+                        "work-item-0"
+                )
+                "job-2"(
+                        "work-item-0"
+                )
+                "job-3"(
+                        "work-item-0"
+                )
+            }
+            "worker-1" {
+                "job-0"(
+                        "work-item-1"
+                )
+                "job-1"(
+                        "work-item-1"
+                )
+                "job-2"(
+                        "work-item-1"
+                )
+                "job-3"(
+                        "work-item-1"
+                )
+            }
+            "worker-2" {
+                "job-0"(
+                        "work-item-2"
+                )
+                "job-1"(
+                        "work-item-2"
+                )
+                "job-2"(
+                        "work-item-2"
+                )
+                "job-3"(
+                        "work-item-2"
+                )
+            }
+        }
+
+        val newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, "job-0", "job-1", "job-2", "job-3"))
+        assertTrue(newAssignment.isBalanced)
+    }
+
     private fun calculateNewAssignment(
             available: AssignmentState,
             previous: AssignmentState
@@ -138,5 +219,14 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 .build().toString()
         )
         return newState
+    }
+
+    private fun eachJobBalanced(assignmentState : AssignmentState, vararg jobs : String) : Boolean {
+        jobs.forEach {
+            if (!assignmentState.isBalancedByJobId(JobId(it), assignmentState.keys)) {
+                return false
+            }
+        }
+        return true
     }
 }

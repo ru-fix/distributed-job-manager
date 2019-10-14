@@ -309,7 +309,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun `balance items of 4 jobs when one worker was alive and new five workers added`() {
+    fun `balance items of 4 jobs when one worker was alive and new five workers started`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -532,7 +532,7 @@ internal class ReassignmentNumberComparisonTest {
 
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
         rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(3, evenlySpreadResults.evenlySpreadReassignmentNumber)
+        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
         assertEquals(2, rendezvousResults.rendezvousReassignmentNumber)
 
         available = assignmentState {
@@ -639,7 +639,7 @@ internal class ReassignmentNumberComparisonTest {
         }
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
         rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(3, evenlySpreadResults.evenlySpreadReassignmentNumber)
+        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
         assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
 
         available = assignmentState {
@@ -656,7 +656,7 @@ internal class ReassignmentNumberComparisonTest {
         }
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
         rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
+        assertEquals(3, evenlySpreadResults.evenlySpreadReassignmentNumber)
         assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
     }
 

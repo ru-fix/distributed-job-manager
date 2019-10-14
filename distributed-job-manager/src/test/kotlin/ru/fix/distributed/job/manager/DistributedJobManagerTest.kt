@@ -35,7 +35,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         currentAssignment.addWorkItem(workerFromPrevious, item)
                     } else {
                         val lessBusyWorker = currentAssignment
-                                .getLessBusyWorkerFromAvailableWorkers(value)
+                                .getLessBusyWorker(value)
                         currentAssignment.addWorkItem(lessBusyWorker, item)
                     }
                 }
@@ -73,7 +73,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                     }
 
                     val lessBusyWorker = currentAssignment
-                            .getLessBusyWorkerFromAvailableWorkers(availableWorkers)
+                            .getLessBusyWorker(availableWorkers)
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                     itemsToAssign.remove(item)
                 }

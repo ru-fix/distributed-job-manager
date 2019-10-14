@@ -37,6 +37,15 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 .collect(Collectors.toSet());
     }
 
+    public void moveWorkItem(WorkItem item, WorkerId workerFrom, WorkerId workerTo) {
+        this.removeWorkItem(workerFrom, item);
+        this.addWorkItem(workerTo, item);
+    }
+
+    public void removeWorkItem(WorkerId worker, WorkItem workItem) {
+        this.computeIfAbsent(worker, key -> new HashSet<>()).remove(workItem);
+    }
+
     /**
      * @return worker which has less work pool size (doesn't depends on job)
      * or return null, if assignment state doesn't contain any worker
@@ -63,7 +72,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @return worker from availableWorkers, that have minimal work pool size of jobId
      */
     @SuppressWarnings("unused")
-    public WorkerId getLessBusyWorkerWithJobIdFromAvailableWorkers(JobId jobId, Set<WorkerId> availableWorkers) {
+    public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
         WorkerId localLessBusyWorker = null;
         int minWorkPoolSize = Integer.MAX_VALUE;
 
@@ -83,11 +92,49 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return localLessBusyWorker;
     }
 
+    public WorkerId getMostBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
+        WorkerId mostBusyWorker = null;
+        int minWorkPoolSize = Integer.MIN_VALUE;
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            if (!availableWorkers.contains(worker.getKey())) {
+                continue;
+            }
+            int workPoolSize = (int) worker.getValue().stream()
+                    .filter(item -> jobId.equals(item.getJobId()))
+                    .count();
+
+            if (workPoolSize >= minWorkPoolSize) {
+                minWorkPoolSize = workPoolSize;
+                mostBusyWorker = worker.getKey();
+            }
+        }
+        return mostBusyWorker;
+    }
+
+    public WorkerId getMostBusyWorker(Set<WorkerId> availableWorkers) {
+        WorkerId mostBusyWorker = null;
+        int minWorkPoolSize = Integer.MIN_VALUE;
+
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            if (!availableWorkers.contains(worker.getKey())) {
+                continue;
+            }
+            int workPoolSize = worker.getValue().size();
+
+            if (workPoolSize >= minWorkPoolSize) {
+                minWorkPoolSize = workPoolSize;
+                mostBusyWorker = worker.getKey();
+            }
+        }
+        return mostBusyWorker;
+    }
+
     /**
      * @param availableWorkers set of workers, that should be considered
      * @return worker from availableWorkers which has less work pool size (doesn't depends on job)
      */
-    public WorkerId getLessBusyWorkerFromAvailableWorkers(Set<WorkerId> availableWorkers) {
+    public WorkerId getLessBusyWorker(Set<WorkerId> availableWorkers) {
         WorkerId lessBusyWorker = null;
         int minWorkPool = Integer.MAX_VALUE;
 
@@ -250,8 +297,10 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("assignment state:\n");
+        List<Entry<WorkerId, HashSet<WorkItem>>> sortedList = new ArrayList<>(entrySet());
+        sortedList.sort(Comparator.comparing(Entry::getKey));
 
-        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : sortedList) {
             String workerId = worker.getKey().getId();
             HashSet<WorkItem> workItems = worker.getValue();
 
