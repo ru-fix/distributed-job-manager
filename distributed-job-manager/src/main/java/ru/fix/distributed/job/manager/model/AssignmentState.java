@@ -313,16 +313,17 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("assignment state:\n");
-        List<Entry<WorkerId, HashSet<WorkItem>>> sortedList = new ArrayList<>(entrySet());
-        sortedList.sort(Comparator.comparing(Entry::getKey));
+        List<Entry<WorkerId, HashSet<WorkItem>>> sortedAssignment = new ArrayList<>(entrySet());
+        sortedAssignment.sort(Comparator.comparing(Entry::getKey));
 
-        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : sortedList) {
+        for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : sortedAssignment) {
             String workerId = worker.getKey().getId();
-            HashSet<WorkItem> workItems = worker.getValue();
+            List<WorkItem> sortedWorkItems = new ArrayList<>(worker.getValue());
+            sortedWorkItems.sort(Comparator.comparing(o -> (o.getJobId().getId() + "" + o.getId())));
 
             result.append("\t└ ").append(workerId).append("\n");
 
-            for (WorkItem workItem : workItems) {
+            for (WorkItem workItem : sortedWorkItems) {
                 result.append("\t\t└ ").append(workItem.getJobId()).append(" - ")
                         .append(workItem.getId()).append("\n");
             }
