@@ -3,10 +3,16 @@ package ru.fix.distributed.job.manager.strategy
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 
 internal class EvenlySpreadAssignmentStrategyTest {
     private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(EvenlySpreadAssignmentStrategyTest::class.java)
+    }
 
     @BeforeEach
     fun setUp() {
@@ -112,11 +118,25 @@ internal class EvenlySpreadAssignmentStrategyTest {
             available: AssignmentState,
             previous: AssignmentState
     ): AssignmentState {
-        return evenlySpread!!.reassignAndBalance(
-                generateAvailability(available),
+        val availability = generateAvailability(available)
+        val itemsToAssign = generateItemsToAssign(available)
+
+        logger.info(Print.Builder()
+                .availability(availability)
+                .itemsToAssign(itemsToAssign)
+                .previousAssignment(previous)
+                .build().toString()
+        )
+        val newState = evenlySpread!!.reassignAndBalance(
+                availability,
                 previous,
                 AssignmentState(),
-                generateItemsToAssign(available)
+                itemsToAssign
         )
+        logger.info(Print.Builder()
+                .evenlySpreadNewAssignment(newState)
+                .build().toString()
+        )
+        return newState
     }
 }

@@ -3,10 +3,16 @@ package ru.fix.distributed.job.manager.strategy
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 
 internal class RendezvousHashAssignmentStrategyTest {
     private var rendezvous: RendezvousHashAssignmentStrategy? = null
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(RendezvousHashAssignmentStrategyTest::class.java)
+    }
 
     @BeforeEach
     fun setUp() {
@@ -146,11 +152,25 @@ internal class RendezvousHashAssignmentStrategyTest {
             available: AssignmentState,
             previous: AssignmentState
     ): AssignmentState {
-        return rendezvous!!.reassignAndBalance(
-                generateAvailability(available),
+        val availability = generateAvailability(available)
+        val itemsToAssign = generateItemsToAssign(available)
+
+        logger.info(Print.Builder()
+                .availability(availability)
+                .itemsToAssign(itemsToAssign)
+                .previousAssignment(previous)
+                .build().toString()
+        )
+        val newState = rendezvous!!.reassignAndBalance(
+                availability,
                 previous,
                 AssignmentState(),
-                generateItemsToAssign(available)
+                itemsToAssign
         )
+        logger.info(Print.Builder()
+                .rendezvousNewAssignment(newState)
+                .build().toString()
+        )
+        return newState
     }
 }
