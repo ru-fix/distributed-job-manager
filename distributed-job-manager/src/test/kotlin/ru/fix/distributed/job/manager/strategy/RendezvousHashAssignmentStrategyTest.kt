@@ -1,17 +1,9 @@
 package ru.fix.distributed.job.manager.strategy
 
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
-
-import java.util.Collections
-import java.util.HashSet
-
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 
 internal class RendezvousHashAssignmentStrategyTest {
     private var rendezvous: RendezvousHashAssignmentStrategy? = null
@@ -21,146 +13,144 @@ internal class RendezvousHashAssignmentStrategyTest {
         rendezvous = RendezvousHashAssignmentStrategy()
     }
 
-    @Test
-    fun reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
-
-        available.addWorkItem(WorkerId("worker-0"), WorkItem("work-item-0", JobId("job-0")))
-        available.addWorkItem(WorkerId("worker-0"), WorkItem("work-item-1", JobId("job-0")))
-        available.addWorkItem(WorkerId("worker-0"), WorkItem("work-item-2", JobId("job-0")))
-        available.addWorkItem(WorkerId("worker-0"), WorkItem("work-item-0", JobId("job-1")))
-        available.addWorkItem(WorkerId("worker-0"), WorkItem("work-item-1", JobId("job-1")))
-        available[WorkerId("worker-1")] = HashSet()
-        available[WorkerId("worker-2")] = HashSet()
-
-        previous[WorkerId("worker-0")] = HashSet()
-        previous[WorkerId("worker-1")] = HashSet()
-        previous[WorkerId("worker-2")] = HashSet()
-
-        val newAssignment = rendezvous!!.reassignAndBalance(
-                generateAvailability(available),
-                previous,
-                AssignmentState(),
-                generateItemsToAssign(available)
+    private val workPool: JobScope.() -> Unit = {
+        "job-0"(
+                "work-item-0",
+                "work-item-1",
+                "work-item-2",
+                "work-item-3",
+                "work-item-4",
+                "work-item-5"
         )
-
-        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
+    }
+    private val workPool1: JobScope.() -> Unit = {
+        "job-1"(
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
+        )
     }
 
     @Test
-    fun reassignAndBalanceWhenSomeWorkersHasJobs() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+    fun `assign items when previous state empty`() {
+        val available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        val previous = assignmentState {
+            "worker-0"{}
+            "worker-1"{}
+            "worker-2"{}
+        }
+        val newAssignment = calculateNewAssignment(available, previous)
+        Assertions.assertEquals(6, newAssignment.globalPoolSize())
+    }
 
-        addWorkerWithItems(available, "worker-0", 3, 3)
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
-        available[WorkerId("worker-2")] = HashSet()
+    @Test
+    fun `reassign items when new worker added`() {
+        var available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool1)
+            "worker-2"(workPool)
+        }
+        var previous = assignmentState {
+            "worker-0"{}
+            "worker-1"{}
+            "worker-2"{}
+        }
 
-        previous[WorkerId("worker-0")] = HashSet()
-        previous[WorkerId("worker-1")] = HashSet()
-        previous[WorkerId("worker-2")] = HashSet()
+        previous = calculateNewAssignment(available, previous)
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool1)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
 
-        assertFalse(available.isBalanced)
-
-        val newAssignment = rendezvous!!.reassignAndBalance(
-                generateAvailability(available),
-                previous,
-                AssignmentState(),
-                generateItemsToAssign(available)
-        )
-
-        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
+        val newAssignment = calculateNewAssignment(available, previous)
+        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     @Test
     fun reassignAndBalanceIfWorkerNotAvailable() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        var available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool1)
+        }
+        var previous = assignmentState {
+            "worker-0"{}
+            "worker-1"{}
+        }
+        previous = calculateNewAssignment(available, previous)
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool1)
+            "worker-2"(workPool)
+        }
 
-        addWorkerWithItems(available, "worker-0", 3, 1)
-
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-2", JobId("job-3")),
-                WorkItem("work-item-0", JobId("job-3"))
-        ))
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-1", JobId("job-3")),
-                WorkItem("work-item-0", JobId("job-0"))
-        ))
-
-        val newAssignment = rendezvous!!.reassignAndBalance(
-                generateAvailability(available),
-                previous,
-                AssignmentState(),
-                generateItemsToAssign(available)
-        )
-
-        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
+        val newAssignment = calculateNewAssignment(available, previous)
+        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     @Test
     fun reassignAndBalanceIfNewWorkersAdded() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        var available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        var previous = assignmentState {
+            "worker-0"{}
+            "worker-1"{}
+            "worker-2"{}
+        }
 
-        addWorkerWithItems(available, "worker-0", 3, 1)
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
-        available.addWorkItems(WorkerId("worker-2"), emptySet())
-        available.addWorkItems(WorkerId("worker-3"), emptySet())
+        previous = calculateNewAssignment(available, previous)
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
+        println(previous)
 
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-1", JobId("job-3")),
-                WorkItem("work-item-0", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-1"), setOf(
-                WorkItem("work-item-0", JobId("job-3"))
-        ))
-
-        val newAssignment = rendezvous!!.reassignAndBalance(
-                generateAvailability(available),
-                previous,
-                AssignmentState(),
-                generateItemsToAssign(available)
-        )
-
-        assertEquals(available.globalPoolSize(), newAssignment.globalPoolSize())
+        val newAssignment = calculateNewAssignment(available, previous)
+        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     @Test
     fun reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
-        val available = AssignmentState()
-        val previous = AssignmentState()
+        var available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        var previous = assignmentState {
+            "worker-0"{}
+            "worker-1"{}
+            "worker-2"{}
+        }
 
-        addWorkerWithItems(available, "worker-0", 3, 1)
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-1", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-2", JobId("job-3")))
-        available.addWorkItem(WorkerId("worker-1"), WorkItem("work-item-0", JobId("job-3")))
+        previous = calculateNewAssignment(available, previous)
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-3"(workPool)
+        }
+        val newAssignment = calculateNewAssignment(available, previous)
+        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+    }
 
-        // Previous state contains worker-2 instead of worker-1.
-        // It's emulate case, when worker-1 is not available, and worker-2 connected
-        previous.addWorkItems(WorkerId("worker-0"), setOf(
-                WorkItem("work-item-1", JobId("job-3")),
-                WorkItem("work-item-0", JobId("job-0"))
-        ))
-        previous.addWorkItems(WorkerId("worker-2"), setOf(
-                WorkItem("work-item-0", JobId("job-3")),
-                WorkItem("work-item-2", JobId("job-0")),
-                WorkItem("work-item-1", JobId("job-0")),
-                WorkItem("work-item-2", JobId("job-3"))
-        ))
-
-        val newAssignment = rendezvous!!.reassignAndBalance(
+    private fun calculateNewAssignment(
+            available: AssignmentState,
+            previous: AssignmentState
+    ): AssignmentState {
+        return rendezvous!!.reassignAndBalance(
                 generateAvailability(available),
                 previous,
                 AssignmentState(),
                 generateItemsToAssign(available)
         )
-
-        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 }

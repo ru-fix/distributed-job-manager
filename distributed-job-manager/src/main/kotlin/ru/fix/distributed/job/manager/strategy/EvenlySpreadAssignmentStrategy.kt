@@ -29,8 +29,8 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
 
                 if (prevAssignment.containsWorkItem(item)
                         && currentAssignment.containsKey(workerFromPrevious)
-                        && currentAssignment.isBalanced
-                        && currentAssignment.isBalancedByJobId(item.jobId)
+                        && currentAssignment.isBalanced(availableWorkers)
+                        && currentAssignment.isBalancedByJobId(item.jobId, availableWorkers)
                         && itemsAssignedFromPreviousCounter < limitWorkItemsOnWorker) {
                     currentAssignment.addWorkItem(workerFromPrevious, item)
                     itemsAssignedFromPreviousCounter++

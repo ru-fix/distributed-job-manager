@@ -27,18 +27,6 @@ fun assignmentState(builder: WorkerScope.() -> Unit) =
             builder(WorkerScope(this))
         }
 
-
-fun addWorkerWithItems(state: AssignmentState, worker: String, workItemsCount: Int, jobsCount: Int) {
-    val workItems = HashSet<WorkItem>()
-
-    for (i in 0 until workItemsCount) {
-        for (j in 0 until jobsCount) {
-            workItems.add(WorkItem("work-item-$i", JobId("job-$j")))
-        }
-    }
-    state.addWorkItems(WorkerId(worker), workItems)
-}
-
 fun generateAvailability(assignmentState: AssignmentState): MutableMap<JobId, MutableSet<WorkerId>> {
     val availability = mutableMapOf<JobId, MutableSet<WorkerId>>()
 
@@ -71,7 +59,7 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
             }
         }
     }
-    for ((workerId, workItems) in stateAfter) {
+    for ((_, workItems) in stateAfter) {
         for (workItem in workItems) {
             if (!stateBefore.containsWorkItem(workItem)) {
                 count++
@@ -79,12 +67,6 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
         }
     }
     return count
-}
-
-fun generateWorkItems(jobId: JobId, indexFromInclusive: Int, indexToExclusive: Int): Set<WorkItem> {
-    return (indexFromInclusive until indexToExclusive)
-            .map { WorkItem("work-item-$it", jobId) }
-            .toCollection(mutableSetOf())
 }
 
 class Print(

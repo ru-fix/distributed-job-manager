@@ -1,8 +1,10 @@
 package ru.fix.distributed.job.manager.model;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Objects;
 
-public class WorkerId {
+public class WorkerId implements Comparable<WorkerId> {
 
     private String id;
 
@@ -13,6 +15,11 @@ public class WorkerId {
 
     public String getId() {
         return id;
+    }
+
+    @Override
+    public int compareTo(@NotNull WorkerId o) {
+        return this.id.compareTo(o.getId());
     }
 
     @Override

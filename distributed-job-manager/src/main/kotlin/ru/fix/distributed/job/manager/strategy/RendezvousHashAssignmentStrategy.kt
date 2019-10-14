@@ -9,6 +9,7 @@ import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.util.RendezvousHash
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.collections.ArrayList
 
 class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
 

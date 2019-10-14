@@ -21,6 +21,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * If worker exists, add new workItems to existed work pool,
      * else create worker and put workItems
      */
+    @SuppressWarnings("unused")
     public void addWorkItems(WorkerId worker, Set<WorkItem> workItems) {
         this.computeIfAbsent(worker, key -> new HashSet<>()).addAll(workItems);
     }
@@ -158,9 +159,17 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return false;
     }
 
+    public boolean isBalanced() {
+        return isBalancedWithGap(1, this.keySet());
+    }
+
+    public boolean isBalanced(Set<WorkerId> availableWorkers) {
+        return isBalancedWithGap(1, availableWorkers);
+    }
+
     /**
-     * @return true, if work pool sizes of various workers differ more than 1
-     * For example:
+     * @return true, if work pool sizes of various workers differ more than gap size
+     * For example, gap equals 1
      * worker-1: 4
      * worker-2: 5
      * worker-3: 5
@@ -173,13 +182,15 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * worker-3: 3
      * returns false
      */
-    public boolean isBalanced() {
+    public boolean isBalancedWithGap(int gap, Set<WorkerId> availableWorkers) {
         int minPoolSize = Integer.MAX_VALUE;
         int maxPoolSize = Integer.MIN_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            if (!availableWorkers.contains(worker.getKey())) {
+                continue;
+            }
             int workPoolSize = worker.getValue().size();
-
             if (workPoolSize > maxPoolSize) {
                 maxPoolSize = workPoolSize;
             }
@@ -187,18 +198,21 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 minPoolSize = workPoolSize;
             }
         }
-        return maxPoolSize - minPoolSize < 2;
+        return maxPoolSize - minPoolSize <= gap;
     }
 
     /**
      * @param jobId job name for filtering work items on worker
      * @return true, if work pool sizes of jobId on various workers differ more than 1
      */
-    public boolean isBalancedByJobId(JobId jobId) {
+    public boolean isBalancedByJobId(JobId jobId, Set<WorkerId> availableWorkers) {
         int minPoolSize = Integer.MAX_VALUE;
         int maxPoolSize = Integer.MIN_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
+            if (!availableWorkers.contains(worker.getKey())) {
+                continue;
+            }
             int workPoolSize = (int) worker.getValue().stream()
                     .filter(item -> jobId.equals(item.getJobId())).count();
 
@@ -209,7 +223,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 minPoolSize = workPoolSize;
             }
         }
-        return maxPoolSize - minPoolSize < 2;
+        return maxPoolSize - minPoolSize <= 1;
     }
 
     /**
