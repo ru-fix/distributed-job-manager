@@ -7,6 +7,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class EvenlySpreadAssignmentStrategyTest {
     private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
@@ -48,6 +49,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -81,6 +83,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -97,6 +100,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -112,6 +116,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -191,7 +196,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, "job-0", "job-1", "job-2", "job-3"))
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -221,9 +226,12 @@ internal class EvenlySpreadAssignmentStrategyTest {
         return newState
     }
 
-    private fun eachJobBalanced(assignmentState : AssignmentState, vararg jobs : String) : Boolean {
-        jobs.forEach {
-            if (!assignmentState.isBalancedByJobId(JobId(it), assignmentState.keys)) {
+    private fun eachJobBalanced(
+            assignmentState : AssignmentState,
+            availability : Map<JobId, Set<WorkerId>>
+    ) : Boolean {
+        availability.forEach {
+            if (!assignmentState.isBalancedByJobId(it.key, it.value)) {
                 return false
             }
         }
