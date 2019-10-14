@@ -200,9 +200,177 @@ internal class EvenlySpreadAssignmentStrategyTest {
         assertTrue(newAssignment.isBalanced)
     }
 
+    @Test
+    fun `iteratively start four workers and reboot one worker`() {
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5",
+                    "work-item-6"
+            )
+            "job-1"(
+                    "work-item-0"
+            )
+            "job-2"(
+                    "work-item-0"
+            )
+            "job-3"(
+                    "work-item-0"
+            )
+        }
+        var available = assignmentState {
+            "worker-0"(workPool)
+        }
+        val previous = assignmentState {}
+
+        var newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        // reboot worker-0
+        available = assignmentState {
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+            "worker-3"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+    }
+
+    @Test
+    fun `iteratively start three workers and reboot two worker`() {
+        val workPool: JobScope.() -> Unit = {
+            "job-0"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2",
+                    "work-item-3",
+                    "work-item-4",
+                    "work-item-5",
+                    "work-item-6",
+                    "work-item-7",
+                    "work-item-8",
+                    "work-item-9"
+            )
+            "job-1"(
+                    "work-item-0",
+                    "work-item-1",
+                    "work-item-2"
+            )
+            "job-2"(
+                    "work-item-0"
+            )
+            "job-3"(
+                    "work-item-0"
+            )
+        }
+        var available = assignmentState {
+            "worker-0"(workPool)
+        }
+        val previous = assignmentState {}
+
+        var newAssignment = calculateNewAssignment(available, previous)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        // shutdown worker-0
+        available = assignmentState {
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        // shutdown worker-1
+        available = assignmentState {
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        // start again worker-0
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+
+        // start again worker-1
+        available = assignmentState {
+            "worker-0"(workPool)
+            "worker-1"(workPool)
+            "worker-2"(workPool)
+        }
+        newAssignment = calculateNewAssignment(available, newAssignment)
+        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
+    }
+
     private fun calculateNewAssignment(
-            available: AssignmentState,
-            previous: AssignmentState
+            available: AssignmentState, previous: AssignmentState
     ): AssignmentState {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
