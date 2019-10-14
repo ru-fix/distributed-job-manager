@@ -82,17 +82,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
-    private fun workersAlive(vararg workers: String): Boolean {
-        val curator = zkTestingServer.createClient()
-        workers.forEach {
-            val path = JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH).getWorkerAliveFlagPath(it)
-            if (curator.checkExists().forPath(path) == null) {
-                return false
-            }
-        }
-        return true
-    }
-
     @Test
     @Throws(Exception::class)
     fun shouldEvenlyReassignWorkItemsForEachDjm() {
@@ -140,17 +129,17 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 .until { workersAlive("worker-2") }
 
         val nodes = listOf(
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-3"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
-
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0")
+
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
         )
 
         val curator = zkTestingServer.createClient()
@@ -199,7 +188,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(3))
                 .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1", "worker-2") }
+                .until {
+                    workersAlive("worker-0", "worker-1", "worker-2") &&
+                            pathExists(paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"))
+                }
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
@@ -234,20 +226,24 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(3))
                 .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-2") }
+                .until {
+                    pathExists(paths.getAssignedWorkItem(
+                            "worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
+                    )
+                }
 
         val nodes = listOf(
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-3"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
-
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0")
+
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
         )
 
         val curator = zkTestingServer.createClient()
@@ -262,16 +258,16 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 .until { workersAlive("worker-0", "worker-1") }
 
         val nodesAfterDestroy = listOf(
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-3"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-5"),
-
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0")
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1")
         )
 
         for (node in nodesAfterDestroy) {
@@ -333,29 +329,50 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(3))
                 .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1", "worker-2", "worker-3") }
+                .until {
+                    workersAlive("worker-0", "worker-1", "worker-2", "worker-3") &&
+                            pathExists(paths.getAssignedWorkItem(
+                                    "worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
+                            )
+                }
 
         val nodes = listOf(
-                paths.getAssignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2"),
-                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-0"),
-                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-5"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
+                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-0"),
 
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-2"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-3"),
-                paths.getAssignedWorkItem("worker-2", "distr-job-id-0", "distr-job-id-0.work-item-1"),
-
-                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-5"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-6"),
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-3"),
 
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-4")
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-0", "distr-job-id-0.work-item-1"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-2"),
+
+                paths.getAssignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2"),
+                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-4")
         )
 
         val curator = zkTestingServer.createClient()
         for (node in nodes) {
             assertNotNull(curator.checkExists().forPath(node))
         }
+    }
+
+    private fun pathExists(path: String): Boolean {
+        return zkTestingServer.createClient()
+                .checkExists().forPath(path) != null
+    }
+
+    private fun workersAlive(vararg workers: String): Boolean {
+        val curator = zkTestingServer.createClient()
+        workers.forEach {
+            val path = JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH).getWorkerAliveFlagPath(it)
+            if (curator.checkExists().forPath(path) == null) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun distributedJobs(): List<DistributedJob> {
