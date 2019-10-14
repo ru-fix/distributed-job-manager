@@ -30,7 +30,7 @@ internal class ReassignmentNumberComparisonTest {
     )
 
     @Test
-    fun balanceItemsOfSingleJobBetweenTwoWorkers() {
+    fun `balance items when work pools of two workers unbalanced`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -65,7 +65,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsOfSingleJobBetweenThreeWorkers() {
+    fun `balance items new worker available`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -101,7 +101,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceAlreadyBalancedItems() {
+    fun `balance already balanced items`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -145,7 +145,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsWhenWorkItemsOfJobNotBalanced() {
+    fun `balance items when work pools of three workers unbalanced`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -191,7 +191,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsOfThreeJobsWhenNewWorkerStarted() {
+    fun `balance items when state assigned and new worker started`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0"
@@ -247,7 +247,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsOfFourJobsWhenNewWorkerStarted() {
+    fun `balance items of 4 jobs when new worker started`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -309,41 +309,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewWorkerStarted() {
-        val workPool: JobScope.() -> Unit = {
-            "job-0"(
-                    "work-item-0",
-                    "work-item-1"
-            )
-            "job-1"(
-                    "work-item-2",
-                    "work-item-3"
-            )
-            "job-2"(
-                    "work-item-4",
-                    "work-item-5"
-            )
-            "job-3"(
-                    "work-item-6",
-                    "work-item-7"
-            )
-        }
-        val available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool)
-        }
-
-        val previous = assignmentState {
-            "worker-0"(workPool)
-        }
-
-        val results = reassignmentResults(available, previous)
-        assertEquals(4, results.evenlySpreadReassignmentNumber)
-        assertEquals(5, results.rendezvousReassignmentNumber)
-    }
-
-    @Test
-    fun balanceItemsOfFourJobsWhenWasAliveSingleWorkerAndNewFiveWorkersStarted() {
+    fun `balance items of 4 jobs when one worker was alive and new five workers added`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -387,7 +353,7 @@ internal class ReassignmentNumberComparisonTest {
 
 
     @Test
-    fun balanceItemsOfSingleJobWhenWorkerDestroyed() {
+    fun `balance items when one worker destroyed`() {
         val workPool: JobScope.() -> Unit = {
             "job-1"(
                     "work-item-0",
@@ -430,7 +396,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun balanceItemsOfSomeJobWhenWasAliveThreeWorkersAndOneWorkerDestroyed() {
+    fun `balance items when three workers was alive and one worker destroyed`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -503,7 +469,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun rebootOneWorker() {
+    fun `reboot one worker`() {
         val workPoolForSws: JobScope.() -> Unit = {
             "rebill-job"(
                     "rebill-item-0",
@@ -589,7 +555,7 @@ internal class ReassignmentNumberComparisonTest {
     }
 
     @Test
-    fun rebootTwoWorkers() {
+    fun `reboot two workers`() {
         val workPoolForSws: JobScope.() -> Unit = {
             "rebill-job"(
                     "rebill-item-0",
