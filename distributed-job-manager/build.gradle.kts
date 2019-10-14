@@ -34,4 +34,5 @@ dependencies {
     testCompile(Libs.curator_test)
     testCompile(Libs.log4j_core)
     testCompile(Libs.slf4j_over_log4j)
+    testCompile(Libs.awaitility)
 }
