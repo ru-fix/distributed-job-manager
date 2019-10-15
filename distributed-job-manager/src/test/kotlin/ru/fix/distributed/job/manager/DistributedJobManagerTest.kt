@@ -88,10 +88,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithEvenlySpread("worker-0", listOf(distributedJobs()[0]))
         createDjmWithEvenlySpread("worker-1", listOf(distributedJobs()[1]))
         createDjmWithEvenlySpread("worker-2", listOf(distributedJobs()[2]))
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1", "worker-2") }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
@@ -118,15 +117,13 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     fun shouldEvenlyReassignWorkItemsForThreeIdenticalWorkers() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1") }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1")
+        ))
         createDjmWithEvenlySpread("worker-2", distributedJobs())
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-2") }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
@@ -154,10 +151,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-0", listOf(distributedJobs()[0]))
         createDjmWithRendezvous("worker-1", listOf(distributedJobs()[1]))
         createDjmWithRendezvous("worker-2", listOf(distributedJobs()[2]))
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1", "worker-2") }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-1"),
@@ -185,13 +181,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-0", distributedJobs())
         createDjmWithRendezvous("worker-1", distributedJobs())
         createDjmWithRendezvous("worker-2", distributedJobs())
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until {
-                    workersAlive("worker-0", "worker-1", "worker-2") &&
-                            pathExists(paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1"))
-                }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
@@ -218,19 +210,14 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     fun shouldEvenlyReassignIfOneWorkerDestroyed() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until { workersAlive("worker-0", "worker-1") }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0")
+        ))
+
         val destroyed = createDjmWithEvenlySpread("worker-2", distributedJobs())
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until {
-                    pathExists(paths.getAssignedWorkItem(
-                            "worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
-                    )
-                }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-4"),
@@ -326,15 +313,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjm("worker-1", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
         createDjm("worker-2", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
         createDjm("worker-3", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
-                .pollDelay(Duration.ofMillis(200))
-                .until {
-                    workersAlive("worker-0", "worker-1", "worker-2", "worker-3") &&
-                            pathExists(paths.getAssignedWorkItem(
-                                    "worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
-                            )
-                }
+        awaitPathInit(listOf(
+                paths.getAssignedWorkItem("worker-3", "distr-job-id-2", "distr-job-id-2.work-item-4")
+        ))
 
         val nodes = listOf(
                 paths.getAssignedWorkItem("worker-0", "distr-job-id-2", "distr-job-id-2.work-item-5"),
@@ -359,9 +340,14 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
-    private fun pathExists(path: String): Boolean {
-        return zkTestingServer.createClient()
-                .checkExists().forPath(path) != null
+    private fun pathsExists(itemPaths: List<String>): Boolean {
+        val curator = zkTestingServer.createClient()
+        itemPaths.forEach {
+            if (curator.checkExists().forPath(it) == null) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun workersAlive(vararg workers: String): Boolean {
@@ -419,5 +405,12 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         return WorkPool.of((0 until workItemsNumber)
                 .map { i -> "$jobId.work-item-$i" }
                 .toCollection(HashSet()))
+    }
+
+    private fun awaitPathInit(itemPaths: List<String>) {
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(3))
+                .pollDelay(Duration.ofMillis(200))
+                .until { pathsExists(itemPaths) }
     }
 }
