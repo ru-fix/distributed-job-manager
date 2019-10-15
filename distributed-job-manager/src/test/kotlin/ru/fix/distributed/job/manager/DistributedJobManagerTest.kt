@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager
 
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -263,6 +264,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     @Test
+    @Disabled
     @Throws(Exception::class)
     fun shouldReassignJobUsingCustomAssignmentStrategy() {
         val smsJob = StubbedMultiJob(
