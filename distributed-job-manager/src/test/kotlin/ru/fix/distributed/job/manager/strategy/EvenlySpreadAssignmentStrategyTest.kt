@@ -10,7 +10,7 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class EvenlySpreadAssignmentStrategyTest {
-    private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
+    private lateinit var evenlySpread: EvenlySpreadAssignmentStrategy
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(EvenlySpreadAssignmentStrategyTest::class.java)
@@ -280,7 +280,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
     }
 
     @Test
-    fun `iteratively start three workers and reboot two worker`() {
+    fun `iteratively start three workers and reboot two workers`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
                     "work-item-0",
@@ -381,7 +381,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 .previousAssignment(previous)
                 .build().toString()
         )
-        val newState = evenlySpread!!.reassignAndBalance(
+        val newState = evenlySpread.reassignAndBalance(
                 availability,
                 previous,
                 AssignmentState(),

@@ -35,7 +35,6 @@ fun generateAvailability(assignmentState: AssignmentState): MutableMap<JobId, Mu
             availability.getOrPut(workItem.jobId) { mutableSetOf() }.add(key)
         }
     }
-
     return availability
 }
 
@@ -45,7 +44,6 @@ fun generateItemsToAssign(assignmentState: AssignmentState): HashSet<WorkItem> {
     for ((_, value) in assignmentState) {
         itemsToAssign.addAll(value)
     }
-
     return itemsToAssign
 }
 

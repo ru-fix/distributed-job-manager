@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 
 internal class RendezvousHashAssignmentStrategyTest {
-    private var rendezvous: RendezvousHashAssignmentStrategy? = null
+    private lateinit var rendezvous: RendezvousHashAssignmentStrategy
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(RendezvousHashAssignmentStrategyTest::class.java)
@@ -161,7 +161,7 @@ internal class RendezvousHashAssignmentStrategyTest {
                 .previousAssignment(previous)
                 .build().toString()
         )
-        val newState = rendezvous!!.reassignAndBalance(
+        val newState = rendezvous.reassignAndBalance(
                 availability,
                 previous,
                 AssignmentState(),

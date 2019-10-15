@@ -9,8 +9,8 @@ import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class ReassignmentNumberComparisonTest {
-    private var evenlySpread: EvenlySpreadAssignmentStrategy? = null
-    private var rendezvous: RendezvousHashAssignmentStrategy? = null
+    private lateinit var evenlySpread: EvenlySpreadAssignmentStrategy
+    private lateinit var rendezvous: RendezvousHashAssignmentStrategy
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ReassignmentNumberComparisonTest::class.java)
@@ -672,13 +672,13 @@ internal class ReassignmentNumberComparisonTest {
                     .build().toString()
         }
 
-        val newAssignmentEvenlySpread = evenlySpread!!.reassignAndBalance(
+        val newAssignmentEvenlySpread = evenlySpread.reassignAndBalance(
                 availability,
                 previous,
                 AssignmentState(),
                 itemsToAssign
         )
-        val newAssignmentRendezvous = rendezvous!!.reassignAndBalance(
+        val newAssignmentRendezvous = rendezvous.reassignAndBalance(
                 availability,
                 previous,
                 AssignmentState(),

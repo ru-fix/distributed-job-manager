@@ -2,7 +2,6 @@ package ru.fix.distributed.job.manager
 
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -85,7 +84,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun shouldEvenlyReassignWorkItemsForEachDjm() {
+    fun `evenly spread when start 3 servers with different work pools`() {
         createDjmWithEvenlySpread("worker-0", listOf(distributedJobs()[0]))
         createDjmWithEvenlySpread("worker-1", listOf(distributedJobs()[1]))
         createDjmWithEvenlySpread("worker-2", listOf(distributedJobs()[2]))
@@ -115,7 +114,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun shouldEvenlyReassignWorkItemsForThreeIdenticalWorkers() {
+    fun `evenly spread when start 3 servers with identical work pool`() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
         awaitPathInit(listOf(
@@ -148,7 +147,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun shouldEvenlyReassignWorkItemsForEachDjmUsingRendezvous() {
+    fun `start 3 servers with rendezvous strategy with different work pools`() {
         createDjmWithRendezvous("worker-0", listOf(distributedJobs()[0]))
         createDjmWithRendezvous("worker-1", listOf(distributedJobs()[1]))
         createDjmWithRendezvous("worker-2", listOf(distributedJobs()[2]))
@@ -178,7 +177,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun shouldEvenlyReassignWorkItemsForThreeIdenticalWorkersUsingRendezvous() {
+    fun `start 3 servers with rendezvous strategy with identical work pool`() {
         createDjmWithRendezvous("worker-0", distributedJobs())
         createDjmWithRendezvous("worker-1", distributedJobs())
         createDjmWithRendezvous("worker-2", distributedJobs())
@@ -208,7 +207,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun shouldEvenlyReassignIfOneWorkerDestroyed() {
+    fun `start 3 workers and destroy one of them`() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
         awaitPathInit(listOf(
@@ -264,9 +263,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     @Test
-    @Disabled
     @Throws(Exception::class)
-    fun shouldReassignJobUsingCustomAssignmentStrategy() {
+    fun `custom assigment strategy on 4 workers with identical work pool`() {
         val smsJob = StubbedMultiJob(
                 0, createWorkPool("distr-job-id-0", 3).items, 50000L
         )
