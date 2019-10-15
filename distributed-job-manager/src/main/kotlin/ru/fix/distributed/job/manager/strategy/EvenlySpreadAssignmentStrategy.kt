@@ -8,7 +8,6 @@ import java.util.*
 
 class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
 
-
     override fun reassignAndBalance(
             availability: MutableMap<JobId, MutableSet<WorkerId>>,
             prevAssignment: AssignmentState,

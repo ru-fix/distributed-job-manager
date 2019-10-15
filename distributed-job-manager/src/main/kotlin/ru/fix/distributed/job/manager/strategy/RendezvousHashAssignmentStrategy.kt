@@ -43,7 +43,6 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
                 itemsToAssign.remove(item)
             }
         }
-
         return currentAssignment
     }
 }
