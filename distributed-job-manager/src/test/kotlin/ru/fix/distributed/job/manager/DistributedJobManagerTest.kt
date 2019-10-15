@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager
 
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -112,6 +113,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
+    @Disabled
     @Test
     @Throws(Exception::class)
     fun `evenly spread when start 3 servers with identical work pool`() {
@@ -262,6 +264,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
+    @Disabled
     @Test
     @Throws(Exception::class)
     fun `custom assigment strategy on 4 workers with identical work pool`() {
