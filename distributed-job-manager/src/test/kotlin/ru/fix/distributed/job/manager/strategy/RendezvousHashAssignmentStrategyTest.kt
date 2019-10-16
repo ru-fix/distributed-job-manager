@@ -1,11 +1,13 @@
 package ru.fix.distributed.job.manager.strategy
 
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class RendezvousHashAssignmentStrategyTest {
     private lateinit var rendezvous: RendezvousHashAssignmentStrategy
@@ -50,7 +52,7 @@ internal class RendezvousHashAssignmentStrategyTest {
             "worker-2"{}
         }
         val newAssignment = calculateNewAssignment(available, previous)
-        Assertions.assertEquals(6, newAssignment.globalPoolSize())
+        assertEquals(6, newAssignment.globalPoolSize())
     }
 
     @Test
@@ -75,7 +77,12 @@ internal class RendezvousHashAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+
+        val workPoolSizeJob1 = previous.localPoolSize(JobId("job-1"))
+        val workPoolSizeJob1OnWorker1 = newAssignment.getWorkItems(WorkerId("worker-1"), JobId("job-1")).size
+        assertEquals(workPoolSizeJob1, newAssignment.localPoolSize(JobId("job-1")))
+        assertEquals(workPoolSizeJob1, workPoolSizeJob1OnWorker1)
     }
 
     @Test
@@ -96,7 +103,7 @@ internal class RendezvousHashAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     @Test
@@ -122,7 +129,7 @@ internal class RendezvousHashAssignmentStrategyTest {
         println(previous)
 
         val newAssignment = calculateNewAssignment(available, previous)
-        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     @Test
@@ -145,7 +152,7 @@ internal class RendezvousHashAssignmentStrategyTest {
             "worker-3"(workPool)
         }
         val newAssignment = calculateNewAssignment(available, previous)
-        Assertions.assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
+        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
     }
 
     private fun calculateNewAssignment(
