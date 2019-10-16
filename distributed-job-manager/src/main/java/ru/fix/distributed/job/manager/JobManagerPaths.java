@@ -70,11 +70,11 @@ class JobManagerPaths {
         return ZKPaths.makePath(getAssignedWorkPooledJobsPath(workerId), jobId);
     }
 
-    String getAvailableWorkItem(String workerId, String jobId, String workItemId) {
+    String getAvailableWorkItemPath(String workerId, String jobId, String workItemId) {
         return ZKPaths.makePath(getAvailableWorkPoolPath(workerId, jobId), workItemId);
     }
 
-    String getAssignedWorkItem(String workerId, String jobId, String workItemId) {
+    String getAssignedWorkItemPath(String workerId, String jobId, String workItemId) {
         return ZKPaths.makePath(getAssignedWorkPoolPath(workerId, jobId), workItemId);
     }
 
