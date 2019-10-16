@@ -37,8 +37,6 @@ public class WorkerId implements Comparable<WorkerId> {
 
     @Override
     public String toString() {
-        return "WorkerItem{" +
-                "id='" + id + '\'' +
-                '}';
+        return "WorkerItem[" + id +"]";
     }
 }

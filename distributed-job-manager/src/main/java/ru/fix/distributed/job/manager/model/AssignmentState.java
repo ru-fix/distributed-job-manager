@@ -39,7 +39,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @param jobId    job name, the work item that you want to get
      * @return pool of work items of jobId, placed on workerId
      */
-    public Set<WorkItem> get(WorkerId workerId, JobId jobId) {
+    public Set<WorkItem> getWorkItems(WorkerId workerId, JobId jobId) {
         return this.get(workerId).stream()
                 .filter(item -> item.getJobId().equals(jobId))
                 .collect(Collectors.toSet());

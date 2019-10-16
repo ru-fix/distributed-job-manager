@@ -38,9 +38,6 @@ public class WorkItem {
 
     @Override
     public String toString() {
-        return "WorkItem{" +
-                "id='" + id + '\'' +
-                ", jobId='" + jobId + '\'' +
-                '}';
+        return "WorkItem[job=" + jobId.getId() + ", id=" + id + "]";
     }
 }
