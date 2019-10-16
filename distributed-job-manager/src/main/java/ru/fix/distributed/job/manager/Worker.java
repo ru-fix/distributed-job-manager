@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
  */
 class Worker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
+    private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
+    private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
 
     public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
 
@@ -176,7 +178,7 @@ class Worker implements AutoCloseable {
         }
         TransactionalClient.tryCommit(
                 curatorFramework,
-                30,
+                WORKER_REGISTRATION_RETRIES_COUNT,
                 transaction -> {
                     // check node version
                     String checkNodePath = paths.getRegistrationVersion();
@@ -249,7 +251,7 @@ class Worker implements AutoCloseable {
 
             TransactionalClient.tryCommit(
                     curatorFramework,
-                    3,
+                    WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
                         boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
