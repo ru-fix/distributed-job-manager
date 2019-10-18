@@ -80,7 +80,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         this.serverId = serverId;
 
         this.workItemProlongationTask.schedule(
-                DynamicProperty.of(() -> Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS)),
+                DynamicProperty.of(Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS)),
                 0,
                 () -> jobWorkItemLocks.forEach((job, workItemLocks) ->
                         workItemLocks.forEach((workItem, lock) -> {
@@ -129,10 +129,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                 return false;
             }
             log.info("sid={} wid={} acqired jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+                    serverId,
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             return true;
 
         } catch (Exception exc) {
@@ -168,10 +168,10 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         try {
             lock.release();
             log.info("sid={} wid={} released jobId={} item={}",
-                     serverId,
-                     workerId,
-                     job.getJobId(),
-                     workItem);
+                    serverId,
+                    workerId,
+                    job.getJobId(),
+                    workItem);
             workItemLocks.remove(workItem);
         } finally {
             try {

@@ -135,7 +135,7 @@ class Worker implements AutoCloseable {
             long workPoolCheckPeriod = v.getWorkPoolCheckPeriod();
             if (workPoolCheckPeriod != 0) {
                 workPoolReschedulableScheduler.schedule(
-                        DynamicProperty.of(() -> Schedule.withDelay(v.getWorkPoolCheckPeriod())),
+                        DynamicProperty.delegated(() -> Schedule.withDelay(v.getWorkPoolCheckPeriod())),
                         workPoolCheckPeriod,
                         () -> {
                             if (isWorkerShutdown) {
@@ -381,7 +381,7 @@ class Worker implements AutoCloseable {
 
                         ScheduledFuture<?> scheduledFuture =
                                 jobReschedulableScheduler.schedule(
-                                        DynamicProperty.of(newMultiJob::getSchedule),
+                                        DynamicProperty.delegated(newMultiJob::getSchedule),
                                         newMultiJob.getInitialJobDelay(),
                                         jobExecutionWrapper);
                         jobExecutionWrapper.setScheduledFuture(scheduledFuture);
