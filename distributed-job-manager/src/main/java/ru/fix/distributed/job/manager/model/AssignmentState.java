@@ -284,6 +284,22 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
     /**
+     * @param availability shows on which workers job can be launched
+     * @return true, if each job of assignment state is balanced
+     */
+    public boolean isBalancedForEachJob(Map<JobId, Set<WorkerId>> availability) {
+        for (Map.Entry<JobId, Set<WorkerId>> availabilityEntry : availability.entrySet()) {
+            JobId jobId = availabilityEntry.getKey();
+            Set<WorkerId> availableWorkers = availabilityEntry.getValue();
+
+            if (!this.isBalancedByJobId(jobId, availableWorkers)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * @return number of all work items in AssignmentState
      */
     public int globalPoolSize() {
@@ -308,6 +324,32 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         return (int) this.get(workerId).stream()
                 .filter(item -> item.getJobId().equals(jobId))
                 .count();
+    }
+
+    public String getWorkPoolSizeInfo(Map<JobId, Set<WorkerId>> availability) {
+        StringBuilder info = new StringBuilder("Load per job:\n");
+        availability.forEach((jobId, availableWorkers) -> {
+            info.append(jobId)
+                    .append(" - work pool size: ")
+                    .append(localPoolSize(jobId))
+                    .append("\n");
+            availableWorkers.forEach(workerId ->
+                    info.append("\t")
+                            .append(workerId)
+                            .append(": ")
+                            .append(this.getWorkItems(workerId, jobId).size())
+                            .append("\n")
+            );
+        });
+        info.append("Global load:\n");
+        this.forEach((workerId, items) ->
+                info.append("\t")
+                        .append(workerId)
+                        .append(": ")
+                        .append(items.size())
+                        .append("\n")
+        );
+        return info.toString();
     }
 
     @Override
