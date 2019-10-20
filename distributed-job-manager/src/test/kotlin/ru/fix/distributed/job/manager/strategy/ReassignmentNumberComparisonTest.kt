@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.platform.commons.logging.Logger
-import org.junit.platform.commons.logging.LoggerFactory
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
@@ -668,8 +668,8 @@ internal class ReassignmentNumberComparisonTest {
             val results = reassignmentResults(availableState, previousState, strategy, false)
             val newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}" }
-            logger.info { newAssignment.globalWorkPoolSizeInfo }
+            logger.info("NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}")
+            logger.info(newAssignment.globalWorkPoolSizeInfo)
 
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
@@ -683,7 +683,7 @@ internal class ReassignmentNumberComparisonTest {
         val strategy = AssignmentStrategies.EVENLY_SPREAD
         var availableState = generateAvailableState(availableWorkPoolsMap, 8)
         val previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
-        logger.info { "Before sequential reboot of all servers:\n ${previousState.globalWorkPoolSizeInfo}" }
+        logger.info("Before sequential reboot of all servers:\n ${previousState.globalWorkPoolSizeInfo}")
 
         (0 until 8).forEach {
             availableState = generateAvailableState(
@@ -694,7 +694,7 @@ internal class ReassignmentNumberComparisonTest {
             var results = reassignmentResults(availableState, previousState, strategy, false)
             var newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -703,7 +703,7 @@ internal class ReassignmentNumberComparisonTest {
             results = reassignmentResults(availableState, newAssignment, strategy, false)
             newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-$it): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Add worker-$it): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
         }
@@ -714,7 +714,7 @@ internal class ReassignmentNumberComparisonTest {
         val strategy = AssignmentStrategies.EVENLY_SPREAD
         var availableState = generateAvailableState(availableWorkPoolsMap, 8)
         val previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
-        logger.info { "Before sequential double rebooting all servers:\n ${previousState.globalWorkPoolSizeInfo}" }
+        logger.info("Before sequential double rebooting all servers:\n ${previousState.globalWorkPoolSizeInfo}")
 
         (0 until 4).forEach {
             availableState = generateAvailableState(
@@ -725,7 +725,7 @@ internal class ReassignmentNumberComparisonTest {
             var results = reassignmentResults(availableState, previousState, strategy, false)
             var newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-${it * 2}): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Remove worker-${it * 2}): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -737,7 +737,7 @@ internal class ReassignmentNumberComparisonTest {
             results = reassignmentResults(availableState, previousState, strategy, false)
             newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-${it * 2 + 1}): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Remove worker-${it * 2 + 1}): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -749,7 +749,7 @@ internal class ReassignmentNumberComparisonTest {
             results = reassignmentResults(availableState, newAssignment, strategy, false)
             newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it * 2}): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Add worker-${it * 2}): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -758,7 +758,7 @@ internal class ReassignmentNumberComparisonTest {
             results = reassignmentResults(availableState, newAssignment, strategy, false)
             newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it * 2 + 1}): ${results.reassignmentNumber}" }
+            logger.info("NUMBER OF REASSIGNMENTS (Add worker-${it * 2 + 1}): ${results.reassignmentNumber}")
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
         }
@@ -769,7 +769,7 @@ internal class ReassignmentNumberComparisonTest {
         val strategy = AssignmentStrategies.EVENLY_SPREAD
         var availableState = generateAvailableState(availableWorkPoolsMap, 8)
         var previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
-        logger.info { "Before shutdown all servers except one:\n ${previousState.globalWorkPoolSizeInfo}" }
+        logger.info("Before shutdown all servers except one:\n ${previousState.globalWorkPoolSizeInfo}")
 
         // iteratively remove all workers except worker-0
         (7 downTo 1).forEach {
@@ -781,8 +781,8 @@ internal class ReassignmentNumberComparisonTest {
             val results = reassignmentResults(availableState, previousState, strategy, false)
             val newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}" }
-            logger.info { newAssignment.globalWorkPoolSizeInfo }
+            logger.info("NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}")
+            logger.info(newAssignment.globalWorkPoolSizeInfo)
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -798,8 +798,8 @@ internal class ReassignmentNumberComparisonTest {
             val results = reassignmentResults(availableState, previousState, strategy, false)
             val newAssignment = results.newAssignment
 
-            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}" }
-            logger.info { newAssignment.globalWorkPoolSizeInfo }
+            logger.info("NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}")
+            logger.info(newAssignment.globalWorkPoolSizeInfo)
             assertTrue(newAssignment.isBalanced)
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
@@ -855,13 +855,11 @@ internal class ReassignmentNumberComparisonTest {
         val itemsToAssign = generateItemsToAssign(available)
 
         if (logEnabled) {
-            logger.info {
-                Print.Builder()
-                        .availability(availability)
-                        .itemsToAssign(itemsToAssign)
-                        .previousAssignment(previous)
-                        .build().toString()
-            }
+            logger.info(Report(
+                    availability,
+                    itemsToAssign,
+                    previous).toString()
+            )
         }
 
         val newAssignment = strategy.reassignAndBalance(
@@ -871,11 +869,7 @@ internal class ReassignmentNumberComparisonTest {
                 itemsToAssign
         )
         if (logEnabled) {
-            logger.info {
-                Print.Builder()
-                        .newAssignment(newAssignment)
-                        .build().toString()
-            }
+            logger.info(Report(newAssignment = newAssignment).toString())
         }
         return Results(
                 calculateReassignments(previous, newAssignment),

@@ -373,11 +373,10 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
 
-        logger.info(Print.Builder()
-                .availability(availability)
-                .itemsToAssign(itemsToAssign)
-                .previousAssignment(previous)
-                .build().toString()
+        logger.info(Report(
+                availability,
+                itemsToAssign,
+                previous).toString()
         )
         val newState = evenlySpread.reassignAndBalance(
                 availability,
@@ -385,10 +384,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 AssignmentState(),
                 itemsToAssign
         )
-        logger.info(Print.Builder()
-                .evenlySpreadNewAssignment(newState)
-                .build().toString()
-        )
+        logger.info(Report(newAssignment = newState).toString())
         return newState
     }
 }

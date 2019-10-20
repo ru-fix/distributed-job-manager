@@ -60,13 +60,11 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
     return reassignments
 }
 
-class Print(
-        private val availability: Map<JobId, Set<WorkerId>>?,
-        private val itemsToAssign: Set<WorkItem>?,
-        private val prevAssignment: AssignmentState?,
-        private val newAssignment: AssignmentState?,
-        private val evenlySpreadNewAssignment: AssignmentState?,
-        private val rendezvousNewAssignment: AssignmentState?
+class Report(
+        private val availability: Map<JobId, Set<WorkerId>>? = null,
+        private val itemsToAssign: Set<WorkItem>? = null,
+        private val prevAssignment: AssignmentState? = null,
+        private val newAssignment: AssignmentState? = null
 ) {
 
     override fun toString(): String {
@@ -74,8 +72,6 @@ class Print(
                 .plus(itemsToAssign?.let { itemsToAssign(itemsToAssign) } ?: "")
                 .plus(prevAssignment?.let { "Previous $prevAssignment" } ?: "")
                 .plus(newAssignment?.let { "New $newAssignment" } ?: "")
-                .plus(evenlySpreadNewAssignment?.let { "New evenly spread $evenlySpreadNewAssignment" } ?: "")
-                .plus(rendezvousNewAssignment?.let { "New rendezvous $rendezvousNewAssignment" } ?: "")
     }
 
     private fun itemsToAssign(itemsToAssign: Set<WorkItem>): String {
@@ -100,30 +96,6 @@ class Print(
             workerIds.forEach { workerId -> picture.append("\t\t└ ${workerId.id}\n") }
         }
         return picture.toString()
-    }
-
-    data class Builder(
-            private var availability: Map<JobId, Set<WorkerId>>? = null,
-            private var itemsToAssign: Set<WorkItem>? = null,
-            private var prevAssignment: AssignmentState? = null,
-            private var newAssignment: AssignmentState? = null,
-            private var evenlySpreadNewAssignment: AssignmentState? = null,
-            private var rendezvousNewAssignment: AssignmentState? = null
-    ) {
-        fun availability(availability: Map<JobId, Set<WorkerId>>) = apply { this.availability = availability }
-        fun itemsToAssign(itemsToAssign: Set<WorkItem>) = apply { this.itemsToAssign = itemsToAssign }
-        fun previousAssignment(assignment: AssignmentState) = apply { this.prevAssignment = assignment }
-        fun newAssignment(assignment: AssignmentState) = apply { this.newAssignment = assignment }
-        fun evenlySpreadNewAssignment(assignment: AssignmentState) = apply { this.evenlySpreadNewAssignment = assignment }
-        fun rendezvousNewAssignment(assignment: AssignmentState) = apply { this.rendezvousNewAssignment = assignment }
-        fun build() = Print(
-                availability,
-                itemsToAssign,
-                prevAssignment,
-                newAssignment,
-                evenlySpreadNewAssignment,
-                rendezvousNewAssignment
-        )
     }
 }
 
