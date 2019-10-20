@@ -48,23 +48,16 @@ fun generateItemsToAssign(assignmentState: AssignmentState): HashSet<WorkItem> {
 }
 
 fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentState): Int {
-    var count = 0
+    var reassignments = 0
 
-    for ((workerId, workItems) in stateBefore) {
+    for ((workerId, workItems) in stateAfter) {
         for (workItem in workItems) {
-            if (!stateAfter.containsWorkItemOnWorker(workerId, workItem)) {
-                count++
+            if (!stateBefore.containsWorkItemOnWorker(workerId, workItem)) {
+                reassignments++
             }
         }
     }
-    for ((_, workItems) in stateAfter) {
-        for (workItem in workItems) {
-            if (!stateBefore.containsWorkItem(workItem)) {
-                count++
-            }
-        }
-    }
-    return count
+    return reassignments
 }
 
 class Print(
