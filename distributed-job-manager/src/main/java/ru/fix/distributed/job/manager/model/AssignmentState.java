@@ -326,8 +326,8 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 .count();
     }
 
-    public String getWorkPoolSizeInfo(Map<JobId, Set<WorkerId>> availability) {
-        StringBuilder info = new StringBuilder("Load per job:\n");
+    public String getLocalWorkPoolSizeInfo(Map<JobId, Set<WorkerId>> availability) {
+        StringBuilder info = new StringBuilder("Work pool size per job:\n");
         availability.forEach((jobId, availableWorkers) -> {
             info.append(jobId)
                     .append(" - work pool size: ")
@@ -341,7 +341,11 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                             .append("\n")
             );
         });
-        info.append("Global load:\n");
+        return info.toString();
+    }
+
+    public String getGlobalWorkPoolSizeInfo() {
+        StringBuilder info = new StringBuilder("Global load per worker:\n");
         this.forEach((workerId, items) ->
                 info.append("\t")
                         .append(workerId)

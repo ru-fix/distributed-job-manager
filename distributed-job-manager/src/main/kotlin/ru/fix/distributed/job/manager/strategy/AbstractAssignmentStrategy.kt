@@ -10,4 +10,9 @@ abstract class AbstractAssignmentStrategy : AssignmentStrategy {
                 .filter { item -> item.jobId == jobId }
                 .toCollection(mutableSetOf())
     }
+
+    protected fun getWorkItemsByJobAsMap(workItems: Set<WorkItem>, jobs: Set<JobId>): Map<JobId, Set<WorkItem>> {
+        return jobs.map { it to getWorkItemsByJob(it, workItems) }
+                .sortedByDescending { (_, value) -> value.size }.toMap()
+    }
 }
