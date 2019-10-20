@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class EvenlySpreadAssignmentStrategyTest {
     private lateinit var evenlySpread: EvenlySpreadAssignmentStrategy
@@ -49,7 +47,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -83,7 +81,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -100,7 +98,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -116,7 +114,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -196,7 +194,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
 
         val newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -228,7 +226,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val previous = assignmentState {}
 
         var newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -236,7 +234,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-1"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -245,7 +243,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -255,7 +253,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-3"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         // reboot worker-0
@@ -265,7 +263,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-3"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -275,7 +273,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-3"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -312,7 +310,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val previous = assignmentState {}
 
         var newAssignment = calculateNewAssignment(available, previous)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -320,7 +318,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-1"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
@@ -329,7 +327,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         // shutdown worker-0
@@ -338,7 +336,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         // shutdown worker-1
@@ -346,7 +344,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         // start again worker-0
@@ -355,7 +353,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
 
         // start again worker-1
@@ -365,7 +363,7 @@ internal class EvenlySpreadAssignmentStrategyTest {
             "worker-2"(workPool)
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
-        assertTrue(eachJobBalanced(newAssignment, generateAvailability(available)))
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -392,17 +390,5 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 .build().toString()
         )
         return newState
-    }
-
-    private fun eachJobBalanced(
-            assignmentState : AssignmentState,
-            availability : Map<JobId, Set<WorkerId>>
-    ) : Boolean {
-        availability.forEach {
-            if (!assignmentState.isBalancedByJobId(it.key, it.value)) {
-                return false
-            }
-        }
-        return true
     }
 }

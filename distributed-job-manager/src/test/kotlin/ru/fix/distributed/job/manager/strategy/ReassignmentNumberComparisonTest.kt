@@ -1,16 +1,20 @@
 package ru.fix.distributed.job.manager.strategy
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.platform.commons.logging.Logger
 import org.junit.platform.commons.logging.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class ReassignmentNumberComparisonTest {
     private lateinit var evenlySpread: EvenlySpreadAssignmentStrategy
     private lateinit var rendezvous: RendezvousHashAssignmentStrategy
+    private lateinit var availableWorkPoolsMap: Map<Int, Int>
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ReassignmentNumberComparisonTest::class.java)
@@ -20,13 +24,12 @@ internal class ReassignmentNumberComparisonTest {
     fun setUp() {
         evenlySpread = EvenlySpreadAssignmentStrategy()
         rendezvous = RendezvousHashAssignmentStrategy()
+        availableWorkPoolsMap = sortedMapOf(32 to 1, 4 to 2, 5 to 3, 2 to 16, 1 to 285)
     }
 
     private class Results(
-            internal val evenlySpreadReassignmentNumber: Int,
-            internal val rendezvousReassignmentNumber: Int,
-            internal val rendezvousNewAssigment: AssignmentState,
-            internal val evenlySpreadNewAssignment: AssignmentState
+            internal val reassignmentNumber: Int,
+            internal val newAssignment: AssignmentState
     )
 
     @Test
@@ -59,9 +62,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(1, results.evenlySpreadReassignmentNumber)
-        assertEquals(2, results.rendezvousReassignmentNumber)
+        assertEquals(1, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -95,9 +97,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(1, results.evenlySpreadReassignmentNumber)
-        assertEquals(2, results.rendezvousReassignmentNumber)
+        assertEquals(1, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -139,9 +140,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(0, results.evenlySpreadReassignmentNumber)
-        assertEquals(2, results.rendezvousReassignmentNumber)
+        assertEquals(0, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -185,9 +185,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(2, results.evenlySpreadReassignmentNumber)
-        assertEquals(3, results.rendezvousReassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(3, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -241,9 +240,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(3, results.evenlySpreadReassignmentNumber)
-        assertEquals(5, results.rendezvousReassignmentNumber)
+        assertEquals(3, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(5, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -303,9 +301,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(2, results.evenlySpreadReassignmentNumber)
-        assertEquals(6, results.rendezvousReassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(6, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -346,9 +343,8 @@ internal class ReassignmentNumberComparisonTest {
             "worker-0"(workPool)
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(10, results.evenlySpreadReassignmentNumber)
-        assertEquals(10, results.rendezvousReassignmentNumber)
+        assertEquals(10, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(10, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
 
@@ -390,9 +386,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(2, results.evenlySpreadReassignmentNumber)
-        assertEquals(4, results.rendezvousReassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(4, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -463,9 +458,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        val results = reassignmentResults(available, previous)
-        assertEquals(3, results.evenlySpreadReassignmentNumber)
-        assertEquals(10, results.rendezvousReassignmentNumber)
+        assertEquals(3, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(10, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -523,17 +517,17 @@ internal class ReassignmentNumberComparisonTest {
             "smpp-3"{}
         }
 
-        var evenlySpreadResults = reassignmentResults(available, previous)
-        var rendezvousResults = reassignmentResults(available, previous)
-        assertEquals(14, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(14, rendezvousResults.rendezvousReassignmentNumber)
+        var evenlySpreadResults = reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD)
+        var rendezvousResults = reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(14, evenlySpreadResults.reassignmentNumber)
+        assertEquals(14, rendezvousResults.reassignmentNumber)
 
         available.remove(WorkerId("sws-4"))
 
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(2, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(2, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
             "sws-0"(workPoolForSws)
@@ -548,10 +542,10 @@ internal class ReassignmentNumberComparisonTest {
             "smpp-3"(workPoolForSmpp)
         }
 
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(2, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(2, rendezvousResults.reassignmentNumber)
     }
 
     @Test
@@ -609,22 +603,22 @@ internal class ReassignmentNumberComparisonTest {
             "smpp-3"{}
         }
 
-        var evenlySpreadResults = reassignmentResults(available, previous)
-        var rendezvousResults = reassignmentResults(available, previous)
-        assertEquals(14, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(14, rendezvousResults.rendezvousReassignmentNumber)
+        var evenlySpreadResults = reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD)
+        var rendezvousResults = reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(14, evenlySpreadResults.reassignmentNumber)
+        assertEquals(14, rendezvousResults.reassignmentNumber)
 
         available.remove(WorkerId("sws-0"))
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, rendezvousResults.reassignmentNumber)
 
         available.remove(WorkerId("sws-1"))
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(3, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(3, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
             "sws-1"(workPoolForSws)
@@ -637,10 +631,10 @@ internal class ReassignmentNumberComparisonTest {
             "smpp-2"(workPoolForSmpp)
             "smpp-3"(workPoolForSmpp)
         }
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(2, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
             "sws-0"(workPoolForSws)
@@ -654,47 +648,238 @@ internal class ReassignmentNumberComparisonTest {
             "smpp-2"(workPoolForSmpp)
             "smpp-3"(workPoolForSmpp)
         }
-        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.evenlySpreadNewAssignment)
-        rendezvousResults = reassignmentResults(available, rendezvousResults.rendezvousNewAssigment)
-        assertEquals(3, evenlySpreadResults.evenlySpreadReassignmentNumber)
-        assertEquals(1, rendezvousResults.rendezvousReassignmentNumber)
+        evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
+        rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, rendezvousResults.reassignmentNumber)
     }
 
-    private fun reassignmentResults(available: AssignmentState, previous: AssignmentState): Results {
+    @Test
+    fun `start 8 workers in a row`() {
+        val strategy = AssignmentStrategies.EVENLY_SPREAD
+        var availableState: AssignmentState
+        var previousState = AssignmentState()
+
+        (1..8).forEach {
+            availableState = generateAvailableState(availableWorkPoolsMap, it)
+            assertEquals((32 * 1 + 4 * 2 + 5 * 3 + 2 * 16 + 1 * 285) * it, availableState.globalPoolSize())
+
+            val availability = generateAvailability(availableState)
+            val results = reassignmentResults(availableState, previousState, strategy, false)
+            val newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}" }
+            logger.info { newAssignment.globalWorkPoolSizeInfo }
+
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            previousState = newAssignment
+        }
+    }
+
+    @Test
+    fun `sequential reboot 8 workers`() {
+        val strategy = AssignmentStrategies.EVENLY_SPREAD
+        var availableState = generateAvailableState(availableWorkPoolsMap, 8)
+        val previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
+        logger.info { "Before sequential reboot of all servers:\n ${previousState.globalWorkPoolSizeInfo}" }
+
+        (0 until 8).forEach {
+            availableState = generateAvailableState(
+                    availableWorkPoolsMap,
+                    (0 until 8).filter { i -> i != it }.toCollection(mutableSetOf<Int>())
+            )
+            var availability = generateAvailability(availableState)
+            var results = reassignmentResults(availableState, previousState, strategy, false)
+            var newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            availableState = generateAvailableState(availableWorkPoolsMap, 8)
+            availability = generateAvailability(availableState)
+            results = reassignmentResults(availableState, newAssignment, strategy, false)
+            newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-$it): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+        }
+    }
+
+    @Test
+    fun `sequential double reboot 8 workers`() {
+        val strategy = AssignmentStrategies.EVENLY_SPREAD
+        var availableState = generateAvailableState(availableWorkPoolsMap, 8)
+        val previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
+        logger.info { "Before sequential double rebooting all servers:\n ${previousState.globalWorkPoolSizeInfo}" }
+
+        (0 until 4).forEach {
+            availableState = generateAvailableState(
+                    availableWorkPoolsMap,
+                    (0 until 8).filter { i -> i != it * 2 }.toCollection(mutableSetOf<Int>())
+            )
+            var availability = generateAvailability(availableState)
+            var results = reassignmentResults(availableState, previousState, strategy, false)
+            var newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-${it * 2}): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            availableState = generateAvailableState(
+                    availableWorkPoolsMap,
+                    (0 until 8).filter { i -> i != it * 2 + 1 }.toCollection(mutableSetOf<Int>())
+            )
+            availability = generateAvailability(availableState)
+            results = reassignmentResults(availableState, previousState, strategy, false)
+            newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-${it * 2 + 1}): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            availableState = generateAvailableState(
+                    availableWorkPoolsMap,
+                    (0 until 8).filter { i -> i != it * 2 }.toCollection(mutableSetOf<Int>())
+            )
+            availability = generateAvailability(availableState)
+            results = reassignmentResults(availableState, newAssignment, strategy, false)
+            newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it * 2}): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            availableState = generateAvailableState(availableWorkPoolsMap, 8)
+            availability = generateAvailability(availableState)
+            results = reassignmentResults(availableState, newAssignment, strategy, false)
+            newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it * 2 + 1}): ${results.reassignmentNumber}" }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+        }
+    }
+
+    @Test
+    fun `shutdown all workers except one and start all 8 workers again`() {
+        val strategy = AssignmentStrategies.EVENLY_SPREAD
+        var availableState = generateAvailableState(availableWorkPoolsMap, 8)
+        var previousState = reassignmentResults(availableState, AssignmentState(), strategy, false).newAssignment
+        logger.info { "Before shutdown all servers except one:\n ${previousState.globalWorkPoolSizeInfo}" }
+
+        // iteratively remove all workers except worker-0
+        (7 downTo 1).forEach {
+            availableState = generateAvailableState(
+                    availableWorkPoolsMap,
+                    (0 until 8).filter { i -> i < it }.toCollection(mutableSetOf<Int>())
+            )
+            val availability = generateAvailability(availableState)
+            val results = reassignmentResults(availableState, previousState, strategy, false)
+            val newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}" }
+            logger.info { newAssignment.globalWorkPoolSizeInfo }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            previousState = newAssignment
+        }
+
+        // start workers-[1-7]
+        (2..8).forEach {
+            availableState = generateAvailableState(availableWorkPoolsMap, it)
+            assertEquals((32 * 1 + 4 * 2 + 5 * 3 + 2 * 16 + 1 * 285) * it, availableState.globalPoolSize())
+
+            val availability = generateAvailability(availableState)
+            val results = reassignmentResults(availableState, previousState, strategy, false)
+            val newAssignment = results.newAssignment
+
+            logger.info { "NUMBER OF REASSIGNMENTS (Add worker-${it - 1}): ${results.reassignmentNumber}" }
+            logger.info { newAssignment.globalWorkPoolSizeInfo }
+            assertTrue(newAssignment.isBalanced)
+            assertTrue(newAssignment.isBalancedForEachJob(availability))
+
+            previousState = newAssignment
+        }
+    }
+
+    private fun generateAvailableState(jobs: Map<Int, Int>, workerCount: Int): AssignmentState {
+        val state = AssignmentState()
+        val workPool = mutableSetOf<WorkItem>()
+
+        var jobsShift = 0
+        for ((jobCount, workPoolSize) in jobs) {
+            (jobsShift until jobCount + jobsShift).forEach { jobNumber ->
+                jobsShift++
+                (0 until workPoolSize).forEach { workItemNumber ->
+                    workPool.add(WorkItem("item-$workItemNumber", JobId("job-$jobNumber")))
+                }
+            }
+        }
+        (0 until workerCount).forEach {
+            state.addWorkItems(WorkerId("worker-${it}"), workPool)
+        }
+        return state
+    }
+
+    private fun generateAvailableState(jobs: Map<Int, Int>, workerIds: Set<Int>): AssignmentState {
+        val state = AssignmentState()
+        val workPool = mutableSetOf<WorkItem>()
+
+        var jobsShift = 0
+        for ((jobCount, workPoolSize) in jobs) {
+            (jobsShift until jobCount + jobsShift).forEach { jobNumber ->
+                jobsShift++
+                (0 until workPoolSize).forEach { workItemNumber ->
+                    workPool.add(WorkItem("item-$workItemNumber", JobId("job-$jobNumber")))
+                }
+            }
+        }
+        workerIds.forEach {
+            state.addWorkItems(WorkerId("worker-${it}"), workPool)
+        }
+        return state
+    }
+
+    private fun reassignmentResults(
+            available: AssignmentState,
+            previous: AssignmentState,
+            strategy: AssignmentStrategy,
+            logEnabled: Boolean = true
+    ): Results {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
 
-        logger.info {
-            Print.Builder()
-                    .availability(availability)
-                    .itemsToAssign(itemsToAssign)
-                    .previousAssignment(previous)
-                    .build().toString()
+        if (logEnabled) {
+            logger.info {
+                Print.Builder()
+                        .availability(availability)
+                        .itemsToAssign(itemsToAssign)
+                        .previousAssignment(previous)
+                        .build().toString()
+            }
         }
 
-        val newAssignmentEvenlySpread = evenlySpread.reassignAndBalance(
+        val newAssignment = strategy.reassignAndBalance(
                 availability,
                 previous,
                 AssignmentState(),
                 itemsToAssign
         )
-        val newAssignmentRendezvous = rendezvous.reassignAndBalance(
-                availability,
-                previous,
-                AssignmentState(),
-                generateItemsToAssign(available)
-        )
-        logger.info {
-            Print.Builder()
-                    .evenlySpreadNewAssignment(newAssignmentEvenlySpread)
-                    .rendezvousNewAssignment(newAssignmentRendezvous)
-                    .build().toString()
+        if (logEnabled) {
+            logger.info {
+                Print.Builder()
+                        .newAssignment(newAssignment)
+                        .build().toString()
+            }
         }
         return Results(
-                calculateReassignments(previous, newAssignmentEvenlySpread),
-                calculateReassignments(previous, newAssignmentRendezvous),
-                newAssignmentRendezvous,
-                newAssignmentEvenlySpread
+                calculateReassignments(previous, newAssignment),
+                newAssignment
         )
     }
 }

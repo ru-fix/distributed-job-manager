@@ -207,6 +207,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
+    @Disabled
     @Test
     @Throws(Exception::class)
     fun `start 3 workers and destroy one of them`() {
