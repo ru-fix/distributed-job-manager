@@ -202,6 +202,7 @@ class Manager implements AutoCloseable {
             TransactionalClient transaction
     ) throws Exception {
 
+        removeAssignmentsOnDeadNodes(transaction);
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : newAssignmentState.entrySet()) {
             WorkerId workerId = worker.getKey();
             Map<JobId, List<WorkItem>> jobs = itemsToMap(worker.getValue());
@@ -248,7 +249,6 @@ class Manager implements AutoCloseable {
                 }
             }
         }
-        removeAssignmentsOnDeadNodes(transaction);
     }
 
     private void createIfNotExist(TransactionalClient transactionalClient, String path) throws Exception {
@@ -324,8 +324,6 @@ class Manager implements AutoCloseable {
                 }
             }
             availableState.put(new WorkerId(worker), availableWorkPool);
-
-
         }
 
         return new GlobalAssignmentState(availableState, assignedState);
