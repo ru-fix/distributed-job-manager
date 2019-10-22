@@ -201,8 +201,8 @@ class Manager implements AutoCloseable {
             AssignmentState newAssignmentState,
             TransactionalClient transaction
     ) throws Exception {
-
         removeAssignmentsOnDeadNodes(transaction);
+
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : newAssignmentState.entrySet()) {
             WorkerId workerId = worker.getKey();
             Map<JobId, List<WorkItem>> jobs = itemsToMap(worker.getValue());
@@ -291,6 +291,9 @@ class Manager implements AutoCloseable {
                 .forPath(paths.getWorkersPath());
 
         for (String worker : workersRoots) {
+            if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) == null) {
+                continue;
+            }
             List<String> assignedJobIds = curatorFramework.getChildren()
                     .forPath(paths.getAssignedWorkPooledJobsPath(worker));
 
