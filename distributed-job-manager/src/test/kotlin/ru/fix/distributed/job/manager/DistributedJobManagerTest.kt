@@ -173,9 +173,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
         val destroyed = createDjmWithEvenlySpread("worker-2", distributedJobs())
-        awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
-        ))
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10))
+                .pollDelay(Duration.ofMillis(200))
+                .until { workersAlive("worker-2", "worker-1", "worker-0") }
 
         val curatorFramework = zkTestingServer.createClient()
         var assignedState = readAssignedState(curatorFramework)
