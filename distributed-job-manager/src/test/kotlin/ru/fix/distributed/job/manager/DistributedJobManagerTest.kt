@@ -187,7 +187,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 .atMost(Duration.ofSeconds(3))
                 .pollDelay(Duration.ofMillis(200))
                 .until { !workersAlive("worker-2") }
-        Thread.sleep(400)
+        Thread.sleep(2000)
 
         assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalanced)
