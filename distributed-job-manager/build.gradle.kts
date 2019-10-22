@@ -29,6 +29,7 @@ dependencies {
     // Test
     testCompile(Libs.junit_jupiter)
     testCompile(Libs.junit_jupiter_api)
+    testCompile(Libs.junit_jupiter_params)
     testCompile(Libs.mockito)
     testCompile(Libs.hamkrest)
     testCompile(Libs.curator_test)

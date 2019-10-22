@@ -320,7 +320,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 .count();
     }
 
-    private int localPoolSize(JobId jobId, WorkerId workerId) {
+    public int localPoolSize(JobId jobId, WorkerId workerId) {
         return (int) this.get(workerId).stream()
                 .filter(item -> item.getJobId().equals(jobId))
                 .count();

@@ -1,10 +1,11 @@
 package ru.fix.distributed.job.manager.util;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentSkipListSet;
-
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
+
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * <p>A high performance thread safe implementation of Rendezvous (Highest Random Weight, HRW) hashing is an algorithm that allows clients to achieve distributed agreement on which node (or proxy) a given
@@ -19,12 +20,9 @@ import com.google.common.hash.HashFunction;
  * </p>
  * source: https://en.wikipedia.org/wiki/Rendezvous_hashing
  *
+ * @param <K> type of key
+ * @param <N> type node/site or whatever want to be returned (ie IP address or String)
  * @author Chris Lohfink
- *
- * @param <K>
- *            type of key
- * @param <N>
- *            type node/site or whatever want to be returned (ie IP address or String)
  */
 public class RendezvousHash<K, N extends Comparable<? super N>> {
 
@@ -100,5 +98,27 @@ public class RendezvousHash<K, N extends Comparable<? super N>> {
             }
         }
         return max;
+    }
+
+    public N get(K key, Set<N> excluded) {
+        long maxValue = Long.MIN_VALUE;
+        N max = null;
+        for (N node : ordered) {
+            if (excluded.contains(node)) continue;
+            long nodesHash = hasher.newHasher()
+                    .putObject(key, keyFunnel)
+                    .putObject(node, nodeFunnel)
+                    .hash().asLong();
+            if (nodesHash > maxValue) {
+                max = node;
+                maxValue = nodesHash;
+            }
+        }
+        return max;
+    }
+
+    @Override
+    public String toString() {
+        return ordered.toString();
     }
 }

@@ -64,6 +64,7 @@ object Libs {
     // Test
     const val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
     const val junit_jupiter = "org.junit.jupiter:junit-jupiter-engine:${Vers.junit}"
+    const val junit_jupiter_params = "org.junit.jupiter:junit-jupiter-params:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
     const val hamkrest = "org.hamcrest:hamcrest-all:${Vers.hamkrest}"
