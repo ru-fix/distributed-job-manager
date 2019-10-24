@@ -22,7 +22,7 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
                 val workerFromPrevious = prevAssignment.getWorkerOfWorkItem(item)
 
                 if (prevAssignment.containsWorkItem(item)
-                        && currentAssignment.containsKey(workerFromPrevious)) {
+                        && availableWorkers.contains(workerFromPrevious)) {
                     currentAssignment.addWorkItem(workerFromPrevious, item)
                 } else {
                     val lessBusyWorker = currentAssignment
