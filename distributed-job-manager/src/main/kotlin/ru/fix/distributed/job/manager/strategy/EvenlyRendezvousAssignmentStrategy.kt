@@ -27,9 +27,10 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
 
             val workersCount = availableWorkers.size
             val workItemsCount = itemsToAssignForJob.size
-            var limitWorkItemsOnWorker = workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
-            val majorityLimit = if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
-            var workersCountLimitAchieved = 0
+            var higherLimitWorkItemsOnWorker = workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
+            var lowerLimitWorkItemsOnWorker = workItemsCount / workersCount
+            val expectedNumOfWorkersWithHigherLimitAchieved = if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
+            var workersCountHigherLimitAchieved = 0
 
             val hash = RendezvousHash<String, String>(
                     Hashing.murmur3_128(), stringFunnel, stringFunnel, ArrayList()
@@ -42,32 +43,30 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
             var limitDecreased = false
             for (item in itemsToAssignForJob) {
                 val key = item.jobId.id + ":" + item.id
-                var workerId = hash.get(key)
-                val willBe = currentAssignment.localPoolSize(jobId, WorkerId(workerId)) + 1
+                var workerId = hash.get(key, fullWorkerIds)
 
-                if (willBe > limitWorkItemsOnWorker) {
-                    workerId = hash.get(key, fullWorkerIds)
-                }
                 currentAssignment.addWorkItem(WorkerId(workerId), item)
                 itemsToAssign.remove(item)
 
                 val workPoolSizeAfterAdd = currentAssignment.localPoolSize(jobId, WorkerId(workerId))
-                if (workPoolSizeAfterAdd == limitWorkItemsOnWorker
-                        && (majorityLimit != workersCountLimitAchieved || limitDecreased)
-                ) {
-                    workersCountLimitAchieved++
+                if (workPoolSizeAfterAdd == higherLimitWorkItemsOnWorker) {
                     fullWorkerIds.add(workerId)
-                }
-                if (majorityLimit == workersCountLimitAchieved && !limitDecreased) {
-                    limitDecreased = true
-                    limitWorkItemsOnWorker--
-                    availableWorkers.forEach {
-                        if (currentAssignment.localPoolSize(jobId, it) == limitWorkItemsOnWorker) {
-                            fullWorkerIds.add(it.id)
+                    workersCountHigherLimitAchieved++
+
+                    if (workersCountHigherLimitAchieved == expectedNumOfWorkersWithHigherLimitAchieved) {
+                        if (!limitDecreased) {
+                            limitDecreased = true
+                            availableWorkers.forEach {
+                                if (currentAssignment.localPoolSize(jobId, it) == lowerLimitWorkItemsOnWorker) {
+                                    fullWorkerIds.add(it.id)
+                                }
+                            }
                         }
                     }
-                }
+                } else if (limitDecreased && workPoolSizeAfterAdd == lowerLimitWorkItemsOnWorker) {
+                    fullWorkerIds.add(workerId)
 
+                }
             }
 
         }

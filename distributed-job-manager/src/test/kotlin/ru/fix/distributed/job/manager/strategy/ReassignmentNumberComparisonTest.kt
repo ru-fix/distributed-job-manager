@@ -801,7 +801,7 @@ internal class ReassignmentNumberComparisonTest {
             totalReassignmentsCount += results.reassignmentNumber
 
             logger.info("NUMBER OF REASSIGNMENTS (Remove worker-$it): ${results.reassignmentNumber}")
-            logger.info(newAssignment.globalWorkPoolSizeInfo)
+            logger.info(newAssignment.getLocalWorkPoolSizeInfo(availability))
             assertTrue(newAssignment.isBalancedForEachJob(availability))
 
             previousState = newAssignment
