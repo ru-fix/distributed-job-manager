@@ -24,14 +24,6 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
 
         for ((jobId, availableWorkers) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign).sortedBy { it.id }
-
-            val workersCount = availableWorkers.size
-            val workItemsCount = itemsToAssignForJob.size
-            var higherLimitWorkItemsOnWorker = workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
-            var lowerLimitWorkItemsOnWorker = workItemsCount / workersCount
-            val expectedNumOfWorkersWithHigherLimitAchieved = if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
-            var workersCountHigherLimitAchieved = 0
-
             val hash = RendezvousHash<String, String>(
                     Hashing.murmur3_128(), stringFunnel, stringFunnel, ArrayList()
             )
@@ -39,37 +31,48 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
                 hash.add(worker.id)
                 currentAssignment.putIfAbsent(worker, HashSet<WorkItem>())
             }
-            val fullWorkerIds = mutableSetOf<String>()
+
+            val workersCount = availableWorkers.size
+            val workItemsCount = itemsToAssignForJob.size
+            var limitWorkItemsOnWorker = limitWorkItemsOnWorker(workItemsCount, workersCount)
+            val expectedWorkersNumberWithHigherLimitAchieved = majorityLimit(workItemsCount, workersCount)
+            var workersCountHigherLimitAchieved = 0
+            val excludedWorkerIds = mutableSetOf<String>()
             var limitDecreased = false
+
             for (item in itemsToAssignForJob) {
                 val key = item.jobId.id + ":" + item.id
-                var workerId = hash.get(key, fullWorkerIds)
+                val workerId = hash.get(key, excludedWorkerIds)
 
                 currentAssignment.addWorkItem(WorkerId(workerId), item)
                 itemsToAssign.remove(item)
 
                 val workPoolSizeAfterAdd = currentAssignment.localPoolSize(jobId, WorkerId(workerId))
-                if (workPoolSizeAfterAdd == higherLimitWorkItemsOnWorker) {
-                    fullWorkerIds.add(workerId)
-                    workersCountHigherLimitAchieved++
-
-                    if (workersCountHigherLimitAchieved == expectedNumOfWorkersWithHigherLimitAchieved) {
-                        if (!limitDecreased) {
-                            limitDecreased = true
-                            availableWorkers.forEach {
-                                if (currentAssignment.localPoolSize(jobId, it) == lowerLimitWorkItemsOnWorker) {
-                                    fullWorkerIds.add(it.id)
-                                }
-                            }
+                if (workPoolSizeAfterAdd == limitWorkItemsOnWorker) {
+                    if (expectedWorkersNumberWithHigherLimitAchieved != workersCountHigherLimitAchieved || limitDecreased) {
+                        workersCountHigherLimitAchieved++
+                        excludedWorkerIds.add(workerId)
+                    }
+                }
+                if (expectedWorkersNumberWithHigherLimitAchieved == workersCountHigherLimitAchieved && !limitDecreased) {
+                    limitDecreased = true
+                    limitWorkItemsOnWorker--
+                    availableWorkers.forEach {
+                        if (currentAssignment.localPoolSize(jobId, it) == limitWorkItemsOnWorker) {
+                            excludedWorkerIds.add(it.id)
                         }
                     }
-                } else if (limitDecreased && workPoolSizeAfterAdd == lowerLimitWorkItemsOnWorker) {
-                    fullWorkerIds.add(workerId)
-
                 }
             }
-
         }
         return currentAssignment
+    }
+
+    private fun limitWorkItemsOnWorker(workItemsCount: Int, workersCount: Int) : Int {
+        return workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
+    }
+
+    private fun majorityLimit(workItemsCount: Int, workersCount: Int) : Int {
+        return if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
     }
 }
