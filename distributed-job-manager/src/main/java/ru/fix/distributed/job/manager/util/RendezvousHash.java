@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
+ * Moved from https://github.com/clohfink/RendezvousHash
+ *
  * <p>A high performance thread safe implementation of Rendezvous (Highest Random Weight, HRW) hashing is an algorithm that allows clients to achieve distributed agreement on which node (or proxy) a given
  * key is to be placed in. This implementation has the following properties.
  * <ul>
