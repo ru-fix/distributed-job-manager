@@ -57,22 +57,20 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
                 if (expectedWorkersNumberWithHigherLimitAchieved == workersCountHigherLimitAchieved && !limitDecreased) {
                     limitDecreased = true
                     limitWorkItemsOnWorker--
-                    availableWorkers.forEach {
-                        if (currentAssignment.localPoolSize(jobId, it) == limitWorkItemsOnWorker) {
-                            excludedWorkerIds.add(it.id)
-                        }
-                    }
+                    availableWorkers
+                            .filter { currentAssignment.localPoolSize(jobId, it) == limitWorkItemsOnWorker }
+                            .forEach { excludedWorkerIds.add(it.id) }
                 }
             }
         }
         return currentAssignment
     }
 
-    private fun limitWorkItemsOnWorker(workItemsCount: Int, workersCount: Int) : Int {
+    private fun limitWorkItemsOnWorker(workItemsCount: Int, workersCount: Int): Int {
         return workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
     }
 
-    private fun majorityLimit(workItemsCount: Int, workersCount: Int) : Int {
+    private fun majorityLimit(workItemsCount: Int, workersCount: Int): Int {
         return if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
     }
 }
