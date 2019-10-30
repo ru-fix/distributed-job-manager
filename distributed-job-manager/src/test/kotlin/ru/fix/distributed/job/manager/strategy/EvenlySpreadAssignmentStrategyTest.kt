@@ -195,7 +195,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
 
         val newAssignment = calculateNewAssignment(available, previous)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
     }
 
     @Test
@@ -235,7 +234,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
             "worker-0"(workPool)
@@ -244,7 +242,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
             "worker-0"(workPool)
@@ -254,7 +251,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         // reboot worker-0
         available = assignmentState {
@@ -264,7 +260,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
             "worker-0"(workPool)
@@ -274,7 +269,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
     }
 
     @Test
@@ -319,7 +313,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         available = assignmentState {
             "worker-0"(workPool)
@@ -328,7 +321,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         // shutdown worker-0
         available = assignmentState {
@@ -337,7 +329,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         // shutdown worker-1
         available = assignmentState {
@@ -345,7 +336,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         // start again worker-0
         available = assignmentState {
@@ -354,7 +344,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
 
         // start again worker-1
         available = assignmentState {
@@ -364,7 +353,6 @@ internal class EvenlySpreadAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
     }
 
     private fun calculateNewAssignment(

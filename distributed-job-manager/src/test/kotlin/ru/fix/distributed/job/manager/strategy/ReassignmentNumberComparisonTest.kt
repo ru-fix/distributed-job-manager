@@ -252,7 +252,7 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        assertEquals(3, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
         assertEquals(5, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
@@ -313,7 +313,7 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(0, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
         assertEquals(6, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
@@ -355,7 +355,7 @@ internal class ReassignmentNumberComparisonTest {
             "worker-0"(workPool)
         }
 
-        assertEquals(10, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(9, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
         assertEquals(10, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
@@ -556,7 +556,7 @@ internal class ReassignmentNumberComparisonTest {
 
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
         rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
-        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, evenlySpreadResults.reassignmentNumber)
         assertEquals(2, rendezvousResults.reassignmentNumber)
     }
 
@@ -629,7 +629,7 @@ internal class ReassignmentNumberComparisonTest {
         available.remove(WorkerId("sws-1"))
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
         rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
-        assertEquals(3, evenlySpreadResults.reassignmentNumber)
+        assertEquals(2, evenlySpreadResults.reassignmentNumber)
         assertEquals(1, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
