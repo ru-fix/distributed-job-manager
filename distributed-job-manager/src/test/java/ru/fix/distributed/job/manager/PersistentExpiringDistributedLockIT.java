@@ -26,7 +26,7 @@ public class PersistentExpiringDistributedLockIT {
 
     private static final Logger logger = LoggerFactory.getLogger(PersistentExpiringDistributedLockIT.class);
 
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
+    private final String nodeId = Byte.toString(Byte.MAX_VALUE);
 
     public ZKTestingServer zkTestingServer;
 
@@ -43,9 +43,9 @@ public class PersistentExpiringDistributedLockIT {
                 "PersistentExpiringDistributedLock-Notifications-",
                 new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "1", "/lockingNode", serverId);
+                notificationsExecutor, "1", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(100_000, 100);
@@ -69,7 +69,7 @@ public class PersistentExpiringDistributedLockIT {
                         new AggregatingProfiler());
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(
                 zkTestingServer.getClient(), notificationsExecutor, "1", "/lockingNode",
-                serverId);
+                nodeId);
 
         try {
             boolean acquired = lock1.expirableAcquire(100_000, 100);
@@ -86,9 +86,9 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "1", "/lockingNode", serverId);
+                notificationsExecutor, "1", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(1000, 100);
@@ -111,7 +111,7 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(lock0Timeout, 0);
@@ -133,7 +133,7 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
                 "PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(lock0Timeout, 0);
@@ -167,7 +167,7 @@ public class PersistentExpiringDistributedLockIT {
                                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
                         try {
                             lock = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                                    notificationsExecutor, lockId, "/lockingNode", serverId);
+                                    notificationsExecutor, lockId, "/lockingNode", nodeId);
                             if (lock.expirableAcquire(5_000, 1)) {
                                 int value = counter.get();
                                 if (lock.checkAndProlong(5_000)) {
@@ -219,9 +219,9 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "1", "/lockingNode", serverId);
+                notificationsExecutor, "1", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(lock0Timeout, 0);
@@ -239,8 +239,6 @@ public class PersistentExpiringDistributedLockIT {
     }
 
     @Test
-    @SuppressWarnings("squid:S3415")
-    //https://groups.google.com/forum/?nomobile=true#!msg/sonarqube/E48APX81Rmg/Xd92b4y3AQAJ
     public void test_lock_acquire_with_timeout() throws Exception {
         long lock0Timeout = 100_000;
         long lock1Timeout = 10;
@@ -248,9 +246,9 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "1", "/lockingNode", serverId);
+                notificationsExecutor, "1", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(lock0Timeout, 0);
@@ -274,7 +272,7 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(lock0Timeout, 0);
@@ -294,9 +292,9 @@ public class PersistentExpiringDistributedLockIT {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
                 ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "0", "/lockingNode", serverId);
+                notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "1", "/lockingNode", serverId);
+                notificationsExecutor, "1", "/lockingNode", nodeId);
 
         try {
             lock0.expirableAcquire(3_000, 0);
@@ -328,9 +326,9 @@ public class PersistentExpiringDistributedLockIT {
                 ("PersistentExpiringDistributedLock-Listeners-", new AggregatingProfiler());
 
         try (PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                notificationsExecutor, "A", "/lockingNode", serverId);
+                notificationsExecutor, "A", "/lockingNode", nodeId);
              PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
-                     notificationsExecutor, "B", "/lockingNode", serverId)) {
+                     notificationsExecutor, "B", "/lockingNode", nodeId)) {
             if (!lock0.expirableAcquire(15_000, 1000)) {
                 fail("Can't acquire first lock");
             }

@@ -16,8 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
-    private final String serverId = Byte.toString(Byte.MAX_VALUE);
-
     /**
      * количество слушателей должно быть одинаковым до и после добавления и релиз 100 джоб
      *
@@ -25,12 +23,12 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
      */
     @Test
     public void shouldCorrectRelease() throws Exception {
-        final String workerName = "worker-1";
+        final String nodeId = "worker-1";
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new JobManagerPaths
-                        (rootPath), workerName, serverId, new AggregatingProfiler())
+                        (rootPath), nodeId, new AggregatingProfiler())
         ) {
             ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
                     (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
@@ -51,12 +49,12 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
     @Test
     public void hasAcquiredLock_beforeAndAfterAcquire() {
-        final String workerName = "worker-1";
+        final String nodeId = "worker-1";
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
-                        new JobManagerPaths(rootPath), workerName, serverId, new AggregatingProfiler())
+                        new JobManagerPaths(rootPath), nodeId, new AggregatingProfiler())
         ) {
             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
             assertThat(beforeAcquire, is(false));

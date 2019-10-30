@@ -23,6 +23,7 @@ object Vers {
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
     const val mockito = "3.0.0"
+    const val awaitility = "4.0.1"
 
     const val log4j = "2.12.0"
 }
@@ -63,7 +64,9 @@ object Libs {
     // Test
     const val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
     const val junit_jupiter = "org.junit.jupiter:junit-jupiter-engine:${Vers.junit}"
+    const val junit_jupiter_params = "org.junit.jupiter:junit-jupiter-params:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
     const val hamkrest = "org.hamcrest:hamcrest-all:${Vers.hamkrest}"
+    const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
 }

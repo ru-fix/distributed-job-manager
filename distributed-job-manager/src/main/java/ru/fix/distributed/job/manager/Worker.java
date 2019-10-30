@@ -36,15 +36,14 @@ import java.util.stream.Collectors;
  */
 class Worker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
+    private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
+    private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
 
-    private static final int REGISTRATION_COMMIT_RETRIES_COUNT = 10;
-    private static final int WORK_POOL_RETRIES_COUNT = 5;
     public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
 
     private final CuratorFramework curatorFramework;
 
     private final Collection<DistributedJob> availableJobs;
-    private final DynamicProperty<Boolean> printTree;
     private final ScheduledJobManager scheduledJobManager = new ScheduledJobManager();
 
     private final JobManagerPaths paths;
@@ -58,32 +57,28 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private DynamicProperty<Long> timeToWaitTermination;
-    private final String serverId;
 
     private volatile boolean isWorkerShutdown = false;
     /**
      * Acquires locks for job for workItems, prolongs them and releases
      */
-    final WorkShareLockService workShareLockService;
+    private final WorkShareLockService workShareLockService;
 
     private final AtomicProperty<Integer> threadPoolSize;
 
     Worker(CuratorFramework curatorFramework,
-           String workerId,
+           String nodeId,
            String rootPath,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
-           DynamicProperty<Long> timeToWaitTermination,
-           String serverId,
-           DynamicProperty<Boolean> printTree) {
+           DynamicProperty<Long> timeToWaitTermination) {
         this.curatorFramework = curatorFramework;
         this.paths = new JobManagerPaths(rootPath);
-        this.workerId = workerId;
+        this.workerId = nodeId;
         this.availableJobs = distributedJobs;
-        this.printTree = printTree;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "worker-" + workerId,
+                "worker-" + nodeId,
                 profiler);
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
@@ -102,13 +97,11 @@ class Worker implements AutoCloseable {
 
         this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
         this.timeToWaitTermination = timeToWaitTermination;
-        this.serverId = serverId;
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
                 paths,
-                workerId,
-                serverId,
+                nodeId,
                 profiler);
 
         distributedJobs.forEach(job ->
@@ -150,7 +143,7 @@ class Worker implements AutoCloseable {
         });
 
         curatorFramework.getConnectionStateListenable().addListener((client, event) -> {
-            log.info("sid={} start().connectionListener event={}", serverId, event);
+            log.info("wid={} start().connectionListener event={}", workerId, event);
             if (!isWorkerShutdown) {
                 switch (event) {
                     case SUSPENDED:
@@ -183,53 +176,55 @@ class Worker implements AutoCloseable {
                 log.error("Failed to close pooled assignment listener", e);
             }
         }
+        TransactionalClient.tryCommit(
+                curatorFramework,
+                WORKER_REGISTRATION_RETRIES_COUNT,
+                transaction -> {
+                    // check node version
+                    String checkNodePath = paths.getRegistrationVersion();
+                    transaction.checkPath(checkNodePath);
 
-        TransactionalClient.tryCommit(curatorFramework, REGISTRATION_COMMIT_RETRIES_COUNT, availableJobsTransaction -> {
-            // check node version
-            String checkNodePath = paths.getRegistrationVersion();
-            int version = curatorFramework.checkExists().forPath(checkNodePath).getVersion();
+                    transaction.setData(checkNodePath, new byte[]{});
 
-            availableJobsTransaction.checkPathWithVersion(checkNodePath, version);
-            availableJobsTransaction.setData(checkNodePath, new byte[]{});
+                    log.info("Registering worker {} (registration version {})", workerId, new byte[]{});
 
-            log.info("Registering worker {} (registration version {})", workerId, version);
+                    // register worker as alive
+                    String nodeAlivePath = paths.getWorkerAliveFlagPath(workerId);
+                    if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
+                        transaction.deletePath(nodeAlivePath);
+                    }
+                    transaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
 
-            // register worker as alive
-            String nodeAlivePath = paths.getWorkerAliveFlagPath(workerId);
-            if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
-                availableJobsTransaction.deletePath(nodeAlivePath);
-            }
-            availableJobsTransaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
+                    // clean up all available jobs
+                    String workerPath = paths.getWorkerPath(workerId);
+                    if (curatorFramework.checkExists().forPath(workerPath) != null) {
+                        transaction.deletePathWithChildrenIfNeeded(workerPath);
+                    }
 
-            // clean up all available jobs
-            String workerPath = paths.getWorkerPath(workerId);
-            if (curatorFramework.checkExists().forPath(workerPath) != null) {
-                availableJobsTransaction.deletePathWithChildrenIfNeeded(workerPath);
-            }
+                    // create availability and assignments directories
+                    transaction.createPath(paths.getWorkerPath(workerId));
+                    transaction.createPath(paths.getWorkerAvailableJobsPath(workerId));
+                    transaction.createPath(paths.getAvailableWorkPooledJobPath(workerId));
+                    transaction.createPath(paths.getWorkerAssignedJobsPath(workerId));
+                    transaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
 
-            // create availability and assignments directories
-            availableJobsTransaction.createPath(paths.getWorkerPath(workerId));
-            availableJobsTransaction.createPath(paths.getWorkerAvailableJobsPath(workerId));
-            availableJobsTransaction.createPath(paths.getAvailableWorkPooledJobPath(workerId));
-            availableJobsTransaction.createPath(paths.getWorkerAssignedJobsPath(workerId));
-            availableJobsTransaction.createPath(paths.getAssignedWorkPooledJobsPath(workerId));
+                    // register work pooled jobs
+                    for (DistributedJob job : availableJobs) {
+                        transaction.createPath(
+                                ZKPaths.makePath(paths.getAvailableWorkPooledJobPath(workerId), job.getJobId()));
+                        transaction.createPath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()));
 
-            // register work pooled jobs
-            for (DistributedJob job : availableJobs) {
-                availableJobsTransaction.createPath(
-                        ZKPaths.makePath(paths.getAvailableWorkPooledJobPath(workerId), job.getJobId()));
-                availableJobsTransaction.createPath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()));
-
-                for (String workPool : workPools.get(job).getItems()) {
-                    availableJobsTransaction.createPath(
-                            ZKPaths.makePath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()), workPool));
+                        for (String workPool : workPools.get(job).getItems()) {
+                            transaction.createPath(
+                                    ZKPaths.makePath(paths.getAvailableWorkPoolPath(workerId, job.getJobId()), workPool));
+                        }
+                    }
                 }
-            }
-        });
+        );
 
         workPooledCache = new TreeCache(curatorFramework, paths.getAssignedWorkPooledJobsPath(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
-            log.info("sid={} registerWorkerAsAliveAndRegisterJobs event={}", serverId, event);
+            log.info("wid={} registerWorkerAsAliveAndRegisterJobs event={}", workerId, event);
             switch (event.getType()) {
                 case INITIALIZED:
                 case NODE_ADDED:
@@ -254,50 +249,52 @@ class Worker implements AutoCloseable {
             String workPoolsPath = paths.getAvailableWorkPoolPath(workerId, job.getJobId());
             String workerAliveFlagPath = paths.getWorkerAliveFlagPath(workerId);
 
-            boolean workPoolsPathExists = null != curatorFramework.checkExists().forPath(workPoolsPath);
-            boolean workerAliveFlagPathExists = null != curatorFramework.checkExists().forPath(workerAliveFlagPath);
+            TransactionalClient.tryCommit(
+                    curatorFramework,
+                    WORK_POOL_UPDATE_RETRIES_COUNT,
+                    transaction -> {
+                        boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
+                        boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
 
-            if (workPoolsPathExists && workerAliveFlagPathExists) {
-                Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
-                if (!currentWorkPools.equals(newWorkPool)) {
-                    log.info("sid={} updateWorkPoolForJob update for jobId={} from {} to {}",
-                            serverId,
-                            job.getJobId(),
-                            currentWorkPools,
-                            newWorkPool);
-                    TransactionalClient.tryCommit(curatorFramework, WORK_POOL_RETRIES_COUNT,
-                            availableJobsTransaction -> {
-                                // update alive flag to trigger update
-                                availableJobsTransaction.setData(
-                                        paths.getWorkerAliveFlagPath(workerId),
+                        if (workPoolsPathExists && workerAliveFlagPathExists) {
+                            Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
+                            if (!currentWorkPools.equals(newWorkPool)) {
+                                log.info("wid={} updateWorkPoolForJob update for jobId={} from {} to {}",
+                                        workerId,
+                                        job.getJobId(),
+                                        currentWorkPools,
+                                        newWorkPool);
+
+                                transaction.setData(paths.getWorkerAliveFlagPath(workerId),
                                         curatorFramework.getData().forPath(workerAliveFlagPath));
 
-                                // delete stale work pools
                                 Set<String> workPoolsToDelete = new HashSet<>(currentWorkPools);
                                 workPoolsToDelete.removeAll(newWorkPool);
                                 for (String workPoolToDelete : workPoolsToDelete) {
-                                    availableJobsTransaction.deletePath(ZKPaths.makePath(workPoolsPath,
-                                            workPoolToDelete));
+                                    transaction.deletePath(ZKPaths.makePath(workPoolsPath, workPoolToDelete));
                                 }
 
                                 // create new work pools
                                 Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
                                 workPoolsToAdd.removeAll(currentWorkPools);
                                 for (String workPoolToAdd : workPoolsToAdd) {
-                                    availableJobsTransaction.createPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
+                                    transaction.createPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
                                 }
-                            });
-                } else {
-                    log.info("sid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
-                            serverId,
-                            job.getJobId(),
-                            newWorkPool);
-                }
-            } else {
-                log.warn("Received work pool update before worker registration," +
-                                " job {} wp {}. State workPoolsPathExists {}, workerAliveFlagPathExists {}",
-                        job, newWorkPool, workPoolsPathExists, workerAliveFlagPathExists);
-            }
+
+                            } else {
+                                log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
+                                        workerId,
+                                        job.getJobId(),
+                                        newWorkPool);
+                            }
+                        } else {
+                            log.warn("Received work pool update before worker registration," +
+                                            " job {} wp {}. State workPoolsPathExists {}, workerAliveFlagPathExists {}",
+                                    job, newWorkPool, workPoolsPathExists, workerAliveFlagPathExists);
+                        }
+                    }
+            );
+
         } catch (Exception e) {
             log.error("Failed to update work pool for job {} wp {}", job, newWorkPool, e);
         }
@@ -312,8 +309,8 @@ class Worker implements AutoCloseable {
     private void onWorkPooledJobReassigned() throws Exception {
         log.trace("Invoke Worker#onWorkPooledJobReassigned() in {} worker", workerId);
 
-        if (printTree.get() && log.isInfoEnabled()) {
-            log.info("sid={} tree after reassign: \n {}", serverId, buildZkTreeDump());
+        if (log.isTraceEnabled()) {
+            log.trace("wid={} tree after reassign: \n {}", workerId, buildZkTreeDump());
         }
 
         // get new assignment
@@ -324,7 +321,7 @@ class Worker implements AutoCloseable {
         reconfigureExecutors(threadCounts);
 
         // stop already running jobs which changed their states
-       scheduledJobManager.removeIf(scheduledEntry -> {
+        scheduledJobManager.removeIf(scheduledEntry -> {
             DistributedJob multiJob = scheduledEntry.getKey();
             List<ScheduledJobExecution> jobExecutions = scheduledEntry.getValue();
 
@@ -335,8 +332,8 @@ class Worker implements AutoCloseable {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toSet());
             if (!runningWorkPools.equals(newWorkPool)) {
-                log.info("sid={} onWorkPooledJobReassigned reassigned jobId={} from {} to {}",
-                        serverId,
+                log.info("wid={} onWorkPooledJobReassigned reassigned jobId={} from {} to {}",
+                        workerId,
                         multiJob.getJobId(),
                         runningWorkPools,
                         newWorkPool);
@@ -346,8 +343,8 @@ class Worker implements AutoCloseable {
             } else {
                 jobExecutions.forEach(scheduledJobExecution -> {
                     if (scheduledJobExecution.isShutdowned()) {
-                        log.error("sid={} onWorkPooledJobReassigned jobId={} is down! Work share {}",
-                                serverId,
+                        log.error("wid={} onWorkPooledJobReassigned jobId={} is down! Work share {}",
+                                workerId,
                                 multiJob.getJobId(),
                                 scheduledJobExecution.getWorkShare());
                     }
@@ -365,8 +362,8 @@ class Worker implements AutoCloseable {
                 int groupsSize = newWorkPool.size() / threadCount;
 
                 for (List<String> workPoolToExecute : Lists.partition(newWorkPool, groupsSize)) {
-                    log.info("sid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
-                            serverId,
+                    log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
+                            workerId,
                             newMultiJob.getJobId(),
                             workPoolToExecute,
                             newMultiJob.getInitialJobDelay());
@@ -378,7 +375,6 @@ class Worker implements AutoCloseable {
                     );
 
                     if (!isWorkerShutdown) {
-
                         ScheduledFuture<?> scheduledFuture =
                                 jobReschedulableScheduler.schedule(
                                         DynamicProperty.of(newMultiJob::getSchedule),
@@ -387,8 +383,8 @@ class Worker implements AutoCloseable {
                         jobExecutionWrapper.setScheduledFuture(scheduledFuture);
                         scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
                     } else {
-                        log.warn("Cannot schedule sid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                                serverId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+                        log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
+                                workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
                     }
                 }
             }
@@ -406,9 +402,10 @@ class Worker implements AutoCloseable {
 
     private List<String> getWorkerWorkPool(DistributedJob job) throws Exception {
         try {
-            return curatorFramework.getChildren().forPath(paths.getAssignedWorkPoolPath(workerId, job.getJobId()));
+            return curatorFramework.getChildren()
+                    .forPath(paths.getAssignedWorkPoolPath(workerId, job.getJobId()));
         } catch (KeeperException.NoNodeException e) {
-            log.trace("Received event when NoNode for work pool path {}", e);
+            log.trace("Received event when NoNode for work pool path {}", e, e);
             return Collections.emptyList();
         }
     }
@@ -427,8 +424,8 @@ class Worker implements AutoCloseable {
         long totalTime = timeToWaitTermination.get();
         long startTime = System.currentTimeMillis();
         for (ScheduledJobExecution jobExecutionWrapper : jobExecutions) {
-            log.info("sid={} safelyTerminateJobs shutdown {}",
-                    serverId,
+            log.info("wid={} safelyTerminateJobs shutdown {}",
+                    workerId,
                     jobExecutionWrapper.getJobId());
             try {
                 long spend = System.currentTimeMillis() - startTime;

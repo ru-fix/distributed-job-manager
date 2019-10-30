@@ -5,9 +5,13 @@ plugins {
 
 dependencies {
 
+    compile(Libs.kotlin_jdk8)
+
     // JFIX
     compile(Libs.aggregating_profiler)
-    compile(Libs.jfix_zookeeper)
+    compile(Libs.jfix_zookeeper) {
+        exclude("org.apache.curator", "curator-recipes")
+    }
     compile(Libs.jfix_concurrency)
     compile(Libs.jfix_dynamic_property_api)
 
@@ -25,9 +29,11 @@ dependencies {
     // Test
     testCompile(Libs.junit_jupiter)
     testCompile(Libs.junit_jupiter_api)
+    testCompile(Libs.junit_jupiter_params)
     testCompile(Libs.mockito)
     testCompile(Libs.hamkrest)
     testCompile(Libs.curator_test)
     testCompile(Libs.log4j_core)
     testCompile(Libs.slf4j_over_log4j)
+    testCompile(Libs.awaitility)
 }

@@ -38,8 +38,8 @@ class MyJob implements DistributedJob{
 ----
 
 Job informs DJM about WorkPool. +
-DJM split work-items from WorkPool among all Workers evenly. +
-If Job define WorkPool with single work-item then it means that such a job will be launched by DJM
+DJM split work-items from WorkPool among all Workers according to assignment strategy. +
+If Job define WorkPool with single work-item then it means that such job will be launched by DJM
 only within single application in the cluster.
 
 When DJM launches Job it passes information about work-items that Job should process.
@@ -56,6 +56,16 @@ void run(DistributedJobContext context) {
 }
 ----
 
+include::assignment-strategies.adoc[]
+
+=== Example of DJM configuration
+:sourcedir: ../distributed-job-manager/src/test/kotlin
+
+[source,kotlin]
+----
+include::{sourcedir}/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt[]
+----
+
 image::djm.png[]
 
 
@@ -68,7 +78,7 @@ image::djm.png[]
 
 === Launch DJM
 DJM requires list of ZooKeeper hosts and path within ZooKeeper that will be used to store DJM state. +
-DJM will use provided applicationId to identify application instance within cluster. +
+DJM will use provided nodeId to identify application instance within cluster. +
 
 [code]
 ----
