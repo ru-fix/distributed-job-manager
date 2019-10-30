@@ -116,7 +116,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
         val curatorFramework = zkTestingServer.createClient()
         val assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalanced)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
     }
 
@@ -180,7 +179,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
         val curatorFramework = zkTestingServer.createClient()
         var assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalanced)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
 
         destroyed.close()
@@ -190,7 +188,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 .until { readAssignedState(curatorFramework).size == 2 }
 
         assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalanced)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
     }
 
