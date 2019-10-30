@@ -4,6 +4,7 @@ import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -167,6 +168,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     @Test
+    @Disabled("It's hard to get moment, when 3 workers alive and last third worker already have assigned paths")
     @Throws(Exception::class)
     fun `start 3 workers and destroy one of them`() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())

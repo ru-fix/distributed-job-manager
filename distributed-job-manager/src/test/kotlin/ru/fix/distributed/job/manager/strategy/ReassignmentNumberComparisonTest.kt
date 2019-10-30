@@ -662,7 +662,7 @@ internal class ReassignmentNumberComparisonTest {
         }
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, AssignmentStrategies.EVENLY_SPREAD)
         rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, AssignmentStrategies.RENDEZVOUS)
-        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(1, evenlySpreadResults.reassignmentNumber)
         assertEquals(1, rendezvousResults.reassignmentNumber)
     }
 
