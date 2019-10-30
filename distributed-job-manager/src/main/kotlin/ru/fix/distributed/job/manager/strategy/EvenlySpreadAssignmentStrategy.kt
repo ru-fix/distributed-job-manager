@@ -40,12 +40,6 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
                 val itemToMove = currentAssignment.getWorkItems(mostBusyWorker, jobId).last()
                 currentAssignment.moveWorkItem(itemToMove, mostBusyWorker, lessBusyWorker)
             }
-            while (!currentAssignment.isBalanced(availableWorkers)) {
-                val mostBusyWorker = currentAssignment.getMostBusyWorker(availableWorkers)
-                val lessBusyWorker = currentAssignment.getLessBusyWorker(availableWorkers)
-                val itemToMove = currentAssignment.getWorkItems(mostBusyWorker, jobId).last()
-                currentAssignment.moveWorkItem(itemToMove, mostBusyWorker, lessBusyWorker)
-            }
         }
         return currentAssignment
     }

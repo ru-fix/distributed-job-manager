@@ -76,22 +76,29 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     /**
      * @param jobId            job name for filtering work items on worker
      * @param availableWorkers set of workers, that should be considered
-     * @return worker from availableWorkers, that have minimal work pool size of jobId
-     * or null, if assignment state or availableWorkers are empty
+     * @return worker from availableWorkers, that have
+     * minimal work pool size of jobId and minimal work pool size on worker
+     * or return null, if assignment state or availableWorkers are empty
      */
     @SuppressWarnings("unused")
     public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
         WorkerId localLessBusyWorker = null;
-        int minWorkPoolSize = Integer.MAX_VALUE;
+        int minLocalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
+        int minGlobalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             if (!availableWorkers.contains(worker.getKey())) {
                 continue;
             }
-            int workPoolSize = localPoolSize(jobId, worker.getKey());
-            if (workPoolSize <= minWorkPoolSize) {
-                minWorkPoolSize = workPoolSize;
-                localLessBusyWorker = worker.getKey();
+            int localWorkPoolSizeOnWorker = localPoolSize(jobId, worker.getKey());
+            int globalWorkPoolSizeOnWorker = worker.getValue().size();
+
+            if (localWorkPoolSizeOnWorker <= minLocalWorkPoolSizeOnWorker) {
+                if (globalWorkPoolSizeOnWorker <= minGlobalWorkPoolSizeOnWorker) {
+                    minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
+                    minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
+                    localLessBusyWorker = worker.getKey();
+                }
             }
         }
         return localLessBusyWorker;
