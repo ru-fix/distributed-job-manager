@@ -77,7 +77,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         this.workerId = workerId;
 
         this.workItemProlongationTask.schedule(
-                DynamicProperty.of(() -> Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS)),
+                DynamicProperty.of(Schedule.withDelay(DEFAULT_LOCK_PROLONGATION_INTERVAL_MS)),
                 0,
                 () -> jobWorkItemLocks.forEach((job, workItemLocks) ->
                         workItemLocks.forEach((workItem, lock) -> {
