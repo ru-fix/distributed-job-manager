@@ -377,7 +377,7 @@ class Worker implements AutoCloseable {
                     if (!isWorkerShutdown) {
                         ScheduledFuture<?> scheduledFuture =
                                 jobReschedulableScheduler.schedule(
-                                        DynamicProperty.delegated(newMultiJob::getSchedule),
+                                        newMultiJob.getSchedule(),
                                         newMultiJob.getInitialJobDelay(),
                                         jobExecutionWrapper);
                         jobExecutionWrapper.setScheduledFuture(scheduledFuture);
