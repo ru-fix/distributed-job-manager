@@ -59,8 +59,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         }
 
         @Override
-        public Schedule getSchedule() {
-            return Schedule.withDelay(100L);
+        public DynamicProperty<Schedule> getSchedule() {
+            return Schedule.withDelay(DynamicProperty.of(100L));
         }
 
         @Override

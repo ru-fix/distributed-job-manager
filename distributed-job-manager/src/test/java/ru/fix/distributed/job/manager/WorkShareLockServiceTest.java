@@ -5,6 +5,7 @@ import org.apache.curator.framework.listen.ListenerManager;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 import java.util.Collections;
@@ -88,8 +89,8 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
          * @return delay between job invocation
          */
         @Override
-        public Schedule getSchedule() {
-            return Schedule.withDelay(TimeUnit.SECONDS.toMillis(1));
+        public DynamicProperty<Schedule> getSchedule() {
+            return Schedule.withDelay(DynamicProperty.of(TimeUnit.SECONDS.toMillis(1)));
         }
 
         /**
