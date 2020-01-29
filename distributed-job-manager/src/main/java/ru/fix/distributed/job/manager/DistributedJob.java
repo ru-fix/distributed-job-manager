@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 /**
@@ -15,7 +16,7 @@ public interface DistributedJob {
     /**
      * @return delay between job invocation
      */
-    Schedule getSchedule();
+    DynamicProperty<Schedule> getSchedule();
 
     /**
      * Method will be invoked on one of cluster machines
@@ -26,7 +27,7 @@ public interface DistributedJob {
      * @return delay of job launching after server startup
      */
     default long getInitialJobDelay() {
-        return getSchedule().getValue();
+        return getSchedule().get().getValue();
     }
 
     /**

@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
 import java.util.Collections;
@@ -69,8 +70,8 @@ class StubbedMultiJob implements DistributedJob {
     }
 
     @Override
-    public Schedule getSchedule() {
-        return Schedule.withDelay(delay);
+    public DynamicProperty<Schedule> getSchedule() {
+        return Schedule.withDelay(DynamicProperty.of(delay));
     }
 
     @Override

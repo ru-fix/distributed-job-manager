@@ -19,7 +19,7 @@ class RebillJob : DistributedJob {
         return "rebill-job"
     }
 
-    override fun getSchedule(): Schedule? {
+    override fun getSchedule(): DynamicProperty<Schedule>? {
         return null
     }
 
@@ -43,7 +43,7 @@ class SmsJob : DistributedJob {
         return "sms-job"
     }
 
-    override fun getSchedule(): Schedule? {
+    override fun getSchedule(): DynamicProperty<Schedule>? {
         return null
     }
 
@@ -67,7 +67,7 @@ class UssdJob : DistributedJob {
         return "ussd-job"
     }
 
-    override fun getSchedule(): Schedule? {
+    override fun getSchedule(): DynamicProperty<Schedule>? {
         return null
     }
 
@@ -185,7 +185,7 @@ class CustomAssignmentStrategy : AssignmentStrategy {
 }
 
 fun main() {
-    val djm = DistributedJobManager(
+    DistributedJobManager(
             "my-app-instance-1", // node id
             CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
             "zk/root/path",
