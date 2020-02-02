@@ -26,12 +26,12 @@ import java.util.Collection;
  * starts local Worker so Node can work as worker and as a manager.
  * <br>
  * Every worker provide unique id and register as child node at /workers <br>
- * Every worker register available jobs classes that it can run in /workers/worker-id/available/work-pooled/job-id <br>
+ * Every worker register available jobs classes that it can run in /workers/worker-id/available/job-id <br>
  * All workers should register same SchedulableJobs.
- * Avery worker listen to /workers/id/assigned/work-pooled. New schedulable job will be added there by Manager. <br>
- * When new assigned job appears, worker acquire lock /jobs/work-pooled/job-id.lock and start launching it with given
+ * Avery worker listen to /workers/id/assigned. New schedulable job will be added there by Manager. <br>
+ * When new assigned job appears, worker acquire lock /jobs/job-id.lock and start launching it with given
  * delay.
- * When job disappears from worker assigned/work-pooled path, worker stop executing job and release job lock.
+ * When job disappears from worker /assigned path, worker stop executing job and release job lock.
  * </p>
  * <p>
  * ZK node tree managed by {@link DistributedJobManager} described in {@link JobManagerPaths}
