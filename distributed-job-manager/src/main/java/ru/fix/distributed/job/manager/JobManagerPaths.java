@@ -61,16 +61,16 @@ class JobManagerPaths {
         return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED);
     }
 
-    String getAssignedWorkPoolPath(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
-    }
-
     String getAssignedWorkPooledJobsPath(String workerId) {
         return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
     }
 
     String getAssignedWorkPooledJobsPath(String workerId, String jobId) {
         return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
+    }
+
+    String getAssignedWorkPoolPath(String workerId, String jobId) {
+        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
     String getAssignedWorkItemPath(String workerId, String jobId, String workItemId) {
