@@ -208,13 +208,12 @@ class Worker implements AutoCloseable {
 
                     // register work pooled jobs
                     for (DistributedJob job : availableJobs) {
-                        transaction.createPath(
-                                ZKPaths.makePath(paths.toAvailableJobs(workerId), job.getJobId()));
                         transaction.createPath(paths.toAvailableWorkItems(workerId, job.getJobId()));
 
                         for (String workPool : workPools.get(job).getItems()) {
                             transaction.createPath(
-                                    ZKPaths.makePath(paths.toAvailableWorkItems(workerId, job.getJobId()), workPool));
+                                    paths.toAvailableWorkItem(workerId, job.getJobId(), workPool)
+                            );
                         }
                     }
                 }
