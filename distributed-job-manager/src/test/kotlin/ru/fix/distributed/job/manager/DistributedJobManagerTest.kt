@@ -93,7 +93,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithEvenlySpread("worker-1", listOf(distributedJobs()[1]))
         createDjmWithEvenlySpread("worker-2", listOf(distributedJobs()[2]))
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
         val assignedState = readAssignedState(zkTestingServer.createClient())
@@ -108,11 +108,11 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                paths.toAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1")
         ))
         createDjmWithEvenlySpread("worker-2", distributedJobs())
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
         ))
 
         val curatorFramework = zkTestingServer.createClient()
@@ -127,7 +127,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-1", listOf(distributedJobs()[1]))
         createDjmWithRendezvous("worker-2", listOf(distributedJobs()[2]))
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
         val curatorFramework = zkTestingServer.createClient()
@@ -144,21 +144,21 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-1", distributedJobs())
         createDjmWithRendezvous("worker-2", distributedJobs())
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
         ))
 
         val nodes = listOf(
-                paths.getAssignedWorkItemPath("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-                paths.getAssignedWorkItemPath("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.getAssignedWorkItemPath("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                paths.toAssignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                paths.toAssignedWorkItem("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
+                paths.toAssignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
 
-                paths.getAssignedWorkItemPath("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
-                paths.getAssignedWorkItemPath("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.getAssignedWorkItemPath("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                paths.toAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+                paths.toAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                paths.toAssignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
 
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
-                paths.getAssignedWorkItemPath("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                paths.toAssignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
         )
 
         val curator = zkTestingServer.createClient()
@@ -245,7 +245,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjm("worker-2", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
         createDjm("worker-3", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
         awaitPathInit(listOf(
-                paths.getAssignedWorkItemPath("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
+                paths.toAssignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
         ))
 
         val curatorFramework = zkTestingServer.createClient()
@@ -268,7 +268,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private fun workersAlive(vararg workers: String): Boolean {
         val curator = zkTestingServer.createClient()
         workers.forEach {
-            val path = JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH).getWorkerAliveFlagPath(it)
+            val path = JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH).toAliveWorker(it)
             if (curator.checkExists().forPath(path) == null) {
                 return false
             }
@@ -309,20 +309,20 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private fun readAvailableState(curatorFramework: CuratorFramework): AssignmentState {
         val availableState = AssignmentState()
         val workersRoots = curatorFramework.children
-                .forPath(paths.workersPath)
+                .forPath(paths.toAllWorkers())
 
         for (worker in workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.getWorkerAliveFlagPath(worker)) == null) {
+            if (curatorFramework.checkExists().forPath(paths.toAliveWorker(worker)) == null) {
                 continue
             }
 
             val availableJobIds = curatorFramework.children
-                    .forPath(paths.getAvailableWorkPooledJobPath(worker))
+                    .forPath(paths.toAvailableJobs(worker))
 
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
-                        .forPath(paths.getAvailableWorkPoolPath(worker, availableJobId))
+                        .forPath(paths.toAvailableWorkItems(worker, availableJobId))
 
                 for (workItem in workItemsForAvailableJobList) {
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))
@@ -336,16 +336,16 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private fun readAssignedState(curatorFramework: CuratorFramework): AssignmentState {
         val assignedState = AssignmentState()
 
-        val workersRoots = curatorFramework.children.forPath(paths.workersPath)
+        val workersRoots = curatorFramework.children.forPath(paths.toAllWorkers())
 
         for (worker in workersRoots) {
             val assignedJobIds = curatorFramework.children
-                    .forPath(paths.getAssignedWorkPooledJobsPath(worker))
+                    .forPath(paths.toAssignedJobs(worker))
 
             val assignedWorkPool = HashSet<WorkItem>()
             for (assignedJobId in assignedJobIds) {
                 val assignedJobWorkItems = curatorFramework.children
-                        .forPath(paths.getAssignedWorkPoolPath(worker, assignedJobId))
+                        .forPath(paths.toAssignedWorkItems(worker, assignedJobId))
 
                 for (workItem in assignedJobWorkItems) {
                     assignedWorkPool.add(WorkItem(workItem, JobId(assignedJobId)))

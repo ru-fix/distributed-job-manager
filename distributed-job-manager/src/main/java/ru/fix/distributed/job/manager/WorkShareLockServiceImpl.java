@@ -99,7 +99,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
 
         PersistentExpiringDistributedLock lock;
         try {
-            String lockPath = jobManagerPaths.getWorkItemLock(job.getJobId(), workItem);
+            String lockPath = jobManagerPaths.toWorkItemLock(job.getJobId(), workItem);
             lock = new PersistentExpiringDistributedLock(
                     curatorFramework,
                     persistenLockExecutor,
