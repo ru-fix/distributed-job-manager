@@ -19,63 +19,69 @@ class JobManagerPaths {
     }
 
     public String toAliveWorkers() {
-        return ZKPaths.makePath(rootPath, ALIVE);
+        return path(ALIVE);
     }
 
     String toAliveWorker(String workerId) {
-        return ZKPaths.makePath(rootPath, ALIVE, workerId);
+        return path(ALIVE, workerId);
     }
 
     String toAssignmentVersion() {
-        return ZKPaths.makePath(rootPath, ASSIGNMENT_VERSION);
+        return path(ASSIGNMENT_VERSION);
     }
 
     String toLeaderLatch() {
-        return ZKPaths.makePath(rootPath, LEADER_LATCH);
+        return path(LEADER_LATCH);
     }
 
     String toLocks() {
-        return ZKPaths.makePath(rootPath, LOCKS);
+        return path(LOCKS);
     }
 
     String toWorkItemLock(String jobId, String workItem) {
-        return ZKPaths.makePath(rootPath, LOCKS, jobId, String.format("work-share-%s.lock", workItem));
+        return path(LOCKS, jobId, String.format("work-share-%s.lock", workItem));
     }
 
     String toRegistrationVersion() {
-        return ZKPaths.makePath(rootPath, REGISTRATION_VERSION);
+        return path(REGISTRATION_VERSION);
     }
 
     String toAllWorkers() {
-        return ZKPaths.makePath(rootPath, WORKERS);
+        return path(WORKERS);
     }
 
     String toWorker(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId);
+        return path(WORKERS, workerId);
     }
 
     String toAssignedJobs(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED);
+        return path(WORKERS, workerId, ASSIGNED);
     }
 
     String toAssignedWorkItems(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, jobId);
+        return path(WORKERS, workerId, ASSIGNED, jobId);
     }
 
     String toAssignedWorkItem(String workerId, String jobId, String workItemId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, jobId, workItemId);
+        return path(WORKERS, workerId, ASSIGNED, jobId, workItemId);
     }
 
     String toAvailableJobs(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE);
+        return path(WORKERS, workerId, AVAILABLE);
     }
 
     String toAvailableWorkItems(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE, jobId);
+        return path(WORKERS, workerId, AVAILABLE, jobId);
     }
 
     String toAvailableWorkItem(String workerId, String jobId, String workItemId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE, jobId, workItemId);
+        return path(WORKERS, workerId, AVAILABLE, jobId, workItemId);
     }
 
+    private String path(String firstChild) {
+        return ZKPaths.makePath(rootPath, firstChild);
+    }
+    private String path(String firstChild, String... restChildren) {
+        return ZKPaths.makePath(rootPath, firstChild, restChildren);
+    }
 }
