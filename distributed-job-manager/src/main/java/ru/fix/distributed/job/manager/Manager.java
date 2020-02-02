@@ -5,7 +5,6 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
-import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,21 +211,15 @@ class Manager implements AutoCloseable {
                 continue;
             }
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
-                createIfNotExist(transaction, paths.toAssignedWorkPool(
-                        workerId.getId(), job.getKey().getId())
-                );
                 createIfNotExist(transaction, paths.toAssignedWorkItems(
                         workerId.getId(), job.getKey().getId())
                 );
 
                 for (WorkItem workItem : job.getValue()) {
                     if (!previousState.containsWorkItemOnWorker(workerId, workItem)) {
-                        String newPath = ZKPaths.makePath(
-                                paths.toAssignedWorkPool(workerId.getId(), job.getKey().getId()),
-                                JobManagerPaths.WORK_POOL,
-                                workItem.getId()
+                        transaction.createPath(paths.toAssignedWorkItem(
+                                workerId.getId(), job.getKey().getId(), workItem.getId())
                         );
-                        transaction.createPath(newPath);
                     }
                 }
             }
@@ -239,12 +232,9 @@ class Manager implements AutoCloseable {
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
                 for (WorkItem workItem : job.getValue()) {
                     if (!newAssignmentState.containsWorkItemOnWorker(workerId, workItem)) {
-                        String newPath = ZKPaths.makePath(
-                                paths.toAssignedWorkPool(workerId.getId(), job.getKey().getId()),
-                                JobManagerPaths.WORK_POOL,
-                                workItem.getId()
+                        transaction.deletePathWithChildrenIfNeeded(paths.toAssignedWorkItem(
+                                workerId.getId(), job.getKey().getId(), workItem.getId())
                         );
-                        transaction.deletePathWithChildrenIfNeeded(newPath);
                     }
                 }
             }
