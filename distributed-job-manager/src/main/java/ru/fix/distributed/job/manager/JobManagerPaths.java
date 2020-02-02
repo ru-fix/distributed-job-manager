@@ -37,12 +37,11 @@ class JobManagerPaths {
     }
 
     String toLocks() {
-        return ZKPaths.makePath(rootPath, LOCKS, WORK_POOLED_JOB_ID);
+        return ZKPaths.makePath(rootPath, LOCKS);
     }
 
     String toWorkItemLock(String jobId, String workItem) {
-        return ZKPaths.makePath(rootPath, LOCKS, WORK_POOLED_JOB_ID, jobId,
-                String.format("work-share-%s.lock", workItem));
+        return ZKPaths.makePath(rootPath, LOCKS, jobId, String.format("work-share-%s.lock", workItem));
     }
 
     String toRegistrationVersion() {
