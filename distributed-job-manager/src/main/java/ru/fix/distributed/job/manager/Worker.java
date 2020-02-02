@@ -203,9 +203,7 @@ class Worker implements AutoCloseable {
 
                     // create availability and assignments directories
                     transaction.createPath(paths.toWorker(workerId));
-                    transaction.createPath(paths.toAvailableWorkPool(workerId));
                     transaction.createPath(paths.toAvailableJobs(workerId));
-                    transaction.createPath(paths.toAssignedWorkPool(workerId));
                     transaction.createPath(paths.toAssignedJobs(workerId));
 
                     // register work pooled jobs
