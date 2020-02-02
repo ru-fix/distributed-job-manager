@@ -21,76 +21,82 @@ class JobManagerPaths {
     }
 
     public String getWorkersAlivePath() {
-        return ZKPaths.makePath(rootPath, ALIVE);
+        return path(ALIVE);
     }
 
     String getWorkerAliveFlagPath(String workerId) {
-        return ZKPaths.makePath(rootPath, ALIVE, workerId);
+        return path(ALIVE, workerId);
     }
 
     String getAssignmentVersion() {
-        return ZKPaths.makePath(rootPath, ASSIGNMENT_VERSION);
+        return path(ASSIGNMENT_VERSION);
     }
 
     String getLeaderLatchPath() {
-        return ZKPaths.makePath(rootPath, LEADER_LATCH);
+        return path(LEADER_LATCH);
     }
 
     String getWorkPooledLocksPath() {
-        return ZKPaths.makePath(rootPath, LOCKS, WORK_POOLED_JOB_ID);
+        return path(LOCKS, WORK_POOLED_JOB_ID);
     }
 
     String getWorkItemLock(String jobId, String workItem) {
-        return ZKPaths.makePath(rootPath, LOCKS, WORK_POOLED_JOB_ID, jobId,
+        return path(LOCKS, WORK_POOLED_JOB_ID, jobId,
                 String.format("work-share-%s.lock", workItem));
     }
 
     String getRegistrationVersion() {
-        return ZKPaths.makePath(rootPath, REGISTRATION_VERSION);
+        return path(REGISTRATION_VERSION);
     }
 
     String getWorkersPath() {
-        return ZKPaths.makePath(rootPath, WORKERS);
+        return path(WORKERS);
     }
 
     String getWorkerPath(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId);
+        return path(WORKERS, workerId);
     }
 
     String getWorkerAssignedJobsPath(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED);
+        return path(WORKERS, workerId, ASSIGNED);
     }
 
     String getAssignedWorkPooledJobsPath(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
+        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
     }
 
     String getAssignedWorkPooledJobsPath(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
+        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
     }
 
     String getAssignedWorkPoolPath(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
+        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
     String getAssignedWorkItemPath(String workerId, String jobId, String workItemId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
+        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
     }
 
     String getWorkerAvailableJobsPath(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE);
+        return path(WORKERS, workerId, AVAILABLE);
     }
 
     String getAvailableWorkPooledJobPath(String workerId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID);
+        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID);
     }
 
     String getAvailableWorkPoolPath(String workerId, String jobId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
+        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
     String getAvailableWorkItemPath(String workerId, String jobId, String workItemId) {
-        return ZKPaths.makePath(rootPath, WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
+        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
     }
 
+    private String path(String firstChild) {
+        return ZKPaths.makePath(rootPath, firstChild);
+    }
+    private String path(String firstChild, String... restChildren) {
+        return ZKPaths.makePath(rootPath, firstChild, restChildren);
+    }
 }
