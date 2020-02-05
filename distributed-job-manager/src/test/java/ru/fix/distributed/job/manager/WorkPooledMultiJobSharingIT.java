@@ -72,5 +72,11 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         public void run(DistributedJobContext context) {
             monitor.check(context.getWorkShare());
         }
+
+        @Override
+        public long getWorkPoolCheckPeriod() {
+            return 0;
+        }
+
     }
 }

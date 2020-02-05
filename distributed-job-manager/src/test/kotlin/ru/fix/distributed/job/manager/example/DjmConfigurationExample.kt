@@ -35,6 +35,10 @@ class RebillJob : DistributedJob {
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
     }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
+    }
     //...
 }
 
@@ -59,6 +63,10 @@ class SmsJob : DistributedJob {
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
     }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
+    }
     // ...
 }
 
@@ -82,6 +90,10 @@ class UssdJob : DistributedJob {
 
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
+    }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
     }
 }
 

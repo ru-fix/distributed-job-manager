@@ -118,6 +118,11 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
             return WorkPoolRunningStrategies.getSingleThreadStrategy();
         }
 
+        @Override
+        public long getWorkPoolCheckPeriod() {
+            return 0;
+        }
+
     }
 
 }
