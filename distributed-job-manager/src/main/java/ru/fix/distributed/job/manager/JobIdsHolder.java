@@ -1,7 +1,5 @@
 package ru.fix.distributed.job.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.annotation.JobIdField;
 
 import java.lang.reflect.Field;
@@ -11,7 +9,6 @@ import java.util.stream.Collectors;
 
 class JobIdsHolder {
     private JobIdsHolder(){}
-    private static final Logger log = LoggerFactory.getLogger(JobIdsHolder.class);
 
     private static Map<DistributedJob, String> jobIds;
 
