@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.utils.ZKPaths;
 
-class JobManagerPaths {
+class ZkPathsManager {
     private static final String ALIVE = "alive";
     private static final String ASSIGNMENT_VERSION = "assignment-version";
     private static final String LEADER_LATCH = "leader-latch";
@@ -16,7 +16,7 @@ class JobManagerPaths {
 
     final String rootPath;
 
-    JobManagerPaths(String rootPath) {
+    ZkPathsManager(String rootPath) {
         this.rootPath = rootPath;
     }
 

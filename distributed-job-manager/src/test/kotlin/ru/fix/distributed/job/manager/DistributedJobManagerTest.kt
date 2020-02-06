@@ -268,7 +268,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private fun workersAlive(vararg workers: String): Boolean {
         val curator = zkTestingServer.createClient()
         workers.forEach {
-            val path = JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH).toAliveWorker(it)
+            val path = ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH).toAliveWorker(it)
             if (curator.checkExists().forPath(path) == null) {
                 return false
             }

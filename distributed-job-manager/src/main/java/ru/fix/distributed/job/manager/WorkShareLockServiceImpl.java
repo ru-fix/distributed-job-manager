@@ -31,7 +31,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
 
 
     final CuratorFramework curatorFramework;
-    final JobManagerPaths jobManagerPaths;
+    final ZkPathsManager zkPathsManager;
     final String workerId;
     final ExecutorService persistenLockExecutor;
 
@@ -64,7 +64,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
     final Map<DistributedJob, Map<String, WorkItemLock>> jobWorkItemLocks = new ConcurrentHashMap<>();
 
     public WorkShareLockServiceImpl(CuratorFramework curatorFramework,
-                                    JobManagerPaths jobManagerPaths,
+                                    ZkPathsManager zkPathsManager,
                                     String workerId,
                                     Profiler profiler) {
 
@@ -73,7 +73,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         persistenLockExecutor = NamedExecutors.newSingleThreadPool(
                 "djm-work-item-persistent-lock-executor", profiler);
         this.curatorFramework = curatorFramework;
-        this.jobManagerPaths = jobManagerPaths;
+        this.zkPathsManager = zkPathsManager;
         this.workerId = workerId;
 
         this.workItemProlongationTask.schedule(
@@ -99,7 +99,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
 
         PersistentExpiringDistributedLock lock;
         try {
-            String lockPath = jobManagerPaths.toWorkItemLock(job.getJobId(), workItem);
+            String lockPath = zkPathsManager.toWorkItemLock(job.getJobId(), workItem);
             lock = new PersistentExpiringDistributedLock(
                     curatorFramework,
                     persistenLockExecutor,

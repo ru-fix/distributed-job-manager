@@ -5,7 +5,6 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
-import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,7 @@ class Manager implements AutoCloseable {
     private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 3;
 
     private final CuratorFramework curatorFramework;
-    private final JobManagerPaths paths;
+    private final ZkPathsManager paths;
     private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
@@ -52,7 +51,7 @@ class Manager implements AutoCloseable {
     ) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
-        this.paths = new JobManagerPaths(rootPath);
+        this.paths = new ZkPathsManager(rootPath);
         this.assignmentStrategy = assignmentStrategy;
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(

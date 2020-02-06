@@ -34,7 +34,7 @@ import java.util.Collection;
  * When job disappears from worker assigned/work-pooled path, worker stop executing job and release job lock.
  * </p>
  * <p>
- * ZK node tree managed by {@link DistributedJobManager} described in {@link JobManagerPaths}
+ * ZK node tree managed by {@link DistributedJobManager} described in {@link ZkPathsManager}
  * <pre>
  *
  * @author Kamil Asfandiyarov
@@ -117,7 +117,7 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
-        JobManagerPaths paths = new JobManagerPaths(rootPath);
+        ZkPathsManager paths = new ZkPathsManager(rootPath);
         if (curatorFramework.checkExists().forPath(paths.toAllWorkers()) == null) {
             curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toAllWorkers());
         }

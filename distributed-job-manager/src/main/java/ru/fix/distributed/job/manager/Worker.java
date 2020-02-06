@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * accordingly.
  *
  * @author Kamil Asfandiyarov
- * @see JobManagerPaths
+ * @see ZkPathsManager
  * @see Manager
  */
 class Worker implements AutoCloseable {
@@ -46,7 +46,7 @@ class Worker implements AutoCloseable {
     private final Collection<DistributedJob> availableJobs;
     private final ScheduledJobManager scheduledJobManager = new ScheduledJobManager();
 
-    private final JobManagerPaths paths;
+    private final ZkPathsManager paths;
     private final String workerId;
     private volatile TreeCache workPooledCache;
 
@@ -73,7 +73,7 @@ class Worker implements AutoCloseable {
            Profiler profiler,
            DynamicProperty<Long> timeToWaitTermination) {
         this.curatorFramework = curatorFramework;
-        this.paths = new JobManagerPaths(rootPath);
+        this.paths = new ZkPathsManager(rootPath);
         this.workerId = nodeId;
         this.availableJobs = distributedJobs;
 
