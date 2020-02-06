@@ -34,7 +34,7 @@ class Manager implements AutoCloseable {
     private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 3;
 
     private final CuratorFramework curatorFramework;
-    private final JobManagerPaths paths;
+    private final ZkPathsManager paths;
     private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
@@ -51,12 +51,12 @@ class Manager implements AutoCloseable {
     ) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
-        this.paths = new JobManagerPaths(rootPath);
+        this.paths = new ZkPathsManager(rootPath);
         this.assignmentStrategy = assignmentStrategy;
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
                 curatorFramework,
-                paths.toAliveWorkers(),
+                paths.aliveWorkers(),
                 false);
         this.nodeId = nodeId;
     }
@@ -94,7 +94,7 @@ class Manager implements AutoCloseable {
     }
 
     private LeaderLatch initLeaderLatch() {
-        LeaderLatch latch = new LeaderLatch(curatorFramework, paths.toLeaderLatch());
+        LeaderLatch latch = new LeaderLatch(curatorFramework, paths.leaderLatch());
         latch.addListener(new LeaderLatchListener() {
             @Override
             public void isLeader() {
@@ -136,7 +136,7 @@ class Manager implements AutoCloseable {
                     curatorFramework,
                     ASSIGNMENT_COMMIT_RETRIES_COUNT,
                     transaction -> {
-                        String assignmentVersionNode = paths.toAssignmentVersion();
+                        String assignmentVersionNode = paths.assignmentVersion();
 
                         int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
 
@@ -207,18 +207,18 @@ class Manager implements AutoCloseable {
             Map<JobId, List<WorkItem>> jobs = itemsToMap(worker.getValue());
 
             if (curatorFramework.checkExists()
-                    .forPath(paths.toAliveWorker(workerId.getId())) == null) {
+                    .forPath(paths.aliveWorker(workerId.getId())) == null) {
                 continue;
             }
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
-                createIfNotExist(transaction, paths.toAssignedWorkItems(
+                createIfNotExist(transaction, paths.assignedWorkItems(
                         workerId.getId(), job.getKey().getId())
                 );
 
                 for (WorkItem workItem : job.getValue()) {
                     if (!previousState.containsWorkItemOnWorker(workerId, workItem)) {
                         transaction.createPath(paths
-                                .toAssignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
+                                .assignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
@@ -232,7 +232,7 @@ class Manager implements AutoCloseable {
                 for (WorkItem workItem : job.getValue()) {
                     if (!newAssignmentState.containsWorkItemOnWorker(workerId, workItem)) {
                         transaction.deletePathWithChildrenIfNeeded(paths
-                                .toAssignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
+                                .assignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
@@ -246,16 +246,16 @@ class Manager implements AutoCloseable {
     }
 
     private void removeAssignmentsOnDeadNodes(TransactionalClient transaction) throws Exception {
-        List<String> workersRoots = curatorFramework.getChildren().forPath(paths.toAllWorkers());
+        List<String> workersRoots = curatorFramework.getChildren().forPath(paths.allWorkers());
 
         for (String worker : workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.toAliveWorker(worker)) != null) {
+            if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {
                 continue;
             }
             log.info("nodeId={} Remove dead worker {}", nodeId, worker);
 
             try {
-                transaction.deletePathWithChildrenIfNeeded(paths.toWorker(worker));
+                transaction.deletePathWithChildrenIfNeeded(paths.worker(worker));
             } catch (KeeperException.NoNodeException e) {
                 log.info("Node was already deleted", e);
             }
@@ -276,19 +276,19 @@ class Manager implements AutoCloseable {
         AssignmentState assignedState = new AssignmentState();
 
         List<String> workersRoots = curatorFramework.getChildren()
-                .forPath(paths.toAllWorkers());
+                .forPath(paths.allWorkers());
 
         for (String worker : workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.toAliveWorker(worker)) == null) {
+            if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) == null) {
                 continue;
             }
             List<String> assignedJobIds = curatorFramework.getChildren()
-                    .forPath(paths.toAssignedJobs(worker));
+                    .forPath(paths.assignedJobs(worker));
 
             HashSet<WorkItem> assignedWorkPool = new HashSet<>();
             for (String assignedJobId : assignedJobIds) {
                 List<String> assignedJobWorkItems = curatorFramework.getChildren()
-                        .forPath(paths.toAssignedWorkItems(worker, assignedJobId));
+                        .forPath(paths.assignedWorkItems(worker, assignedJobId));
 
                 for (String workItem : assignedJobWorkItems) {
                     assignedWorkPool.add(new WorkItem(workItem, new JobId(assignedJobId)));
@@ -298,17 +298,17 @@ class Manager implements AutoCloseable {
         }
 
         for (String worker : workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.toAliveWorker(worker)) == null) {
+            if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) == null) {
                 continue;
             }
 
             List<String> availableJobIds = curatorFramework.getChildren()
-                    .forPath(paths.toAvailableJobs(worker));
+                    .forPath(paths.availableJobs(worker));
 
             HashSet<WorkItem> availableWorkPool = new HashSet<>();
             for (String availableJobId : availableJobIds) {
                 List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
-                        .forPath(paths.toAvailableWorkItems(worker, availableJobId));
+                        .forPath(paths.availableWorkItems(worker, availableJobId));
 
                 for (String workItem : workItemsForAvailableJobList) {
                     availableWorkPool.add(new WorkItem(workItem, new JobId(availableJobId)));

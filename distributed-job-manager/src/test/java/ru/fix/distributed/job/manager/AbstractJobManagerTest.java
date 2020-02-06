@@ -25,7 +25,7 @@ public class AbstractJobManagerTest {
         zkTestingServer.start();
     }
 
-    JobManagerPaths paths = new JobManagerPaths(JOB_MANAGER_ZK_ROOT_PATH);
+    ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
     String printZkTree(String path) {
         return new ZkTreePrinter(zkTestingServer.getClient()).print(path);
