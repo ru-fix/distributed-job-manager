@@ -217,9 +217,8 @@ class Manager implements AutoCloseable {
 
                 for (WorkItem workItem : job.getValue()) {
                     if (!previousState.containsWorkItemOnWorker(workerId, workItem)) {
-                        transaction.createPath(paths.toAssignedWorkItem(
-                                workerId.getId(), job.getKey().getId(), workItem.getId())
-                        );
+                        transaction.createPath(paths
+                                .toAssignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
@@ -232,9 +231,8 @@ class Manager implements AutoCloseable {
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
                 for (WorkItem workItem : job.getValue()) {
                     if (!newAssignmentState.containsWorkItemOnWorker(workerId, workItem)) {
-                        transaction.deletePathWithChildrenIfNeeded(paths.toAssignedWorkItem(
-                                workerId.getId(), job.getKey().getId(), workItem.getId())
-                        );
+                        transaction.deletePathWithChildrenIfNeeded(paths
+                                .toAssignedWorkItem(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
