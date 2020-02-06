@@ -118,20 +118,20 @@ public class DistributedJobManager implements AutoCloseable {
 
     private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
         ZkPathsManager paths = new ZkPathsManager(rootPath);
-        if (curatorFramework.checkExists().forPath(paths.toAllWorkers()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toAllWorkers());
+        if (curatorFramework.checkExists().forPath(paths.allWorkers()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.allWorkers());
         }
-        if (curatorFramework.checkExists().forPath(paths.toAliveWorkers()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toAliveWorkers());
+        if (curatorFramework.checkExists().forPath(paths.aliveWorkers()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.aliveWorkers());
         }
-        if (curatorFramework.checkExists().forPath(paths.toRegistrationVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toRegistrationVersion());
+        if (curatorFramework.checkExists().forPath(paths.registrationVersion()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.registrationVersion());
         }
-        if (curatorFramework.checkExists().forPath(paths.toAssignmentVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toAssignmentVersion());
+        if (curatorFramework.checkExists().forPath(paths.assignmentVersion()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.assignmentVersion());
         }
-        if (curatorFramework.checkExists().forPath(paths.toLocks()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.toLocks());
+        if (curatorFramework.checkExists().forPath(paths.locks()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.locks());
         }
     }
 
