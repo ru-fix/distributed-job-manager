@@ -4,6 +4,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry.ExponentialBackoffRetry
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.*
+import ru.fix.distributed.job.manager.annotation.JobIdField
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
@@ -15,9 +16,8 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 class RebillJob : DistributedJob {
-    override fun getJobId(): String {
-        return "rebill-job"
-    }
+    @JobIdField
+    private val id = "rebill-job"
 
     override fun getSchedule(): DynamicProperty<Schedule>? {
         return null
@@ -39,9 +39,8 @@ class RebillJob : DistributedJob {
 }
 
 class SmsJob : DistributedJob {
-    override fun getJobId(): String {
-        return "sms-job"
-    }
+    @JobIdField
+    private val id = "sms-job"
 
     override fun getSchedule(): DynamicProperty<Schedule>? {
         return null
@@ -63,9 +62,8 @@ class SmsJob : DistributedJob {
 }
 
 class UssdJob : DistributedJob {
-    override fun getJobId(): String {
-        return "ussd-job"
-    }
+    @JobIdField
+    private val id = "ussd-job"
 
     override fun getSchedule(): DynamicProperty<Schedule>? {
         return null

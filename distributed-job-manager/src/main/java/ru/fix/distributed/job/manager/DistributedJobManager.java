@@ -77,6 +77,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
         initPaths(curatorFramework, rootPath);
+        JobIdsHolder.loadIds(distributedJobs);
 
         final Timespan managerInitTimespan = new Timespan().start();
         this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);

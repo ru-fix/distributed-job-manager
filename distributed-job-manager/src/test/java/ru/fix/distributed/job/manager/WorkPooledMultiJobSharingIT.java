@@ -3,6 +3,7 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.distributed.job.manager.annotation.JobIdField;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
@@ -42,6 +43,9 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     private class SingleThreadMultiJob implements DistributedJob {
 
+        @JobIdField
+        private final String id = "job-id";
+
         private final Set<String> workerPool;
 
         SingleThreadMultiJob(Set<String> workerPool) {
@@ -61,11 +65,6 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         @Override
         public DynamicProperty<Schedule> getSchedule() {
             return Schedule.withDelay(DynamicProperty.of(100L));
-        }
-
-        @Override
-        public String getJobId() {
-            return "job-id";
         }
 
         @Override

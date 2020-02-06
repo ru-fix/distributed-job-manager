@@ -10,8 +10,12 @@ public interface DistributedJob {
 
     /**
      * @return id of the job.
+     * @deprecated don't override it, use {@link ru.fix.distributed.job.manager.annotation.JobIdField} instead
      */
-    String getJobId();
+    @Deprecated(since = "1.3")
+    default String getJobId() {
+        return JobIdsHolder.getId(this);
+    }
 
     /**
      * @return delay between job invocation
