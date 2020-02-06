@@ -3,16 +3,16 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.utils.ZKPaths;
 
 class JobManagerPaths {
-    public static final String ALIVE = "alive";
-    public static final String ASSIGNMENT_VERSION = "assignment-version";
-    public static final String LEADER_LATCH = "leader-latch";
-    public static final String LOCKS = "locks";
-    public static final String REGISTRATION_VERSION = "registration-version";
-    public static final String WORKERS = "workers";
-    public static final String ASSIGNED = "assigned";
-    public static final String AVAILABLE = "available";
-    public static final String WORK_POOLED_JOB_ID = "work-pooled";
-    public static final String WORK_POOL = "work-pool";
+    private static final String ALIVE = "alive";
+    private static final String ASSIGNMENT_VERSION = "assignment-version";
+    private static final String LEADER_LATCH = "leader-latch";
+    private static final String LOCKS = "locks";
+    private static final String REGISTRATION_VERSION = "registration-version";
+    private static final String WORKERS = "workers";
+    private static final String ASSIGNED = "assigned";
+    private static final String AVAILABLE = "available";
+    private static final String WORK_POOLED_JOB_ID = "work-pooled";
+    private static final String WORK_POOL = "work-pool";
 
     final String rootPath;
 
