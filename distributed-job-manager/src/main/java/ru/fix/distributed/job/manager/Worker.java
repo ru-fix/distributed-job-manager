@@ -208,7 +208,7 @@ class Worker implements AutoCloseable {
 
                     // register work pooled jobs
                     for (DistributedJob job : availableJobs) {
-                        transaction.createPath(paths.availableWorkItems(workerId, job.getJobId()));
+                        transaction.createPath(paths.availableWorkPool(workerId, job.getJobId()));
 
                         for (String workPool : workPools.get(job).getItems()) {
                             transaction.createPath(
@@ -243,7 +243,7 @@ class Worker implements AutoCloseable {
 
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
         try {
-            String workPoolsPath = paths.availableWorkItems(workerId, job.getJobId());
+            String workPoolsPath = paths.availableWorkPool(workerId, job.getJobId());
             String workerAliveFlagPath = paths.aliveWorker(workerId);
 
             TransactionalClient.tryCommit(
@@ -400,7 +400,7 @@ class Worker implements AutoCloseable {
     private List<String> getWorkerWorkPool(DistributedJob job) throws Exception {
         try {
             return curatorFramework.getChildren()
-                    .forPath(paths.assignedWorkItems(workerId, job.getJobId()));
+                    .forPath(paths.assignedWorkPool(workerId, job.getJobId()));
         } catch (KeeperException.NoNodeException e) {
             log.trace("Received event when NoNode for work pool path {}", e, e);
             return Collections.emptyList();
