@@ -322,7 +322,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
-                        .forPath(paths.availableWorkPool(worker, availableJobId))
+                        .forPath(paths.availableWorkPool(availableJobId))
 
                 for (workItem in workItemsForAvailableJobList) {
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))

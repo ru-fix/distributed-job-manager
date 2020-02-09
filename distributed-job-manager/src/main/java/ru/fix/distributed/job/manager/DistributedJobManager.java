@@ -76,7 +76,7 @@ public class DistributedJobManager implements AutoCloseable {
         final Timespan djmInitTimespan = new Timespan().start();
 
         log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
-        initPaths(curatorFramework, rootPath);
+        initPaths(curatorFramework, rootPath, distributedJobs);
 
         final Timespan managerInitTimespan = new Timespan().start();
         this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);
@@ -116,22 +116,21 @@ public class DistributedJobManager implements AutoCloseable {
                 workerStartTimespan.getTimespan());
     }
 
-    private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
+    private static void initPaths(CuratorFramework curatorFramework, String rootPath, Collection<DistributedJob> distributedJobs) throws Exception {
         ZkPathsManager paths = new ZkPathsManager(rootPath);
-        if (curatorFramework.checkExists().forPath(paths.allWorkers()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.allWorkers());
+        createIfNeeded(curatorFramework, paths.allWorkers());
+        createIfNeeded(curatorFramework, paths.aliveWorkers());
+        createIfNeeded(curatorFramework, paths.registrationVersion());
+        createIfNeeded(curatorFramework, paths.assignmentVersion());
+        createIfNeeded(curatorFramework, paths.locks());
+        createIfNeeded(curatorFramework, paths.availableWorkPool());
+        for (DistributedJob distributedJob : distributedJobs) {
+            createIfNeeded(curatorFramework, paths.availableWorkPool(distributedJob.getJobId()));
         }
-        if (curatorFramework.checkExists().forPath(paths.aliveWorkers()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.aliveWorkers());
-        }
-        if (curatorFramework.checkExists().forPath(paths.registrationVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.registrationVersion());
-        }
-        if (curatorFramework.checkExists().forPath(paths.assignmentVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.assignmentVersion());
-        }
-        if (curatorFramework.checkExists().forPath(paths.locks()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.locks());
+    }
+    private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(path);
         }
     }
 

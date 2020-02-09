@@ -11,6 +11,7 @@ class ZkPathsManager {
     private static final String WORKERS = "workers";
     private static final String ASSIGNED = "assigned";
     private static final String AVAILABLE = "available";
+    private static final String WORK_POOL = "work-pool";
 
     final String rootPath;
 
@@ -70,12 +71,20 @@ class ZkPathsManager {
         return path(WORKERS, workerId, AVAILABLE);
     }
 
-    String availableWorkPool(String workerId, String jobId) {
+    String availableJob(String workerId, String jobId) {
         return path(WORKERS, workerId, AVAILABLE, jobId);
     }
 
-    String availableWorkItem(String workerId, String jobId, String workItemId) {
-        return path(WORKERS, workerId, AVAILABLE, jobId, workItemId);
+    String availableWorkPool(){
+        return path(WORK_POOL);
+    }
+
+    String availableWorkPool(String jobId){
+        return path(WORK_POOL, jobId);
+    }
+
+    String availableWorkItem(String jobId, String workItemId) {
+        return path(WORK_POOL, jobId, workItemId);
     }
 
     private String path(String firstChild) {

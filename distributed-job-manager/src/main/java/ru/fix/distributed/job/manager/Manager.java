@@ -308,7 +308,7 @@ class Manager implements AutoCloseable {
             HashSet<WorkItem> availableWorkPool = new HashSet<>();
             for (String availableJobId : availableJobIds) {
                 List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
-                        .forPath(paths.availableWorkPool(worker, availableJobId));
+                        .forPath(paths.availableWorkPool(availableJobId));
 
                 for (String workItem : workItemsForAvailableJobList) {
                     availableWorkPool.add(new WorkItem(workItem, new JobId(availableJobId)));

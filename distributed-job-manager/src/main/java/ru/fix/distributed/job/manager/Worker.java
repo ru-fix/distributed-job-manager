@@ -3,7 +3,6 @@ package ru.fix.distributed.job.manager;
 import com.google.common.collect.Lists;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.TreeCache;
-import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -208,13 +207,11 @@ class Worker implements AutoCloseable {
 
                     // register work pooled jobs
                     for (DistributedJob job : availableJobs) {
-                        transaction.createPath(paths.availableWorkPool(workerId, job.getJobId()));
-
-                        for (String workPool : workPools.get(job).getItems()) {
-                            transaction.createPath(
-                                    paths.availableWorkItem(workerId, job.getJobId(), workPool)
-                            );
-                        }
+                        transaction.createPath(paths.availableJob(workerId, job.getJobId()));
+                        String workPoolsPath = paths.availableWorkPool(job.getJobId());
+                        Set<String> newWorkPool = workPools.get(job).getItems();
+                        Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
+                        mergeWorkPoolsForJob(newWorkPool, currentWorkPools, job.getJobId(), transaction);
                     }
                 }
         );
@@ -241,9 +238,43 @@ class Worker implements AutoCloseable {
         workPooledCache.start();
     }
 
+    private boolean mergeWorkPoolsForJob(
+            Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
+    ) throws Exception {
+        if (!currentWorkPool.equals(newWorkPool)) {
+            log.info("wid={} updateWorkPoolForJob update for jobId={} from {} to {}",
+                    workerId,
+                    jobId,
+                    currentWorkPool,
+                    newWorkPool);
+
+            Set<String> workPoolsToDelete = new HashSet<>(currentWorkPool);
+            workPoolsToDelete.removeAll(newWorkPool);
+            for (String workItemToDelete : workPoolsToDelete) {
+                transaction.deletePath(paths.availableWorkItem(jobId, workItemToDelete));
+            }
+
+            // create new work pools
+            Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
+            workPoolsToAdd.removeAll(currentWorkPool);
+            for (String workItemToAdd : workPoolsToAdd) {
+                transaction.createPath(paths.availableWorkItem(jobId, workItemToAdd));
+            }
+            return true;
+        } else {
+            log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
+                    workerId,
+                    jobId,
+                    newWorkPool);
+            return false;
+        }
+    }
+
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
         try {
-            String workPoolsPath = paths.availableWorkPool(workerId, job.getJobId());
+            String jobId = job.getJobId();
+            String workPoolsPath = paths.availableWorkPool(jobId);
+            String availableJobPath = paths.availableJob(workerId, jobId);
             String workerAliveFlagPath = paths.aliveWorker(workerId);
 
             TransactionalClient.tryCommit(
@@ -251,38 +282,17 @@ class Worker implements AutoCloseable {
                     WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
                         boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
+                        boolean availableJobPathExists = null != transaction.checkPath(availableJobPath);
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
 
-                        if (workPoolsPathExists && workerAliveFlagPathExists) {
+                        if (workPoolsPathExists && availableJobPathExists && workerAliveFlagPathExists) {
                             Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
-                            if (!currentWorkPools.equals(newWorkPool)) {
-                                log.info("wid={} updateWorkPoolForJob update for jobId={} from {} to {}",
-                                        workerId,
-                                        job.getJobId(),
-                                        currentWorkPools,
-                                        newWorkPool);
+                            boolean workPoolUpdated
+                                    = mergeWorkPoolsForJob(newWorkPool, currentWorkPools, jobId, transaction);
 
+                            if(workPoolUpdated){
                                 transaction.setData(paths.aliveWorker(workerId),
                                         curatorFramework.getData().forPath(workerAliveFlagPath));
-
-                                Set<String> workPoolsToDelete = new HashSet<>(currentWorkPools);
-                                workPoolsToDelete.removeAll(newWorkPool);
-                                for (String workPoolToDelete : workPoolsToDelete) {
-                                    transaction.deletePath(ZKPaths.makePath(workPoolsPath, workPoolToDelete));
-                                }
-
-                                // create new work pools
-                                Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
-                                workPoolsToAdd.removeAll(currentWorkPools);
-                                for (String workPoolToAdd : workPoolsToAdd) {
-                                    transaction.createPath(ZKPaths.makePath(workPoolsPath, workPoolToAdd));
-                                }
-
-                            } else {
-                                log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
-                                        workerId,
-                                        job.getJobId(),
-                                        newWorkPool);
                             }
                         } else {
                             log.warn("Received work pool update before worker registration," +
