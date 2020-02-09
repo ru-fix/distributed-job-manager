@@ -65,11 +65,11 @@ class ZkPathsManager {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
     }
 
-    String assignedWorkPool(String workerId, String jobId) {
+    String assignedJob(String workerId, String jobId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
     }
 
-    String assignedWorkItems(String workerId, String jobId) {
+    String assignedWorkPool(String workerId, String jobId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
@@ -85,7 +85,7 @@ class ZkPathsManager {
         return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID);
     }
 
-    String availableWorkItems(String workerId, String jobId) {
+    String availableWorkPool(String workerId, String jobId) {
         return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
