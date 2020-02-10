@@ -242,7 +242,7 @@ class Worker implements AutoCloseable {
             Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
     ) throws Exception {
         if (!currentWorkPool.equals(newWorkPool)) {
-            log.info("wid={} updateWorkPoolForJob update for jobId={} from {} to {}",
+            log.info("wid={} mergeWorkPoolsForJob update for jobId={} from {} to {}",
                     workerId,
                     jobId,
                     currentWorkPool,
@@ -262,7 +262,7 @@ class Worker implements AutoCloseable {
             }
             return true;
         } else {
-            log.info("wid={} updateWorkPoolForJob update unneed for jobId={} pool={}",
+            log.info("wid={} mergeWorkPoolsForJob update unneed for jobId={} pool={}",
                     workerId,
                     jobId,
                     newWorkPool);
