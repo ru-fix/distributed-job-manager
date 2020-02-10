@@ -238,6 +238,10 @@ class Worker implements AutoCloseable {
         workPooledCache.start();
     }
 
+    /**
+     * Add in zk paths of new work items, that contains in newWorkPool, but doesn't in currentWorkPool and
+     * remove work items, that contains in currentWorkPool, but doesn't in newWorkPool.
+     */
     private boolean mergeWorkPoolsForJob(
             Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
     ) throws Exception {

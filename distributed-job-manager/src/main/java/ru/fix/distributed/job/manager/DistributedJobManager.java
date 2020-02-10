@@ -26,7 +26,7 @@ import java.util.Collection;
  * starts local Worker so Node can work as worker and as a manager.
  * <br>
  * Every worker provide unique id and register as child node at /workers <br>
- * Every worker register available jobs classes that it can run in /workers/worker-id/available/job-id <br>
+ * Every worker register available jobs classes that it can run in /workers/worker-id/available/job-id and /work-pool/job-id <br>
  * All workers should register same SchedulableJobs.
  * Avery worker listen to /workers/id/assigned. New schedulable job will be added there by Manager. <br>
  * When new assigned job appears, worker acquire lock /jobs/job-id.lock and start launching it with given
