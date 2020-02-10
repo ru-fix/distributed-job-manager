@@ -151,10 +151,7 @@ job-manager
     └ 3
       └ available //list of jobs that worker with id `3` can run
         └ async.report.building.job
-          └ workItemA //Work pool of report.building Job
-          └ workItemB
         └ elasticsearch.upload.job
-          └ workItemC
          ...
       └ assigned                 //List of assigned jobs to worker '3'
         └ async.report.building.job
@@ -163,6 +160,13 @@ job-manager
         └ elasticsearch.upload.job
           └ workItemC
          ...
+  └ work-pool //common work-pool for all jobs
+    └ async.report.building.job
+      └ workItemA //Work pool of report.building Job
+      └ workItemB
+    └ elasticsearch.upload.job
+      └ workItemC
+       ...
 ```
 
 == Guarantees

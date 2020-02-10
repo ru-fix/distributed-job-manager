@@ -761,10 +761,7 @@ Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
     └ 3
       └ available //list of jobs that worker with id `3` can run
         └ async.report.building.job
-          └ workItemA //Work pool of report.building Job
-          └ workItemB
         └ elasticsearch.upload.job
-          └ workItemC
          ...
       └ assigned   //List of assigned jobs to worker '3'
         └ async.report.building.job
@@ -772,6 +769,13 @@ Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
           └ workItemB
         └ elasticsearch.upload.job
           └ workItemC
+  └ work-pool //common work-pool for all jobs
+    └ async.report.building.job
+      └ workItemA //Work pool of report.building Job
+      └ workItemB
+    └ elasticsearch.upload.job
+      └ workItemC
+       ...
            ...</code></pre>
 </div>
 </div>
