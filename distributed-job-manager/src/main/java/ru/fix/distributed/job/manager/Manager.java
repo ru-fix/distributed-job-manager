@@ -211,7 +211,7 @@ class Manager implements AutoCloseable {
                 continue;
             }
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
-                createIfNotExist(transaction, paths.assignedWorkItems(
+                createIfNotExist(transaction, paths.assignedWorkPool(
                         workerId.getId(), job.getKey().getId())
                 );
 
@@ -288,7 +288,7 @@ class Manager implements AutoCloseable {
             HashSet<WorkItem> assignedWorkPool = new HashSet<>();
             for (String assignedJobId : assignedJobIds) {
                 List<String> assignedJobWorkItems = curatorFramework.getChildren()
-                        .forPath(paths.assignedWorkItems(worker, assignedJobId));
+                        .forPath(paths.assignedWorkPool(worker, assignedJobId));
 
                 for (String workItem : assignedJobWorkItems) {
                     assignedWorkPool.add(new WorkItem(workItem, new JobId(assignedJobId)));
@@ -308,7 +308,7 @@ class Manager implements AutoCloseable {
             HashSet<WorkItem> availableWorkPool = new HashSet<>();
             for (String availableJobId : availableJobIds) {
                 List<String> workItemsForAvailableJobList = curatorFramework.getChildren()
-                        .forPath(paths.availableWorkItems(worker, availableJobId));
+                        .forPath(paths.availableWorkPool(worker, availableJobId));
 
                 for (String workItem : workItemsForAvailableJobList) {
                     availableWorkPool.add(new WorkItem(workItem, new JobId(availableJobId)));
