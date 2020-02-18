@@ -221,12 +221,8 @@ class Manager implements AutoCloseable {
 
                 for (WorkItem workItem : job.getValue()) {
                     if (!previousState.containsWorkItemOnWorker(workerId, workItem)) {
-                        String newPath = ZKPaths.makePath(
-                                paths.getAssignedWorkPooledJobsPath(workerId.getId(), job.getKey().getId()),
-                                JobManagerPaths.WORK_POOL,
-                                workItem.getId()
-                        );
-                        transaction.createPath(newPath);
+                        transaction.createPath(paths
+                                .getAssignedWorkItemPath(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
@@ -239,12 +235,8 @@ class Manager implements AutoCloseable {
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
                 for (WorkItem workItem : job.getValue()) {
                     if (!newAssignmentState.containsWorkItemOnWorker(workerId, workItem)) {
-                        String newPath = ZKPaths.makePath(
-                                paths.getAssignedWorkPooledJobsPath(workerId.getId(), job.getKey().getId()),
-                                JobManagerPaths.WORK_POOL,
-                                workItem.getId()
-                        );
-                        transaction.deletePathWithChildrenIfNeeded(newPath);
+                        transaction.deletePathWithChildrenIfNeeded(paths
+                                .getAssignedWorkItemPath(workerId.getId(), job.getKey().getId(), workItem.getId()));
                     }
                 }
             }
