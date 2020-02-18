@@ -11,8 +11,6 @@ class ZkPathsManager {
     private static final String WORKERS = "workers";
     private static final String ASSIGNED = "assigned";
     private static final String AVAILABLE = "available";
-    private static final String WORK_POOLED_JOB_ID = "work-pooled";
-    private static final String WORK_POOL = "work-pool";
 
     final String rootPath;
 
@@ -37,12 +35,11 @@ class ZkPathsManager {
     }
 
     String locks() {
-        return path(LOCKS, WORK_POOLED_JOB_ID);
+        return path(LOCKS);
     }
 
     String workItemLock(String jobId, String workItem) {
-        return path(LOCKS, WORK_POOLED_JOB_ID, jobId,
-                String.format("work-share-%s.lock", workItem));
+        return path(LOCKS, jobId, String.format("work-share-%s.lock", workItem));
     }
 
     String registrationVersion() {
@@ -57,40 +54,28 @@ class ZkPathsManager {
         return path(WORKERS, workerId);
     }
 
-    String assignedWorkPool(String workerId) {
+    String assignedJobs(String workerId) {
         return path(WORKERS, workerId, ASSIGNED);
     }
 
-    String assignedJobs(String workerId) {
-        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
-    }
-
-    String assignedJob(String workerId, String jobId) {
-        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
-    }
-
     String assignedWorkPool(String workerId, String jobId) {
-        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
+        return path(WORKERS, workerId, ASSIGNED, jobId);
     }
 
     String assignedWorkItem(String workerId, String jobId, String workItemId) {
-        return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
-    }
-
-    String availableWorkPool(String workerId) {
-        return path(WORKERS, workerId, AVAILABLE);
+        return path(WORKERS, workerId, ASSIGNED, jobId, workItemId);
     }
 
     String availableJobs(String workerId) {
-        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID);
+        return path(WORKERS, workerId, AVAILABLE);
     }
 
     String availableWorkPool(String workerId, String jobId) {
-        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
+        return path(WORKERS, workerId, AVAILABLE, jobId);
     }
 
     String availableWorkItem(String workerId, String jobId, String workItemId) {
-        return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
+        return path(WORKERS, workerId, AVAILABLE, jobId, workItemId);
     }
 
     private String path(String firstChild) {

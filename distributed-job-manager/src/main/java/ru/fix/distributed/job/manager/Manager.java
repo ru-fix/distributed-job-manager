@@ -211,9 +211,6 @@ class Manager implements AutoCloseable {
                 continue;
             }
             for (Map.Entry<JobId, List<WorkItem>> job : jobs.entrySet()) {
-                createIfNotExist(transaction, paths.assignedJob(
-                        workerId.getId(), job.getKey().getId())
-                );
                 createIfNotExist(transaction, paths.assignedWorkPool(
                         workerId.getId(), job.getKey().getId())
                 );
