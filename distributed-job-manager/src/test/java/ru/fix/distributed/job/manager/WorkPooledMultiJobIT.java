@@ -45,7 +45,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> {
                         String jobId = getJobId(1);
                         Stat commonWorkerPoolChecker = zkTestingServer.getClient().checkExists()
-                                .forPath(ZKPaths.makePath(paths.availableWorkItems(nodeId, jobId),
+                                .forPath(ZKPaths.makePath(paths.availableWorkPool(nodeId, jobId),
                                         "work-item-1.1"));
                         return commonWorkerPoolChecker != null;
                     },
@@ -68,7 +68,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> {
                         // Work pool contains 3 work items. Then every distributed job should contains 1 work item.
                         for (String nodeId : nodeIds) {
-                            String assignedWorkpoolPath = paths.assignedWorkItems(nodeId, getJobId(1));
+                            String assignedWorkpoolPath = paths.assignedWorkPool(nodeId, getJobId(1));
                             if (curator.checkExists().forPath(assignedWorkpoolPath) != null) {
                                 List<String> workPool = curator.getChildren().forPath(assignedWorkpoolPath);
                                 if (workPool.contains(searchedWorkItem)) {
@@ -97,15 +97,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         ) {
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
-                        if (proxiedCurator.checkExists().forPath(paths.assignedWorkItems(worker1, getJobId(1)))
+                        if (proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker1, getJobId(1)))
                                 != null &&
-                                proxiedCurator.checkExists().forPath(paths.assignedWorkItems(worker2, getJobId
+                                proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker2, getJobId
                                         (1))) != null) {
                             Set<String> workItems = getWorkItems(1);
                             List<String> workPool1 = proxiedCurator.getChildren().forPath(paths
-                                    .assignedWorkItems(worker1, getJobId(1)));
+                                    .assignedWorkPool(worker1, getJobId(1)));
                             List<String> workPool2 = proxiedCurator.getChildren().forPath(paths
-                                    .assignedWorkItems(worker2, getJobId(1)));
+                                    .assignedWorkPool(worker2, getJobId(1)));
                             workItems.removeAll(workPool1);
                             workItems.removeAll(workPool2);
                             return workItems.isEmpty();
@@ -123,23 +123,23 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
-                        if (zkTestingServer.getClient().checkExists().forPath(paths.assignedWorkItems(worker2,
+                        if (zkTestingServer.getClient().checkExists().forPath(paths.assignedWorkPool(worker2,
                                 getJobId(1))) != null) {
                             Set<String> workItems = getWorkItems(1);
 
                             List<String> workPool1 = new ArrayList<>();
-                            if (zkTestingServer.getClient().checkExists().forPath(paths.assignedWorkItems
+                            if (zkTestingServer.getClient().checkExists().forPath(paths.assignedWorkPool
                                     (worker1, getJobId(1))) != null) {
                                 try {
                                     workPool1.addAll(zkTestingServer.getClient().getChildren().forPath(paths
-                                            .assignedWorkItems(worker1, getJobId(1))));
+                                            .assignedWorkPool(worker1, getJobId(1))));
                                 } catch (KeeperException.NoNodeException e) {
                                     // ignore this exception here
                                 }
                             }
 
                             List<String> workPool2 = zkTestingServer.getClient().getChildren().forPath(paths
-                                    .assignedWorkItems(worker2, getJobId(1)));
+                                    .assignedWorkPool(worker2, getJobId(1)));
                             return workPool1.isEmpty() && workPool2.containsAll(workItems);
                         }
                         return false;
@@ -159,15 +159,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             assertTimeout(Duration.ofMillis(50_000),
                     () -> {
-                        if (proxiedCurator.checkExists().forPath(paths.assignedWorkItems(worker1, getJobId(1)))
+                        if (proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker1, getJobId(1)))
                                 != null &&
-                                proxiedCurator.checkExists().forPath(paths.assignedWorkItems(worker2, getJobId
+                                proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker2, getJobId
                                         (1))) != null) {
                             Set<String> workItems = getWorkItems(1);
                             List<String> workPool1 = proxiedCurator.getChildren().forPath(paths
-                                    .assignedWorkItems(worker1, getJobId(1)));
+                                    .assignedWorkPool(worker1, getJobId(1)));
                             List<String> workPool2 = proxiedCurator.getChildren().forPath(paths
-                                    .assignedWorkItems(worker2, getJobId(1)));
+                                    .assignedWorkPool(worker2, getJobId(1)));
                             workItems.removeAll(workPool1);
                             workItems.removeAll(workPool2);
                             return workItems.isEmpty() && !workPool1.isEmpty();
@@ -189,8 +189,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         ) {
             assertTimeout(Duration.ofMillis(10_000),
                     () -> {
-                        String pathForWorker1 = paths.assignedWorkItems(nodeIds[0], getJobId(1));
-                        String pathForWorker2 = paths.assignedWorkItems(nodeIds[1], getJobId(1));
+                        String pathForWorker1 = paths.assignedWorkPool(nodeIds[0], getJobId(1));
+                        String pathForWorker2 = paths.assignedWorkPool(nodeIds[1], getJobId(1));
 
                         if (curator.checkExists().forPath(pathForWorker1) != null && curator.checkExists().forPath
                                 (pathForWorker2) != null) {
@@ -330,7 +330,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
         // simulate hard shutdown where availability is not cleaned up
-        String availableWorkpoolPath = paths.availableWorkItems(nodeId, testJob.getJobId());
+        String availableWorkpoolPath = paths.availableWorkPool(nodeId, testJob.getJobId());
         zkTestingServer.getClient().create().creatingParentsIfNeeded().forPath(availableWorkpoolPath);
 
         try (
@@ -591,7 +591,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             assertTimeout(Duration.ofMillis(30_000),
                     () -> {
                         List<String> workPoolForFirstJob = curator2.getChildren()
-                                .forPath(paths.assignedWorkItems(nodeIds[1], getJobId(1)));
+                                .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
                         return workPoolForFirstJob.size() == getWorkItems(1).size();
                     },
                     () -> "All work pool should be distributed on 1 alive worker" + printZkTree
