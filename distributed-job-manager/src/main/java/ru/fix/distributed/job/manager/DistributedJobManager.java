@@ -34,7 +34,7 @@ import java.util.Collection;
  * When job disappears from worker assigned/work-pooled path, worker stop executing job and release job lock.
  * </p>
  * <p>
- * ZK node tree managed by {@link DistributedJobManager} described in {@link JobManagerPaths}
+ * ZK node tree managed by {@link DistributedJobManager} described in {@link ZkPathsManager}
  * <pre>
  *
  * @author Kamil Asfandiyarov
@@ -117,21 +117,21 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
-        JobManagerPaths paths = new JobManagerPaths(rootPath);
-        if (curatorFramework.checkExists().forPath(paths.getWorkersPath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkersPath());
+        ZkPathsManager paths = new ZkPathsManager(rootPath);
+        if (curatorFramework.checkExists().forPath(paths.allWorkers()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.allWorkers());
         }
-        if (curatorFramework.checkExists().forPath(paths.getWorkersAlivePath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkersAlivePath());
+        if (curatorFramework.checkExists().forPath(paths.aliveWorkers()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.aliveWorkers());
         }
-        if (curatorFramework.checkExists().forPath(paths.getRegistrationVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getRegistrationVersion());
+        if (curatorFramework.checkExists().forPath(paths.registrationVersion()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.registrationVersion());
         }
-        if (curatorFramework.checkExists().forPath(paths.getAssignmentVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getAssignmentVersion());
+        if (curatorFramework.checkExists().forPath(paths.assignmentVersion()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.assignmentVersion());
         }
-        if (curatorFramework.checkExists().forPath(paths.getWorkPooledLocksPath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkPooledLocksPath());
+        if (curatorFramework.checkExists().forPath(paths.locks()) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.locks());
         }
     }
 

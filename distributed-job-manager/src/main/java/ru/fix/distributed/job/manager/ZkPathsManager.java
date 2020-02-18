@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.utils.ZKPaths;
 
-class JobManagerPaths {
+class ZkPathsManager {
     private static final String ALIVE = "alive";
     private static final String ASSIGNMENT_VERSION = "assignment-version";
     private static final String LEADER_LATCH = "leader-latch";
@@ -16,80 +16,80 @@ class JobManagerPaths {
 
     final String rootPath;
 
-    JobManagerPaths(String rootPath) {
+    ZkPathsManager(String rootPath) {
         this.rootPath = rootPath;
     }
 
-    public String getWorkersAlivePath() {
+    public String aliveWorkers() {
         return path(ALIVE);
     }
 
-    String getWorkerAliveFlagPath(String workerId) {
+    String aliveWorker(String workerId) {
         return path(ALIVE, workerId);
     }
 
-    String getAssignmentVersion() {
+    String assignmentVersion() {
         return path(ASSIGNMENT_VERSION);
     }
 
-    String getLeaderLatchPath() {
+    String leaderLatch() {
         return path(LEADER_LATCH);
     }
 
-    String getWorkPooledLocksPath() {
+    String locks() {
         return path(LOCKS, WORK_POOLED_JOB_ID);
     }
 
-    String getWorkItemLock(String jobId, String workItem) {
+    String workItemLock(String jobId, String workItem) {
         return path(LOCKS, WORK_POOLED_JOB_ID, jobId,
                 String.format("work-share-%s.lock", workItem));
     }
 
-    String getRegistrationVersion() {
+    String registrationVersion() {
         return path(REGISTRATION_VERSION);
     }
 
-    String getWorkersPath() {
+    String allWorkers() {
         return path(WORKERS);
     }
 
-    String getWorkerPath(String workerId) {
+    String worker(String workerId) {
         return path(WORKERS, workerId);
     }
 
-    String getWorkerAssignedJobsPath(String workerId) {
+    String assignedWorkPool(String workerId) {
         return path(WORKERS, workerId, ASSIGNED);
     }
 
-    String getAssignedWorkPooledJobsPath(String workerId) {
+    String assignedJobs(String workerId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID);
     }
 
-    String getAssignedWorkPooledJobsPath(String workerId, String jobId) {
+    String assignedJob(String workerId, String jobId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId);
     }
 
-    String getAssignedWorkPoolPath(String workerId, String jobId) {
+    String assignedWorkPool(String workerId, String jobId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
-    String getAssignedWorkItemPath(String workerId, String jobId, String workItemId) {
+    String assignedWorkItem(String workerId, String jobId, String workItemId) {
         return path(WORKERS, workerId, ASSIGNED, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
     }
 
-    String getWorkerAvailableJobsPath(String workerId) {
+    String availableWorkPool(String workerId) {
         return path(WORKERS, workerId, AVAILABLE);
     }
 
-    String getAvailableWorkPooledJobPath(String workerId) {
+    String availableJobs(String workerId) {
         return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID);
     }
 
-    String getAvailableWorkPoolPath(String workerId, String jobId) {
+    String availableWorkPool(String workerId, String jobId) {
         return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL);
     }
 
-    String getAvailableWorkItemPath(String workerId, String jobId, String workItemId) {
+    String availableWorkItem(String workerId, String jobId, String workItemId) {
         return path(WORKERS, workerId, AVAILABLE, WORK_POOLED_JOB_ID, jobId, WORK_POOL, workItemId);
     }
 
