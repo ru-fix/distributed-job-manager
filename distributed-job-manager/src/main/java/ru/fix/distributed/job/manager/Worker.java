@@ -238,10 +238,7 @@ class Worker implements AutoCloseable {
         workPooledCache.start();
     }
 
-    /**
-     * Add in zk paths of new work items, that contains in newWorkPool, but doesn't in currentWorkPool and
-     * remove work items, that contains in currentWorkPool, but doesn't in newWorkPool.
-     */
+
     private boolean updateZkJobWorkPool(
             Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
     ) throws Exception {
@@ -252,18 +249,10 @@ class Worker implements AutoCloseable {
                     currentWorkPool,
                     newWorkPool);
 
-            Set<String> workPoolsToDelete = new HashSet<>(currentWorkPool);
-            workPoolsToDelete.removeAll(newWorkPool);
-            for (String workItemToDelete : workPoolsToDelete) {
-                transaction.deletePath(paths.availableWorkItem(jobId, workItemToDelete));
-            }
+            removeItemsContainedInFirstSetButNotInSecond(currentWorkPool, newWorkPool, transaction, jobId);
 
-            // create new work pools
-            Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
-            workPoolsToAdd.removeAll(currentWorkPool);
-            for (String workItemToAdd : workPoolsToAdd) {
-                transaction.createPath(paths.availableWorkItem(jobId, workItemToAdd));
-            }
+            createItemsContainedInFirstSetButNotInSecond(newWorkPool, currentWorkPool, transaction, jobId);
+
             return true;
         } else {
             log.info("wid={} updateZkJobWorkPool update unneed for jobId={} pool={}",
@@ -271,6 +260,26 @@ class Worker implements AutoCloseable {
                     jobId,
                     newWorkPool);
             return false;
+        }
+    }
+
+    private void createItemsContainedInFirstSetButNotInSecond(
+            Set<String> newWorkPool, Set<String> currentWorkPool, TransactionalClient transaction, String jobId
+    ) throws Exception {
+        Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
+        workPoolsToAdd.removeAll(currentWorkPool);
+        for (String workItemToAdd : workPoolsToAdd) {
+            transaction.createPath(paths.availableWorkItem(jobId, workItemToAdd));
+        }
+    }
+
+    private void removeItemsContainedInFirstSetButNotInSecond(
+            Set<String> currentWorkPool, Set<String> newWorkPool, TransactionalClient transaction, String jobId
+    ) throws Exception {
+        Set<String> workPoolsToDelete = new HashSet<>(currentWorkPool);
+        workPoolsToDelete.removeAll(newWorkPool);
+        for (String workItemToDelete : workPoolsToDelete) {
+            transaction.deletePath(paths.availableWorkItem(jobId, workItemToDelete));
         }
     }
 
