@@ -211,7 +211,7 @@ class Worker implements AutoCloseable {
                         String workPoolsPath = paths.availableWorkPool(job.getJobId());
                         Set<String> newWorkPool = workPools.get(job).getItems();
                         Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
-                        mergeWorkPoolsForJob(newWorkPool, currentWorkPools, job.getJobId(), transaction);
+                        updateZkJobWorkPool(newWorkPool, currentWorkPools, job.getJobId(), transaction);
                     }
                 }
         );
@@ -242,11 +242,11 @@ class Worker implements AutoCloseable {
      * Add in zk paths of new work items, that contains in newWorkPool, but doesn't in currentWorkPool and
      * remove work items, that contains in currentWorkPool, but doesn't in newWorkPool.
      */
-    private boolean mergeWorkPoolsForJob(
+    private boolean updateZkJobWorkPool(
             Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
     ) throws Exception {
         if (!currentWorkPool.equals(newWorkPool)) {
-            log.info("wid={} mergeWorkPoolsForJob update for jobId={} from {} to {}",
+            log.info("wid={} updateZkJobWorkPool update for jobId={} from {} to {}",
                     workerId,
                     jobId,
                     currentWorkPool,
@@ -266,7 +266,7 @@ class Worker implements AutoCloseable {
             }
             return true;
         } else {
-            log.info("wid={} mergeWorkPoolsForJob update unneed for jobId={} pool={}",
+            log.info("wid={} updateZkJobWorkPool update unneed for jobId={} pool={}",
                     workerId,
                     jobId,
                     newWorkPool);
@@ -292,7 +292,7 @@ class Worker implements AutoCloseable {
                         if (workPoolsPathExists && availableJobPathExists && workerAliveFlagPathExists) {
                             Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
                             boolean workPoolUpdated
-                                    = mergeWorkPoolsForJob(newWorkPool, currentWorkPools, jobId, transaction);
+                                    = updateZkJobWorkPool(newWorkPool, currentWorkPools, jobId, transaction);
 
                             if(workPoolUpdated){
                                 transaction.setData(paths.aliveWorker(workerId),
