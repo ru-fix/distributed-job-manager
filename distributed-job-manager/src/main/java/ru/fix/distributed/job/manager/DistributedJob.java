@@ -10,9 +10,9 @@ public interface DistributedJob {
 
     /**
      * @return id of the job.
-     * @deprecated don't override it, use {@link ru.fix.distributed.job.manager.annotation.JobIdField} instead
+     * To define job id you can use {@link ru.fix.distributed.job.manager.annotation.JobIdField} instead.
+     * Overriding this method overrides the use of {@link ru.fix.distributed.job.manager.annotation.JobIdField}
      */
-    @Deprecated(since = "1.3")
     default String getJobId() {
         return JobIdsHolder.getId(this);
     }
