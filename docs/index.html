@@ -734,9 +734,11 @@ Reassignment is triggered by</p>
 <div class="sectionbody">
 <div class="paragraph">
 <p>DJM keeps cluster state as a tree of zookeeper nodes.<br>
-Worker registers Jobs and update available subtree.<br>
-Manager update assigned subtree.<br>
-Worker listens for updates in assigned subtree and stop/launch jobs accordingly.</p>
+Worker registers jobs which it can run and updates jobs work-items in common work-pool<br>
+Manager updates 'assigned' subtree and removes not relevant jobs from common work-pool<br>
+Worker listens for updates in 'assigned' subtree and stop/launch jobs accordingly.<br>
+Manager listens for updates in 'alive' subtree and 'work-pool' subtree. These updates not trigger rebalance directly.
+Manager periodically checks if there was updates since last check, positive result triggers rebalance</p>
 </div>
 <div class="listingblock">
 <div class="content">

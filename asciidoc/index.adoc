@@ -124,9 +124,11 @@ Main goal of rebalance process is to minimize unnecessary job restarts and reass
 
 == State
 DJM keeps cluster state as a tree of zookeeper nodes. +
-Worker registers Jobs and update available subtree. +
-Manager update assigned subtree. +
-Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
+Worker registers jobs which it can run and updates jobs work-items in common work-pool +
+Manager updates 'assigned' subtree and removes not relevant jobs from common work-pool +
+Worker listens for updates in 'assigned' subtree and stop/launch jobs accordingly. +
+Manager listens for updates in 'alive' subtree and 'work-pool' subtree.
+These updates not trigger rebalance directly. Manager puts them in queue, and checks this queue regularly in separate thread.
 
 
 ```
