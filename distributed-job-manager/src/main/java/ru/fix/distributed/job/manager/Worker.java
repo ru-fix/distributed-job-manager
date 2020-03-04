@@ -89,13 +89,11 @@ class Worker implements AutoCloseable {
 
         threadPoolSize = new AtomicProperty<>(1);
 
-        ProfiledScheduledThreadPoolExecutor jobExecutor = NamedExecutors.newScheduledExecutor(
+        this.jobReschedulableScheduler = new ReschedulableScheduler(
                 THREAD_NAME_DJM_WORKER_NONE,
                 threadPoolSize,
-                profiler
-        );
+                profiler);
 
-        this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
         this.timeToWaitTermination = timeToWaitTermination;
 
         this.workShareLockService = new WorkShareLockServiceImpl(
