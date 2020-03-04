@@ -181,12 +181,11 @@ class Worker implements AutoCloseable {
                 WORKER_REGISTRATION_RETRIES_COUNT,
                 transaction -> {
                     // check node version
-                    String checkNodePath = paths.registrationVersion();
-                    transaction.checkPath(checkNodePath);
-
-                    transaction.setData(checkNodePath, new byte[]{});
-
-                    log.info("Registering worker {} (registration version {})", workerId, new byte[]{});
+                    String registrationVersion = paths.registrationVersion();
+                    int version = curatorFramework.checkExists().forPath(registrationVersion).getVersion();
+                    transaction.checkPathWithVersion(registrationVersion, version);
+                    transaction.setData(registrationVersion, new byte[]{});
+                    log.info("Registering worker {} (previous registration version {})", workerId, version);
 
                     // register worker as alive
                     String nodeAlivePath = paths.aliveWorker(workerId);
