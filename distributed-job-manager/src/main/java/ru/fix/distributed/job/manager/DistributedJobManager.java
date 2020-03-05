@@ -76,7 +76,7 @@ public class DistributedJobManager implements AutoCloseable {
         final Timespan djmInitTimespan = new Timespan().start();
 
         log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
-        initPaths(curatorFramework, rootPath, distributedJobs);
+        initPaths(curatorFramework, rootPath);
 
         final Timespan managerInitTimespan = new Timespan().start();
         this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);
@@ -116,17 +116,15 @@ public class DistributedJobManager implements AutoCloseable {
                 workerStartTimespan.getTimespan());
     }
 
-    private static void initPaths(CuratorFramework curatorFramework, String rootPath, Collection<DistributedJob> distributedJobs) throws Exception {
+    private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
         ZkPathsManager paths = new ZkPathsManager(rootPath);
         createIfNeeded(curatorFramework, paths.allWorkers());
         createIfNeeded(curatorFramework, paths.aliveWorkers());
-        createIfNeeded(curatorFramework, paths.registrationVersion());
+        createIfNeeded(curatorFramework, paths.workerVersion());
         createIfNeeded(curatorFramework, paths.assignmentVersion());
         createIfNeeded(curatorFramework, paths.locks());
         createIfNeeded(curatorFramework, paths.availableWorkPool());
-        for (DistributedJob distributedJob : distributedJobs) {
-            createIfNeeded(curatorFramework, paths.availableWorkPool(distributedJob.getJobId()));
-        }
+        createIfNeeded(curatorFramework, paths.availableWorkPoolVersion());
     }
     private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
         if (curatorFramework.checkExists().forPath(path) == null) {

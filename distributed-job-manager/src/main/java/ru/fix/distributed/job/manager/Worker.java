@@ -37,6 +37,7 @@ class Worker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
     private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
     private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
+    private static final int INIT_JOBS_IN_WORK_POOL_RETRIES_COUNT = 15;
 
     public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
 
@@ -103,6 +104,8 @@ class Worker implements AutoCloseable {
                 nodeId,
                 profiler);
 
+        initJobsInAvailableWorkPool(distributedJobs);
+
         distributedJobs.forEach(job ->
                 profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
                     List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
@@ -117,11 +120,32 @@ class Worker implements AutoCloseable {
         );
     }
 
+    private void initJobsInAvailableWorkPool(Collection<DistributedJob> distributedJobs) {
+        try {
+            TransactionalClient.tryCommit(
+                    curatorFramework,
+                    INIT_JOBS_IN_WORK_POOL_RETRIES_COUNT,
+                    transaction -> {
+                        checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
+
+                        for (DistributedJob distributedJob : distributedJobs) {
+                            String jobPath = paths.availableWorkPool(distributedJob.getJobId());
+                            if (curatorFramework.checkExists().forPath(jobPath) == null) {
+                                transaction.createPath(jobPath);
+                            }
+                        }
+                    }
+            );
+        } catch (Exception e) {
+            log.error("failed to initJobsInAvailableWorkPool", e);
+        }
+    }
+
     public void start() throws Exception {
         ConcurrentMap<DistributedJob, WorkPool> workPools = availableJobs.stream()
                 .collect(Collectors.toConcurrentMap(k -> k, DistributedJob::getWorkPool));
         workPools.forEach(WorkPoolUtils::checkWorkPoolItemsRestrictions);
-        registerWorkerAsAliveAndRegisterJobs(workPools);
+        registerWorkerAndJobs(workPools);
 
         availableJobs.forEach(v -> {
             long workPoolCheckPeriod = v.getWorkPoolCheckPeriod();
@@ -154,7 +178,7 @@ class Worker implements AutoCloseable {
                                 ConcurrentMap<DistributedJob, WorkPool> workPoolsMap = availableJobs.stream()
                                         .collect(Collectors.toConcurrentMap(k -> k, DistributedJob::getWorkPool));
                                 workPoolsMap.forEach(WorkPoolUtils::checkWorkPoolItemsRestrictions);
-                                registerWorkerAsAliveAndRegisterJobs(workPoolsMap);
+                                registerWorkerAndJobs(workPoolsMap);
                             } catch (Exception e) {
                                 log.error("Failed to register available jobs", e);
                             }
@@ -165,9 +189,34 @@ class Worker implements AutoCloseable {
         });
     }
 
-    private void registerWorkerAsAliveAndRegisterJobs(
-            ConcurrentMap<DistributedJob, WorkPool> workPools) throws Exception {
-        // close listeners
+    private void registerWorkerAndJobs(ConcurrentMap<DistributedJob, WorkPool> workPools) throws Exception {
+
+        closeListenerToAssignedTree();
+
+        TransactionalClient.tryCommit(
+                curatorFramework,
+                WORKER_REGISTRATION_RETRIES_COUNT,
+                transaction -> {
+
+                    int workPoolVersion = checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
+
+                    int workerVersion = checkAndUpdateVersion(paths.workerVersion(), transaction);
+
+                    log.info("Registering worker {} (worker version {}, work-pool version {})",
+                            workerId, workerVersion, workPoolVersion);
+
+                    registerWorkerAsAlive(transaction);
+
+                    recreateWorkerTree(transaction);
+
+                    updateAvailableWorkPool(workPools, transaction);
+                }
+        );
+
+        addListenerToAssignedTree();
+    }
+
+    private void closeListenerToAssignedTree() {
         if (workPooledCache != null) {
             try {
                 workPooledCache.close();
@@ -175,47 +224,58 @@ class Worker implements AutoCloseable {
                 log.error("Failed to close pooled assignment listener", e);
             }
         }
-        TransactionalClient.tryCommit(
-                curatorFramework,
-                WORKER_REGISTRATION_RETRIES_COUNT,
-                transaction -> {
-                    // check node version
-                    String checkNodePath = paths.registrationVersion();
-                    transaction.checkPath(checkNodePath);
+    }
 
-                    transaction.setData(checkNodePath, new byte[]{});
+    /**
+     * @param path node, which version should be checked and updated
+     * @param transaction transaction, which used to check the version of node
+     * @return previous version of updating node
+     * */
+    private int checkAndUpdateVersion(String path, TransactionalClient transaction) throws Exception {
+        int version = curatorFramework.checkExists().forPath(path).getVersion();
+        transaction.checkPathWithVersion(path, version);
+        transaction.setData(path, new byte[]{});
+        return version;
+    }
 
-                    log.info("Registering worker {} (registration version {})", workerId, new byte[]{});
+    private void registerWorkerAsAlive(TransactionalClient transaction) throws Exception {
+        String nodeAlivePath = paths.aliveWorker(workerId);
+        if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
+            transaction.deletePath(nodeAlivePath);
+        }
+        transaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
+    }
 
-                    // register worker as alive
-                    String nodeAlivePath = paths.aliveWorker(workerId);
-                    if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
-                        transaction.deletePath(nodeAlivePath);
-                    }
-                    transaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
+    private void recreateWorkerTree(TransactionalClient transaction) throws Exception {
+        // clean up all available jobs
+        String workerPath = paths.worker(workerId);
+        if (curatorFramework.checkExists().forPath(workerPath) != null) {
+            transaction.deletePathWithChildrenIfNeeded(workerPath);
+        }
 
-                    // clean up all available jobs
-                    String workerPath = paths.worker(workerId);
-                    if (curatorFramework.checkExists().forPath(workerPath) != null) {
-                        transaction.deletePathWithChildrenIfNeeded(workerPath);
-                    }
+        // create availability and assignments directories
+        transaction.createPath(paths.worker(workerId));
+        transaction.createPath(paths.availableJobs(workerId));
+        transaction.createPath(paths.assignedJobs(workerId));
 
-                    // create availability and assignments directories
-                    transaction.createPath(paths.worker(workerId));
-                    transaction.createPath(paths.availableJobs(workerId));
-                    transaction.createPath(paths.assignedJobs(workerId));
+        // register work pooled jobs
+        for (DistributedJob job : availableJobs) {
+            transaction.createPath(paths.availableJob(workerId, job.getJobId()));
+        }
+    }
 
-                    // register work pooled jobs
-                    for (DistributedJob job : availableJobs) {
-                        transaction.createPath(paths.availableJob(workerId, job.getJobId()));
-                        String workPoolsPath = paths.availableWorkPool(job.getJobId());
-                        Set<String> newWorkPool = workPools.get(job).getItems();
-                        Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
-                        updateZkJobWorkPool(newWorkPool, currentWorkPools, job.getJobId(), transaction);
-                    }
-                }
-        );
+    private void updateAvailableWorkPool(
+            ConcurrentMap<DistributedJob, WorkPool> workPools, TransactionalClient transaction) throws Exception {
 
+        for (DistributedJob job : availableJobs) {
+            String workPoolsPath = paths.availableWorkPool(job.getJobId());
+            Set<String> newWorkPool = workPools.get(job).getItems();
+            Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
+            updateZkJobWorkPool(newWorkPool, currentWorkPools, job.getJobId(), transaction);
+        }
+    }
+
+    private void addListenerToAssignedTree() throws Exception {
         workPooledCache = new TreeCache(curatorFramework, paths.assignedJobs(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
             log.info("wid={} registerWorkerAsAliveAndRegisterJobs event={}", workerId, event);
@@ -294,6 +354,9 @@ class Worker implements AutoCloseable {
                     curatorFramework,
                     WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
+
+                        checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
+
                         boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
                         boolean availableJobPathExists = null != transaction.checkPath(availableJobPath);
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
@@ -303,7 +366,7 @@ class Worker implements AutoCloseable {
                             boolean workPoolUpdated
                                     = updateZkJobWorkPool(newWorkPool, currentWorkPools, jobId, transaction);
 
-                            if(workPoolUpdated){
+                            if (workPoolUpdated) {
                                 transaction.setData(paths.aliveWorker(workerId),
                                         curatorFramework.getData().forPath(workerAliveFlagPath));
                             }
