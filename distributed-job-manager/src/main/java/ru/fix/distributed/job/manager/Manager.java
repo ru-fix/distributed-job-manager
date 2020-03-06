@@ -15,7 +15,10 @@ import ru.fix.distributed.job.manager.model.WorkItem;
 import ru.fix.distributed.job.manager.model.WorkerId;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
+import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
+import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.transactional.TransactionalClient;
 
 import java.util.*;
@@ -39,6 +42,8 @@ class Manager implements AutoCloseable {
 
     private PathChildrenCache workersAliveChildrenCache;
 
+    private final ReschedulableScheduler workPoolCleaningReschedulableScheduler;
+
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
     private final String nodeId;
@@ -59,6 +64,12 @@ class Manager implements AutoCloseable {
                 paths.aliveWorkers(),
                 false);
         this.nodeId = nodeId;
+
+        this.workPoolCleaningReschedulableScheduler = new ReschedulableScheduler(
+                "work-pool cleaning task",
+                DynamicProperty.of(1),
+                profiler
+        );
     }
 
     public void start() throws Exception {
@@ -91,6 +102,49 @@ class Manager implements AutoCloseable {
 
         leaderLatch.start();
         workersAliveChildrenCache.start();
+        startWorkPoolCleaningTask();
+    }
+
+    private void startWorkPoolCleaningTask() {
+            Schedule schedule = new Schedule(Schedule.Type.DELAY, 1000l);
+            workPoolCleaningReschedulableScheduler.schedule(DynamicProperty.of(schedule), () -> {
+                        try {
+                            TransactionalClient.tryCommit(
+                                    curatorFramework,
+                                    2,
+                                    transaction -> {
+
+                                        String workPoolVersion = paths.availableWorkPoolVersion();
+                                        int version = curatorFramework.checkExists().forPath(workPoolVersion).getVersion();
+                                        transaction.checkPathWithVersion(workPoolVersion, version);
+                                        transaction.setData(workPoolVersion, new byte[]{});
+
+                                        cleanWorkPool(transaction);
+                                        log.info("cleaning work-pool successful");
+                                    });
+                        } catch (Exception e) {
+                            log.warn("Failed to clean work-pool", e);
+                        }
+                    }
+            );
+    }
+
+    private void cleanWorkPool(TransactionalClient transaction) throws Exception {
+        if(log.isTraceEnabled()){
+            log.trace("cleanWorkPool zk tree before cleaning: {}", buildZkTreeDump());
+        }
+
+        Set<String> actualJobs = new HashSet<>();
+        for(String workerId: curatorFramework.getChildren().forPath(paths.aliveWorkers())){
+            actualJobs.addAll(curatorFramework.getChildren().forPath(paths.availableJobs(workerId)));
+        }
+
+        for(String jobInWorkPool : curatorFramework.getChildren().forPath(paths.availableWorkPool())){
+            if(!actualJobs.contains(jobInWorkPool)){
+                log.debug("cleanWorkPool removing {}", jobInWorkPool);
+                transaction.deletePathWithChildrenIfNeeded(paths.availableWorkPool(jobInWorkPool));
+            }
+        }
     }
 
     private LeaderLatch initLeaderLatch() {
@@ -370,6 +424,7 @@ class Manager implements AutoCloseable {
         long managerStopTime = System.currentTimeMillis();
         log.info("Closing DJM manager entity...");
 
+        workPoolCleaningReschedulableScheduler.close();
         workersAliveChildrenCache.close();
         if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
             leaderLatch.close();
