@@ -89,13 +89,11 @@ class Worker implements AutoCloseable {
 
         threadPoolSize = new AtomicProperty<>(1);
 
-        ProfiledScheduledThreadPoolExecutor jobExecutor = NamedExecutors.newScheduledExecutor(
+        this.jobReschedulableScheduler = new ReschedulableScheduler(
                 THREAD_NAME_DJM_WORKER_NONE,
                 threadPoolSize,
-                profiler
-        );
+                profiler);
 
-        this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
         this.timeToWaitTermination = timeToWaitTermination;
 
         this.workShareLockService = new WorkShareLockServiceImpl(
@@ -359,32 +357,40 @@ class Worker implements AutoCloseable {
                 int groupsSize = newWorkPool.size() / threadCount;
 
                 for (List<String> workPoolToExecute : Lists.partition(newWorkPool, groupsSize)) {
-                    log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
-                            workerId,
-                            newMultiJob.getJobId(),
-                            workPoolToExecute,
-                            newMultiJob.getInitialJobDelay());
-                    ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
-                            newMultiJob,
-                            new HashSet<>(workPoolToExecute),
-                            profiler,
-                            new SmartLockMonitorDecorator(workShareLockService)
-                    );
-
-                    if (!isWorkerShutdown) {
-                        ScheduledFuture<?> scheduledFuture =
-                                jobReschedulableScheduler.schedule(
-                                        newMultiJob.getSchedule(),
-                                        newMultiJob.getInitialJobDelay(),
-                                        jobExecutionWrapper);
-                        jobExecutionWrapper.setScheduledFuture(scheduledFuture);
-                        scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
-                    } else {
-                        log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                                workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
-                    }
+                    scheduleExecutingWorkPoolForJob(workPoolToExecute, newMultiJob);
                 }
             }
+        }
+    }
+
+    private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
+        log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
+                workerId,
+                newMultiJob.getJobId(),
+                workPoolToExecute,
+                newMultiJob.getInitialJobDelay());
+        ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
+                newMultiJob,
+                new HashSet<>(workPoolToExecute),
+                profiler,
+                new SmartLockMonitorDecorator(workShareLockService)
+        );
+
+        if (!isWorkerShutdown) {
+            ScheduledFuture<?> scheduledFuture =
+                    jobReschedulableScheduler.schedule(
+                            newMultiJob.getSchedule(),
+                            newMultiJob.getInitialJobDelay(),
+                            jobExecutionWrapper);
+            jobExecutionWrapper.setScheduledFuture(scheduledFuture);
+            scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
+
+            log.debug("Future {} with hash={} scheduled for jobId={} with {} and delay={}",
+                    scheduledFuture, System.identityHashCode(scheduledFuture),
+                    newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+        } else {
+            log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
+                    workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
         }
     }
 
