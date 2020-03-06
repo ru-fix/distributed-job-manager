@@ -124,11 +124,63 @@ Main goal of rebalance process is to minimize unnecessary job restarts and reass
 
 == State
 DJM keeps cluster state as a tree of zookeeper nodes. +
-Worker registers Jobs and update available subtree. +
-Manager update assigned subtree. +
-Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
+Once created, DJM initializes zookeeper paths, if needed:
+```
+job-manager
+  └ alive
+  └ locks
+  └ leader-latch
+  └ workers
+  └ work-pool
+  └ work-pool-version
+  └ worker-assignment-version
+  └ worker-version
+```
+Worker life-cycle: +
 
+Every time worker (re)connected to cluster, it process few step in single transaction,
+using `work-pool-version` and `worker-version` locks: +
 
+* (re)creates ephemeral node in `alive` subtree, to inform manager about (re)connecting
+```
+  └ alive
+    └ worker_1
+```
+* (re)creates its subtree with empty `assigned` subtree (this needs `worker-version` lock)
+```
+  └ workers
+    └ worker_1
+      └ available
+        └ async.report.building.job
+        └ elasticsearch.upload.job
+      └ assigned
+```
+* registers (or updates) its jobs in common `work-pool` subtree (this needs  `work-pool-version` lock)
+```
+  └ work-pool
+    └ async.report.building.job
+      └ workItemA
+      └ workItemB
+    └ elasticsearch.upload.job
+      └ workItemC
+```
+
+Worker listens for updates in `workers/worker/assigned` subtree and stops/launches jobs accordingly. +
+Worker also periodically updates its jobs in `work-pool` subtree using `work-pool-version` lock +
+
+Manager life-cycle:
+
+Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed: +
+
+* Updates workers `assigned` subtree using `worker-assignment-version` lock
+
+In future releases:
+
+* Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
+* Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
+using `work-pool-version` lock (clearing process)
+
+Full ZK tree you can see below:
 ```
 job-manager
   └ alive //alive workers that can run jobs
@@ -141,8 +193,6 @@ job-manager
     └ elasticsearch.upload.job
       └ workItemC.lock
       ...
-  └ assignment-version //part of transaction, allows atomicaly assign jobs
-  └ registration-version //part of transaction, allows atomicaly register workier
   └ leader-latch // used for Manager election
     └ ...
   └ workers //list of workers
@@ -153,7 +203,7 @@ job-manager
         └ async.report.building.job
         └ elasticsearch.upload.job
          ...
-      └ assigned                 //List of assigned jobs to worker '3'
+      └ assigned  //List of assigned jobs to worker '3'
         └ async.report.building.job
           └ workItemA  //report.building job with `workItemA` and `workItemB` is assigned to worker `3`
           └ workItemB
@@ -167,6 +217,9 @@ job-manager
     └ elasticsearch.upload.job
       └ workItemC
        ...
+  └ work-pool-version //part of transaction, allows atomicaly update available work-pool
+  └ worker-assignment-version //part of transaction, allows atomicaly assign jobs
+  └ worker-version //part of transaction, allows atomicaly register workier
 ```
 
 == Guarantees
