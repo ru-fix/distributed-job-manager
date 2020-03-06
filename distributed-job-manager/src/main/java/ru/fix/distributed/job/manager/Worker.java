@@ -37,7 +37,6 @@ class Worker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
     private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
     private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
-    private static final int INIT_JOBS_IN_WORK_POOL_RETRIES_COUNT = 15;
 
     public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
 
@@ -104,8 +103,6 @@ class Worker implements AutoCloseable {
                 nodeId,
                 profiler);
 
-        initJobsInAvailableWorkPool(distributedJobs);
-
         distributedJobs.forEach(job ->
                 profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
                     List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
@@ -118,27 +115,6 @@ class Worker implements AutoCloseable {
                     }
                 })
         );
-    }
-
-    private void initJobsInAvailableWorkPool(Collection<DistributedJob> distributedJobs) {
-        try {
-            TransactionalClient.tryCommit(
-                    curatorFramework,
-                    INIT_JOBS_IN_WORK_POOL_RETRIES_COUNT,
-                    transaction -> {
-                        checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
-
-                        for (DistributedJob distributedJob : distributedJobs) {
-                            String jobPath = paths.availableWorkPool(distributedJob.getJobId());
-                            if (curatorFramework.checkExists().forPath(jobPath) == null) {
-                                transaction.createPath(jobPath);
-                            }
-                        }
-                    }
-            );
-        } catch (Exception e) {
-            log.error("failed to initJobsInAvailableWorkPool", e);
-        }
     }
 
     public void start() throws Exception {
@@ -269,9 +245,12 @@ class Worker implements AutoCloseable {
 
         for (DistributedJob job : availableJobs) {
             String workPoolsPath = paths.availableWorkPool(job.getJobId());
+            if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {
+                transaction.createPath(workPoolsPath);
+            }
             Set<String> newWorkPool = workPools.get(job).getItems();
-            Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
-            updateZkJobWorkPool(newWorkPool, currentWorkPools, job.getJobId(), transaction);
+            Set<String> currentWorkPool = getChildrenIfNodeExists(workPoolsPath);
+            updateZkJobWorkPool(newWorkPool, currentWorkPool, job.getJobId(), transaction);
         }
     }
 
@@ -309,9 +288,8 @@ class Worker implements AutoCloseable {
                     currentWorkPool,
                     newWorkPool);
 
-            removeItemsContainedInFirstSetButNotInSecond(currentWorkPool, newWorkPool, transaction, jobId);
-
             createItemsContainedInFirstSetButNotInSecond(newWorkPool, currentWorkPool, transaction, jobId);
+            removeItemsContainedInFirstSetButNotInSecond(currentWorkPool, newWorkPool, transaction, jobId);
 
             return true;
         } else {
@@ -362,7 +340,7 @@ class Worker implements AutoCloseable {
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
 
                         if (workPoolsPathExists && availableJobPathExists && workerAliveFlagPathExists) {
-                            Set<String> currentWorkPools = new HashSet<>(curatorFramework.getChildren().forPath(workPoolsPath));
+                            Set<String> currentWorkPools = getChildrenIfNodeExists(workPoolsPath);
                             boolean workPoolUpdated
                                     = updateZkJobWorkPool(newWorkPool, currentWorkPools, jobId, transaction);
 
@@ -371,15 +349,24 @@ class Worker implements AutoCloseable {
                                         curatorFramework.getData().forPath(workerAliveFlagPath));
                             }
                         } else {
-                            log.warn("Received work pool update before worker registration," +
-                                            " job {} wp {}. State workPoolsPathExists {}, workerAliveFlagPathExists {}",
-                                    job, newWorkPool, workPoolsPathExists, workerAliveFlagPathExists);
+                            log.warn("Received work pool update before worker registration, job {} wp {}. State " +
+                                            "workPoolsPathExists {}, availableJobPathExists {}, workerAliveFlagPathExists {}",
+                                    job, newWorkPool,
+                                    workPoolsPathExists, availableJobPathExists, workerAliveFlagPathExists);
                         }
                     }
             );
 
         } catch (Exception e) {
             log.error("Failed to update work pool for job {} wp {}", job, newWorkPool, e);
+        }
+    }
+
+    private Set<String> getChildrenIfNodeExists(String path) throws Exception {
+        if(curatorFramework.checkExists().forPath(path) == null) {
+            return Collections.emptySet();
+        } else {
+            return new HashSet<>(curatorFramework.getChildren().forPath(path));
         }
     }
 
