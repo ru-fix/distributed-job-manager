@@ -202,7 +202,9 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    timeToWaitTermination = DynamicProperty.of(180_000L))
+                    timeToWaitTermination = DynamicProperty.of(180_000L),
+                    workPoolCleanPeriodMs = DynamicProperty.of(1_000L)
+            )
     )
 }
 

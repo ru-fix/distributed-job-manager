@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 class Manager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Manager.class);
     private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 3;
+    private static final int CLEAN_WORK_POOL_RETRIES_COUNT = 1;
 
     private final CuratorFramework curatorFramework;
     private final ZkPathsManager paths;
@@ -44,6 +45,7 @@ class Manager implements AutoCloseable {
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
     private final String nodeId;
+    private DynamicProperty<Long> workPoolCleanPeriodMs;
 
     Manager(CuratorFramework curatorFramework,
             Profiler profiler,
@@ -60,9 +62,9 @@ class Manager implements AutoCloseable {
                 false);
         this.nodeId = settings.getNodeId();
 
-        this.workPoolCleaningReschedulableScheduler = new ReschedulableScheduler(
+        this.workPoolCleanPeriodMs = settings.getWorkPoolCleanPeriodMs();
+        this.workPoolCleaningReschedulableScheduler = NamedExecutors.newSingleThreadScheduler(
                 "work-pool cleaning task",
-                DynamicProperty.of(1),
                 profiler
         );
     }
@@ -101,12 +103,13 @@ class Manager implements AutoCloseable {
     }
 
     private void startWorkPoolCleaningTask() {
-            Schedule schedule = new Schedule(Schedule.Type.DELAY, 1000l);
-            workPoolCleaningReschedulableScheduler.schedule(DynamicProperty.of(schedule), () -> {
+            workPoolCleaningReschedulableScheduler.schedule(
+                    DynamicProperty.delegated(() -> Schedule.withDelay(workPoolCleanPeriodMs.get())),
+                    () -> {
                         try {
                             TransactionalClient.tryCommit(
                                     curatorFramework,
-                                    2,
+                                    CLEAN_WORK_POOL_RETRIES_COUNT,
                                     transaction -> {
 
                                         String workPoolVersion = paths.availableWorkPoolVersion();
@@ -115,10 +118,9 @@ class Manager implements AutoCloseable {
                                         transaction.setData(workPoolVersion, new byte[]{});
 
                                         cleanWorkPool(transaction);
-                                        log.info("cleaning work-pool successful");
                                     });
                         } catch (Exception e) {
-                            log.warn("Failed to clean work-pool", e);
+                            log.debug("Failed to clean work-pool", e);
                         }
                     }
             );

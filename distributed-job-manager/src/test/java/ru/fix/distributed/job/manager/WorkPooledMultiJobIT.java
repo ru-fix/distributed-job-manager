@@ -569,9 +569,14 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         AssignmentStrategies.Companion.getDEFAULT(),
-                        getTerminationWaitTime()
+                        getTerminationWaitTime(),
+                        getWorkPoolCleanPeriod()
                 )
         );
+    }
+
+    private DynamicProperty<Long> getWorkPoolCleanPeriod() {
+        return DynamicProperty.of(1_000L);
     }
 
     private DynamicProperty<Long> getTerminationWaitTime() {
