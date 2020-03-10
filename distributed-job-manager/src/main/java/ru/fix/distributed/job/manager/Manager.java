@@ -9,10 +9,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.model.AssignmentState;
-import ru.fix.distributed.job.manager.model.JobId;
-import ru.fix.distributed.job.manager.model.WorkItem;
-import ru.fix.distributed.job.manager.model.WorkerId;
+import ru.fix.distributed.job.manager.model.*;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -49,21 +46,19 @@ class Manager implements AutoCloseable {
     private final String nodeId;
 
     Manager(CuratorFramework curatorFramework,
-            String rootPath,
-            AssignmentStrategy assignmentStrategy,
-            String nodeId,
-            Profiler profiler
+            Profiler profiler,
+            DistributedJobManagerSettings settings
     ) {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
-        this.paths = new ZkPathsManager(rootPath);
-        this.assignmentStrategy = assignmentStrategy;
+        this.paths = new ZkPathsManager(settings.getRootPath());
+        this.assignmentStrategy = settings.getAssignmentStrategy();
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
                 curatorFramework,
                 paths.aliveWorkers(),
                 false);
-        this.nodeId = nodeId;
+        this.nodeId = settings.getNodeId();
 
         this.workPoolCleaningReschedulableScheduler = new ReschedulableScheduler(
                 "work-pool cleaning task",

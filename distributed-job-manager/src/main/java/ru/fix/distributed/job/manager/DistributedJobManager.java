@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
@@ -65,34 +66,29 @@ public class DistributedJobManager implements AutoCloseable {
         }
     }
 
-    public DistributedJobManager(String nodeId,
-                                 CuratorFramework curatorFramework,
-                                 String rootPath,
+    public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> distributedJobs,
-                                 AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination) throws Exception {
+                                 DistributedJobManagerSettings settings) throws Exception {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
-        log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
-        initPaths(curatorFramework, rootPath);
+        log.trace("Starting DistributedJobManager with settings {}", settings);
+        initPaths(curatorFramework, settings.getRootPath());
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);
+        this.manager = new Manager(curatorFramework, profiler, settings);
         managerInitTimespan.stop();
 
         final Timespan workerInitTimespan = new Timespan().start();
 
-        this.nodeId = nodeId;
+        this.nodeId = settings.getNodeId();
 
         this.worker = new Worker(
                 curatorFramework,
-                nodeId,
-                rootPath,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
-                timeToWaitTermination);
+                settings);
 
         workerInitTimespan.stop();
 
