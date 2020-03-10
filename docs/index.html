@@ -801,20 +801,16 @@ Worker also periodically updates its jobs in `work-pool` subtree using `work-poo
 </p>
 <p>
 Manager life-cycle: <br>
-Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed: <br>
-<ul>
-<li>
-Updates workers `assigned` subtree using `worker-assignment-version` lock
-</li>
-</ul>
+Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed.
+During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock <br>
+
+Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
+using `work-pool-version` lock (clearing process) <br>
+
 In future releases:<br>
 <ul>
 <li>
 Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
-</li>
-<li>
-Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
-using `work-pool-version` lock (clearing process)
 </li>
 </p>
 <p>
