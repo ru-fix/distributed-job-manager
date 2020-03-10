@@ -9,6 +9,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -67,18 +68,16 @@ class Worker implements AutoCloseable {
     private final AtomicProperty<Integer> threadPoolSize;
 
     Worker(CuratorFramework curatorFramework,
-           String nodeId,
-           String rootPath,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
-           DynamicProperty<Long> timeToWaitTermination) {
+           DistributedJobManagerSettings settings) {
         this.curatorFramework = curatorFramework;
-        this.paths = new ZkPathsManager(rootPath);
-        this.workerId = nodeId;
+        this.paths = new ZkPathsManager(settings.getRootPath());
+        this.workerId = settings.getNodeId();
         this.availableJobs = distributedJobs;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "worker-" + nodeId,
+                "worker-" + workerId,
                 profiler);
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
@@ -96,12 +95,12 @@ class Worker implements AutoCloseable {
         );
 
         this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
-        this.timeToWaitTermination = timeToWaitTermination;
+        this.timeToWaitTermination = settings.getTimeToWaitTermination();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
                 paths,
-                nodeId,
+                workerId,
                 profiler);
 
         distributedJobs.forEach(job ->
