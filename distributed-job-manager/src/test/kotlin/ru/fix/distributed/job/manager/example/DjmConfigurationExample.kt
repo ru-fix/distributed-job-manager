@@ -202,7 +202,6 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
                     timeToWaitTermination = DynamicProperty.of(180_000L))
     )
 }
