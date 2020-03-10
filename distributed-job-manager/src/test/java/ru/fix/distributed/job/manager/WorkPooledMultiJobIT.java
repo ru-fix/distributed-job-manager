@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
@@ -518,6 +518,43 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             + " localPool2 " + testJobOnWorker2.getLocalWorkPool());
         }
     }
+
+    @Test
+    public void cleaning_WHEN_last_djm_with_available_job_closed_THEN_removing_job_from_workPool() throws Exception {
+        DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(4));
+        DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(4));
+        DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(4));
+        long awaitCleaningTimeout = getWorkPoolCleanPeriod().get() * 3;
+
+        CuratorFramework curator1 = zkTestingServer.createClient();
+        DistributedJobManager jobManager1 = createNewJobManager(
+                "djm-1",
+                curator1,
+                List.of(job1, job2)
+        );
+        try (
+                CuratorFramework curator2 = zkTestingServer.createClient();
+                DistributedJobManager jobManager2 = createNewJobManager(
+                        "djm-2",
+                        curator2,
+                        List.of(job2, job3)
+                )
+        ) {
+            assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+
+            jobManager1.close();
+            curator1.close();
+
+            assertTimeoutPreemptively(Duration.ofMillis(awaitCleaningTimeout), () -> {
+                        while (curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId())) {
+                            Thread.sleep(getWorkPoolCleanPeriod().get());
+                        }
+                    },
+                    "cleaning wasn't performed in " + awaitCleaningTimeout
+            );
+        }
+    }
+
 
     //    @Test
     public void shouldAddAndRemoveDistributedJob() throws Exception {
