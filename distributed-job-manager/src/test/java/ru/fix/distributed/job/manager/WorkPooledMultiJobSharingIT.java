@@ -3,6 +3,7 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
@@ -22,15 +23,18 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
              DistributedJobManager ignored = new DistributedJobManager(
-                     "work-name",
                      curator,
-                     JOB_MANAGER_ZK_ROOT_PATH,
                      new HashSet<>(Collections.singletonList(
                              new SingleThreadMultiJob(
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))))),
-                     AssignmentStrategies.Companion.getDEFAULT(),
                      new AggregatingProfiler(),
-                     getTerminationWaitTime())
+                     new DistributedJobManagerSettings(
+                             "work-name",
+                             JOB_MANAGER_ZK_ROOT_PATH,
+                             AssignmentStrategies.Companion.getDEFAULT(),
+                             getTerminationWaitTime()
+                     )
+             )
         ) {
             verify(monitor, timeout(10_000)).check(anySet());
         }

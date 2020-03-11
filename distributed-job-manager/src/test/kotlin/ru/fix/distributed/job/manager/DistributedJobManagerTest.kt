@@ -2,15 +2,11 @@ package ru.fix.distributed.job.manager
 
 import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
@@ -296,13 +292,15 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             strategy: AssignmentStrategy
     ): DistributedJobManager {
         return DistributedJobManager(
-                nodeId,
                 zkTestingServer.createClient(),
-                JOB_MANAGER_ZK_ROOT_PATH,
                 jobs,
-                strategy,
                 AggregatingProfiler(),
-                DynamicProperty.of(10_000L)
+                DistributedJobManagerSettings(
+                        nodeId = nodeId,
+                        rootPath = JOB_MANAGER_ZK_ROOT_PATH,
+                        assignmentStrategy = strategy,
+                        timeToWaitTermination = DynamicProperty.of(10_000L)
+                )
         )
     }
 
