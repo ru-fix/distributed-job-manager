@@ -3,6 +3,8 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.zookeeper.KeeperException;
@@ -16,8 +18,7 @@ import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.zookeeper.transactional.TransactionalClient;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Only single manager is active on the cluster.
@@ -36,6 +37,8 @@ class Manager implements AutoCloseable {
 
     private PathChildrenCache workersAliveChildrenCache;
 
+    private RebalanceEventConsumer rebalanceEventConsumer;
+
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
     private final String nodeId;
@@ -49,6 +52,7 @@ class Manager implements AutoCloseable {
         this.paths = new ZkPathsManager(settings.getRootPath());
         this.assignmentStrategy = settings.getAssignmentStrategy();
         this.leaderLatch = initLeaderLatch();
+        this.rebalanceEventConsumer = new RebalanceEventConsumer();
         this.workersAliveChildrenCache = new PathChildrenCache(
                 curatorFramework,
                 paths.aliveWorkers(),
@@ -57,33 +61,8 @@ class Manager implements AutoCloseable {
     }
 
     public void start() throws Exception {
-        workersAliveChildrenCache.getListenable().addListener((client, event) -> {
-            log.info("nodeId={} workersAliveChildrenCache event={}",
-                    nodeId,
-                    event.toString());
-            switch (event.getType()) {
-                case CONNECTION_RECONNECTED:
-                case CHILD_UPDATED:
-                case CHILD_ADDED:
-                case CHILD_REMOVED:
-                    synchronized (managerThread) {
-                        if (managerThread.isShutdown()) {
-                            return;
-                        }
-                        managerThread.execute(() -> {
-                            if (leaderLatch.hasLeadership()) {
-                                reassignAndBalanceTasks();
-                            }
-                        });
-                    }
-                    break;
-                case CONNECTION_SUSPENDED:
-                    break;
-                default:
-                    log.warn("nodeId={} Invalid event type {}", nodeId, event.getType());
-            }
-        });
-
+        workersAliveChildrenCache.getListenable().addListener(rebalanceEventConsumer);
+        CompletableFuture.runAsync(rebalanceEventConsumer, Executors.newSingleThreadExecutor());
         leaderLatch.start();
         workersAliveChildrenCache.start();
     }
@@ -377,5 +356,68 @@ class Manager implements AutoCloseable {
             managerThread.shutdownNow();
         }
         log.info("DJM manager was closed. Took {} ms", System.currentTimeMillis() - managerStopTime);
+    }
+
+
+    private class RebalanceEventConsumer implements Runnable, PathChildrenCacheListener {
+        private static final long CHECK_SHUTDOWN_PERIOD_MS = 1_000L;
+
+        private BlockingQueue<PathChildrenCacheEvent> rebalanceEventsQueue;
+
+        RebalanceEventConsumer() {
+            rebalanceEventsQueue = new LinkedBlockingQueue<>();
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                awaitRebalanceEventOrShutdown();
+
+                synchronized (managerThread) {
+                    if (managerThread.isShutdown()) {
+                        return;
+                    }
+                    managerThread.execute(() -> {
+                        if (leaderLatch.hasLeadership()) {
+                            reassignAndBalanceTasks();
+                        }
+                    });
+                }
+            }
+        }
+
+        private void awaitRebalanceEventOrShutdown() {
+            try {
+                while (rebalanceEventsQueue.poll(CHECK_SHUTDOWN_PERIOD_MS, TimeUnit.MILLISECONDS) == null) {
+                    synchronized (managerThread) {
+                        if (managerThread.isShutdown()) {
+                            break;
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+                log.error("waiting rebalance event was interrupted", e);
+            } finally {
+                rebalanceEventsQueue.clear();
+            }
+        }
+
+        @Override
+        public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+            log.trace("nodeId={} handleRebalanceEvent event={}", nodeId, event);
+            switch (event.getType()) {
+                case CONNECTION_RECONNECTED:
+                case CHILD_UPDATED:
+                case CHILD_ADDED:
+                case CHILD_REMOVED:
+                    rebalanceEventsQueue.put(event);
+                    break;
+                case CONNECTION_SUSPENDED:
+                    break;
+                default:
+                    log.warn("nodeId={} Invalid event type {}", nodeId, event.getType());
+            }
+        }
+
     }
 }
