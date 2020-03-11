@@ -4,13 +4,15 @@ import org.apache.curator.utils.ZKPaths;
 
 class ZkPathsManager {
     private static final String ALIVE = "alive";
-    private static final String ASSIGNMENT_VERSION = "assignment-version";
     private static final String LEADER_LATCH = "leader-latch";
     private static final String LOCKS = "locks";
-    private static final String REGISTRATION_VERSION = "registration-version";
+    private static final String WORKER_ASSIGNMENT_VERSION = "worker-assignment-version";
+    private static final String WORKER_VERSION = "worker-version";
     private static final String WORKERS = "workers";
     private static final String ASSIGNED = "assigned";
     private static final String AVAILABLE = "available";
+    private static final String WORK_POOL = "work-pool";
+    private static final String WORK_POOL_VERSION = "work-pool-version";
 
     final String rootPath;
 
@@ -27,7 +29,7 @@ class ZkPathsManager {
     }
 
     String assignmentVersion() {
-        return path(ASSIGNMENT_VERSION);
+        return path(WORKER_ASSIGNMENT_VERSION);
     }
 
     String leaderLatch() {
@@ -42,8 +44,8 @@ class ZkPathsManager {
         return path(LOCKS, jobId, String.format("work-share-%s.lock", workItem));
     }
 
-    String registrationVersion() {
-        return path(REGISTRATION_VERSION);
+    String workerVersion() {
+        return path(WORKER_VERSION);
     }
 
     String allWorkers() {
@@ -70,17 +72,30 @@ class ZkPathsManager {
         return path(WORKERS, workerId, AVAILABLE);
     }
 
-    String availableWorkPool(String workerId, String jobId) {
+    String availableJob(String workerId, String jobId) {
         return path(WORKERS, workerId, AVAILABLE, jobId);
     }
 
-    String availableWorkItem(String workerId, String jobId, String workItemId) {
-        return path(WORKERS, workerId, AVAILABLE, jobId, workItemId);
+    String availableWorkPool() {
+        return path(WORK_POOL);
+    }
+
+    String availableWorkPool(String jobId) {
+        return path(WORK_POOL, jobId);
+    }
+
+    String availableWorkItem(String jobId, String workItemId) {
+        return path(WORK_POOL, jobId, workItemId);
+    }
+
+    String availableWorkPoolVersion() {
+        return path(WORK_POOL_VERSION);
     }
 
     private String path(String firstChild) {
         return ZKPaths.makePath(rootPath, firstChild);
     }
+
     private String path(String firstChild, String... restChildren) {
         return ZKPaths.makePath(rootPath, firstChild, restChildren);
     }

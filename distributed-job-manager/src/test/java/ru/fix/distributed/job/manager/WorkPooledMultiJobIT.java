@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.Disabled;
@@ -46,8 +45,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> {
                         String jobId = getJobId(1);
                         Stat commonWorkerPoolChecker = zkTestingServer.getClient().checkExists()
-                                .forPath(ZKPaths.makePath(paths.availableWorkPool(nodeId, jobId),
-                                        "work-item-1.1"));
+                                .forPath(paths.availableWorkItem(jobId, "work-item-1.1"));
                         return commonWorkerPoolChecker != null;
                     },
                     () -> "Wait for assignment common-worker-1 --> work-item-1.1" + printZkTree
@@ -312,7 +310,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
         // simulate hard shutdown where availability is not cleaned up
-        String availableWorkpoolPath = paths.availableWorkPool(nodeId, testJob.getJobId());
+        String availableWorkpoolPath = paths.availableWorkPool(testJob.getJobId());
         zkTestingServer.getClient().create().creatingParentsIfNeeded().forPath(availableWorkpoolPath);
 
         try (
