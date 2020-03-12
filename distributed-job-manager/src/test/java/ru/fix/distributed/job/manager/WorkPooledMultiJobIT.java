@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
@@ -459,6 +459,66 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             + " localPool2 " + testJobOnWorker2.getLocalWorkPool());
         }
     }
+
+
+    @Test
+    public void rebalance_WHEN_workPool_changes_THEN_assigned_tree_changes_accordingly() throws Exception {
+        Set<String> workItemsBeforeUpdating = new HashSet<>(Arrays.asList(
+                getWorkPool(10, 1),
+                getWorkPool(10, 2),
+                getWorkPool(10, 3)));
+        Set<String> workItemsAfterUpdating = new HashSet<>(Arrays.asList(
+                getWorkPool(10, 2),
+                getWorkPool(10, 3),
+                getWorkPool(10, 4)));
+
+        StubbedMultiJob job1 = new StubbedMultiJob(10, workItemsBeforeUpdating, 100, 10);
+        try (
+                CuratorFramework zkClient1 = zkTestingServer.createClient();
+                DistributedJobManager jobManager1 = createNewJobManager(
+                        "app-1",
+                        zkClient1,
+                        Collections.singletonList(job1)
+                );
+                CuratorFramework zkClient2 = zkTestingServer.createClient();
+                DistributedJobManager jobManager2 = createNewJobManager(
+                        "app-2",
+                        zkClient2,
+                        Collections.singletonList(job1)
+                )
+        ) {
+            Set<String> assignedWorkItems = new HashSet<>();
+            assignedWorkItems.addAll(getAssignedWorkPool("app-1"));
+            assignedWorkItems.addAll(getAssignedWorkPool("app-2"));
+            assertEquals(workItemsBeforeUpdating, assignedWorkItems);
+
+            job1.updateWorkPool(workItemsAfterUpdating);
+
+
+            long awaitRebalanceTimeoutMs = job1.getWorkPoolCheckPeriod() * 3 + 1_000;
+
+            assertTimeoutPreemptively(Duration.ofMillis(awaitRebalanceTimeoutMs), () -> {
+                        while (!assignedWorkItems.equals(workItemsAfterUpdating)) {
+                            assignedWorkItems.clear();
+                            assignedWorkItems.addAll(getAssignedWorkPool("app-1"));
+                            assignedWorkItems.addAll(getAssignedWorkPool("app-2"));
+                        }
+                    },
+                    "assigned subtree wasn't updated in " + awaitRebalanceTimeoutMs + " ms"
+            );
+        }
+    }
+
+    private Set<String> getAssignedWorkPool(String workerId) throws Exception {
+        CuratorFramework zkClient = zkTestingServer.getClient();
+        List<String> jobIds = zkClient.getChildren().forPath(paths.assignedJobs(workerId));
+        Set<String> workItems = new HashSet<>();
+        for (String jobId : jobIds) {
+            workItems.addAll(zkClient.getChildren().forPath(paths.assignedWorkPool(workerId, jobId)));
+        }
+        return workItems;
+    }
+
 
     @Test
     public void shouldBalanceOnWorkPoolMultipleUpdate() throws Exception {

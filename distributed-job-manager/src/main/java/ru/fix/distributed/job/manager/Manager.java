@@ -36,6 +36,7 @@ class Manager implements AutoCloseable {
     private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
+    private PathChildrenCache workPoolChildrenCache;
 
     private RebalanceEventConsumer rebalanceEventConsumer;
 
@@ -47,6 +48,7 @@ class Manager implements AutoCloseable {
             Profiler profiler,
             DistributedJobManagerSettings settings
     ) {
+        this.nodeId = settings.getNodeId();
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
@@ -57,14 +59,19 @@ class Manager implements AutoCloseable {
                 curatorFramework,
                 paths.aliveWorkers(),
                 false);
-        this.nodeId = settings.getNodeId();
+        this.workPoolChildrenCache = new PathChildrenCache(
+                curatorFramework,
+                paths.availableWorkPool(),
+                false);
     }
 
     public void start() throws Exception {
         workersAliveChildrenCache.getListenable().addListener(rebalanceEventConsumer);
+        workPoolChildrenCache.getListenable().addListener(rebalanceEventConsumer);
         CompletableFuture.runAsync(rebalanceEventConsumer, Executors.newSingleThreadExecutor());
         leaderLatch.start();
         workersAliveChildrenCache.start();
+        workPoolChildrenCache.start();
     }
 
     private LeaderLatch initLeaderLatch() {
@@ -345,6 +352,7 @@ class Manager implements AutoCloseable {
         log.info("Closing DJM manager entity...");
 
         workersAliveChildrenCache.close();
+        workPoolChildrenCache.close();
         if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
             leaderLatch.close();
         }
