@@ -410,11 +410,7 @@ class Manager implements AutoCloseable {
                 case CHILD_UPDATED:
                 case CHILD_ADDED:
                 case CHILD_REMOVED:
-                    synchronized (managerThread) {
-                        if(leaderLatch.hasLeadership() && !managerThread.isShutdown()){
-                            rebalanceEventsQueue.put(event);
-                        }
-                    }
+                    rebalanceEventsQueue.put(event);
                     break;
                 case CONNECTION_SUSPENDED:
                     break;
