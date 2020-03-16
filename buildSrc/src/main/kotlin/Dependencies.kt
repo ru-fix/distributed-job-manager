@@ -12,7 +12,7 @@ object Vers {
 
     const val aggregating_profiler = "1.5.16"
     const val jfix_zookeeper = "1.0.8"
-    const val jfix_concurrency = "1.0.61"
+    const val jfix_concurrency = "2.0.6"
     const val jfix_socket = "1.0.42"
     const val jfix_dynamic_property = "1.1.7"
 

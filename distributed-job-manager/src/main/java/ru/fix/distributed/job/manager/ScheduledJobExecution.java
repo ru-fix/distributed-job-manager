@@ -150,6 +150,9 @@ class ScheduledJobExecution implements Runnable {
         this.shutdownFlag.set(true);
         jobRuns.forEach(JobContext::shutdown);
         scheduledFuture.cancel(false);
+
+        log.debug("Future {} with hash={} cancelled for jobId={} with {}",
+                scheduledFuture, System.identityHashCode(scheduledFuture), job.getJobId(), workShare);
     }
 
     boolean isShutdowned(){

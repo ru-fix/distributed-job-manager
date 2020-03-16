@@ -734,26 +734,106 @@ Reassignment is triggered by</p>
 <div class="sectionbody">
 <div class="paragraph">
 <p>DJM keeps cluster state as a tree of zookeeper nodes.<br>
-Worker registers Jobs and update available subtree.<br>
-Manager update assigned subtree.<br>
-Worker listens for updates in assigned subtree and stop/launch jobs accordingly.</p>
-</div>
+Once created, DJM initializes zookeeper paths, if needed:<br></p>
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code>job-manager
+<pre class="CodeRay highlight"><code>
+job-manager
+  └ alive
+  └ locks
+  └ leader-latch
+  └ workers
+  └ work-pool
+  └ work-pool-version
+  └ worker-assignment-version
+  └ worker-version
+</code></pre>
+</div>
+</div>
+<p>Worker life-cycle:<br>
+Every time worker (re)connected to cluster, it process few step in single transaction,
+using `work-pool-version` and `worker-version` locks: <br>
+<ul>
+<li>
+(re)creates ephemeral node in `alive` subtree, to inform manager about (re)connecting
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>
+  └ alive
+    └ worker_1
+</code></pre>
+</div>
+</div>
+</li>
+<li>
+(re)creates its subtree with empty `assigned` subtree (this needs `worker-version` lock)
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>
+  └ workers
+    └ worker_1
+      └ available
+        └ async.report.building.job
+        └ elasticsearch.upload.job
+      └ assigned
+</code></pre>
+</div>
+</div>
+</li>
+<li>
+registers (or updates) its jobs in common `work-pool` subtree (this needs  `work-pool-version` lock)
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>
+  └ work-pool
+    └ async.report.building.job
+      └ workItemA
+      └ workItemB
+    └ elasticsearch.upload.job
+      └ workItemC
+</code></pre>
+</div>
+</div>
+</li>
+</ul>
+Worker listens for updates in `workers/worker/assigned` subtree and stops/launches jobs accordingly.<br>
+Worker also periodically updates its jobs in `work-pool` subtree using `work-pool-version` lock <br>
+</p>
+<p>
+Manager life-cycle: <br>
+Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed: <br>
+<ul>
+<li>
+Updates workers `assigned` subtree using `worker-assignment-version` lock
+</li>
+</ul>
+In future releases:<br>
+<ul>
+<li>
+Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
+</li>
+<li>
+Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
+using `work-pool-version` lock (clearing process)
+</li>
+</p>
+<p>
+Full ZK tree you can see below:<br>
+</ul>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code>
+job-manager
   └ alive //alive workers that can run jobs
     └ 20 //worker with id 20
     └ 3  //worker with id 3
     ...
   └ locks //locks guard work-items: ony one Job can access work-item in the same time
-    └ work-pooled
-      └ async.report.building.job //job id
-        └ workItemA.lock  //list of job locks so only one node could run job with same work-item
-      └ elasticsearch.upload.job
-        └ workItemC.lock
-        ...
-  └ assignment-version //part of transaction, allows atomicaly assign jobs
-  └ registration-version //part of transaction, allows atomicaly register workier
+    └ async.report.building.job //job id
+      └ workItemA.lock  //list of job locks so only one node could run job with same work-item
+    └ elasticsearch.upload.job
+      └ workItemC.lock
+      ...
   └ leader-latch // used for Manager election
     └ ...
   └ workers //list of workers
@@ -761,26 +841,30 @@ Worker listens for updates in assigned subtree and stop/launch jobs accordingly.
      ...
     └ 3
       └ available //list of jobs that worker with id `3` can run
-        └ work-pooled
-          └ async.report.building.job
-            └ work-pool
-              └ workItemA //Work pool of report.building Job
-              └ workItemB
-          └ elasticsearch.upload.job
-            └ work-pool
-              └ workItemC
-           ...
-      └ assigned
-        └ work-pooled                   //List of assigned jobs to worker '3'
-          └ async.report.building.job
-            └ work-pool
-              └ workItemA  //report.building job with `workItemA` and `workItemB` is assigned to worker `3`
-              └ workItemB
-          └ elasticsearch.upload.job
-            └ work-pool
-              └ workItemC
-           ...</code></pre>
+        └ async.report.building.job
+        └ elasticsearch.upload.job
+         ...
+      └ assigned  //List of assigned jobs to worker '3'
+        └ async.report.building.job
+          └ workItemA  //report.building job with `workItemA` and `workItemB` is assigned to worker `3`
+          └ workItemB
+        └ elasticsearch.upload.job
+          └ workItemC
+         ...
+  └ work-pool //common work-pool for all jobs
+    └ async.report.building.job
+      └ workItemA //Work pool of report.building Job
+      └ workItemB
+    └ elasticsearch.upload.job
+      └ workItemC
+       ...
+  └ work-pool-version //part of transaction, allows atomicaly update available work-pool
+  └ worker-assignment-version //part of transaction, allows atomicaly assign jobs
+  └ worker-version //part of transaction, allows atomicaly register workier
+</code></pre>
 </div>
+</div>
+</p>
 </div>
 </div>
 </div>

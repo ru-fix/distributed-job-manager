@@ -5,10 +5,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.annotation.JobIdField
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
@@ -35,6 +32,10 @@ class RebillJob : DistributedJob {
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
     }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
+    }
     //...
 }
 
@@ -58,6 +59,10 @@ class SmsJob : DistributedJob {
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
     }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
+    }
     // ...
 }
 
@@ -80,6 +85,10 @@ class UssdJob : DistributedJob {
 
     override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
         return null
+    }
+
+    override fun getWorkPoolCheckPeriod(): Long {
+        return 0
     }
 }
 
@@ -184,13 +193,14 @@ class CustomAssignmentStrategy : AssignmentStrategy {
 
 fun main() {
     DistributedJobManager(
-            "my-app-instance-1", // node id
             CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
-            "zk/root/path",
             listOf(SmsJob(), UssdJob(), RebillJob()),
-            CustomAssignmentStrategy(),
             AggregatingProfiler(),
-            DynamicProperty.of(180000L) // Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
+            DistributedJobManagerSettings(
+                    nodeId = "my-app-instance-1",
+                    rootPath = "zk/root/path",
+                    assignmentStrategy = CustomAssignmentStrategy(),
+                    timeToWaitTermination = DynamicProperty.of(180_000L))
     )
 }
 

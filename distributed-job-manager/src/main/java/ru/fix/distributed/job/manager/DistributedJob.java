@@ -53,7 +53,5 @@ public interface DistributedJob {
      *
      * @return period of time in milliseconds, 0 means that work pool never expires and there is no need to check
      */
-    default long getWorkPoolCheckPeriod() {
-        return 0;
-    }
+    long getWorkPoolCheckPeriod();
 }

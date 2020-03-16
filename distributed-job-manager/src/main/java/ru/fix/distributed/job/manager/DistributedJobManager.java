@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
@@ -26,15 +27,15 @@ import java.util.Collection;
  * starts local Worker so Node can work as worker and as a manager.
  * <br>
  * Every worker provide unique id and register as child node at /workers <br>
- * Every worker register available jobs classes that it can run in /workers/worker-id/available/work-pooled/job-id <br>
+ * Every worker register available jobs classes that it can run in /workers/worker-id/available/job-id and /work-pool/job-id <br>
  * All workers should register same SchedulableJobs.
- * Avery worker listen to /workers/id/assigned/work-pooled. New schedulable job will be added there by Manager. <br>
- * When new assigned job appears, worker acquire lock /jobs/work-pooled/job-id.lock and start launching it with given
+ * Avery worker listen to /workers/id/assigned. New schedulable job will be added there by Manager. <br>
+ * When new assigned job appears, worker acquire lock /jobs/job-id.lock and start launching it with given
  * delay.
- * When job disappears from worker assigned/work-pooled path, worker stop executing job and release job lock.
+ * When job disappears from worker /assigned path, worker stop executing job and release job lock.
  * </p>
  * <p>
- * ZK node tree managed by {@link DistributedJobManager} described in {@link JobManagerPaths}
+ * ZK node tree managed by {@link DistributedJobManager} described in {@link ZkPathsManager}
  * <pre>
  *
  * @author Kamil Asfandiyarov
@@ -65,35 +66,30 @@ public class DistributedJobManager implements AutoCloseable {
         }
     }
 
-    public DistributedJobManager(String nodeId,
-                                 CuratorFramework curatorFramework,
-                                 String rootPath,
+    public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> distributedJobs,
-                                 AssignmentStrategy assignmentStrategy,
                                  Profiler profiler,
-                                 DynamicProperty<Long> timeToWaitTermination) throws Exception {
+                                 DistributedJobManagerSettings settings) throws Exception {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
-        log.trace("Starting DistributedJobManager for nodeId {} with zk-path {}", nodeId, rootPath);
-        initPaths(curatorFramework, rootPath);
+        log.trace("Starting DistributedJobManager with settings {}", settings);
+        initPaths(curatorFramework, settings.getRootPath());
         JobIdsHolder.loadIds(distributedJobs);
 
         final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, rootPath, assignmentStrategy, nodeId, profiler);
+        this.manager = new Manager(curatorFramework, profiler, settings);
         managerInitTimespan.stop();
 
         final Timespan workerInitTimespan = new Timespan().start();
 
-        this.nodeId = nodeId;
+        this.nodeId = settings.getNodeId();
 
         this.worker = new Worker(
                 curatorFramework,
-                nodeId,
-                rootPath,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
-                timeToWaitTermination);
+                settings);
 
         workerInitTimespan.stop();
 
@@ -118,21 +114,18 @@ public class DistributedJobManager implements AutoCloseable {
     }
 
     private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
-        JobManagerPaths paths = new JobManagerPaths(rootPath);
-        if (curatorFramework.checkExists().forPath(paths.getWorkersPath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkersPath());
-        }
-        if (curatorFramework.checkExists().forPath(paths.getWorkersAlivePath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkersAlivePath());
-        }
-        if (curatorFramework.checkExists().forPath(paths.getRegistrationVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getRegistrationVersion());
-        }
-        if (curatorFramework.checkExists().forPath(paths.getAssignmentVersion()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getAssignmentVersion());
-        }
-        if (curatorFramework.checkExists().forPath(paths.getWorkPooledLocksPath()) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(paths.getWorkPooledLocksPath());
+        ZkPathsManager paths = new ZkPathsManager(rootPath);
+        createIfNeeded(curatorFramework, paths.allWorkers());
+        createIfNeeded(curatorFramework, paths.aliveWorkers());
+        createIfNeeded(curatorFramework, paths.workerVersion());
+        createIfNeeded(curatorFramework, paths.assignmentVersion());
+        createIfNeeded(curatorFramework, paths.locks());
+        createIfNeeded(curatorFramework, paths.availableWorkPool());
+        createIfNeeded(curatorFramework, paths.availableWorkPoolVersion());
+    }
+    private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(path);
         }
     }
 

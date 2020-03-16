@@ -28,7 +28,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new JobManagerPaths
+                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new ZkPathsManager
                         (rootPath), nodeId, new AggregatingProfiler())
         ) {
             ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
@@ -55,7 +55,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
-                        new JobManagerPaths(rootPath), nodeId, new AggregatingProfiler())
+                        new ZkPathsManager(rootPath), nodeId, new AggregatingProfiler())
         ) {
             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
             assertThat(beforeAcquire, is(false));
@@ -116,6 +116,11 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         @Override
         public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
             return WorkPoolRunningStrategies.getSingleThreadStrategy();
+        }
+
+        @Override
+        public long getWorkPoolCheckPeriod() {
+            return 0;
         }
 
     }
