@@ -5,6 +5,8 @@ import org.apache.curator.framework.listen.ListenerManager;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.distributed.job.manager.annotation.JobIdField;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
@@ -35,7 +37,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
                     (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
             int sizeBefore = listenableBefore.size();
             for (int i = 0; i < 100; ++i) {
-                SimpleJob job = new SimpleJob();
+                JobDescriptor job = new JobDescriptor(new SimpleJob());
                 workShareLockService.tryAcquire(job, "simple", () -> {
                 });
                 workShareLockService.release(job, "simple");
@@ -57,10 +59,11 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
                         new ZkPathsManager(rootPath), nodeId, new AggregatingProfiler())
         ) {
-            boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
+            final JobDescriptor job = new JobDescriptor(new SimpleJob());
+
+            boolean beforeAcquire = workShareLockService.existsLock(job, "item");
             assertThat(beforeAcquire, is(false));
 
-            final SimpleJob job = new SimpleJob();
             final String workItem = "all";
             workShareLockService.tryAcquire(job, workItem, () -> {
             });
@@ -78,12 +81,10 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
 
     class SimpleJob implements DistributedJob {
         /**
-         * @return id of the job.
+         * id of the job.
          */
-        @Override
-        public String getJobId() {
-            return "job";
-        }
+        @JobIdField
+        private final String jobId = "job";
 
         /**
          * @return delay between job invocation

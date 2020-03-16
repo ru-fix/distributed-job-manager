@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +42,7 @@ public class SmartLockMonitorDecorator implements WorkShareLockService {
 
     @Override
     public boolean tryAcquire(
-            DistributedJob job,
+            JobDescriptor job,
             String workItem,
             WorkShareLockServiceImpl.LockProlongationFailedListener listener
     ) {
@@ -66,12 +67,12 @@ public class SmartLockMonitorDecorator implements WorkShareLockService {
 
 
     @Override
-    public boolean existsLock(DistributedJob job, String workItem) {
+    public boolean existsLock(JobDescriptor job, String workItem) {
         return wrappedService.existsLock(job, workItem);
     }
 
     @Override
-    public void release(DistributedJob job, String workItem) {
+    public void release(JobDescriptor job, String workItem) {
         wrappedService.release(job, workItem);
     }
 

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,12 +23,12 @@ import java.util.concurrent.locks.ReentrantLock;
 class ScheduledJobExecution implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ScheduledJobExecution.class);
 
-    private final DistributedJob job;
+    private final JobDescriptor job;
     private final Set<String> workShare;
     private final Profiler profiler;
 
     private volatile ScheduledFuture<?> scheduledFuture;
-    private Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
@@ -38,7 +39,7 @@ class ScheduledJobExecution implements Runnable {
     final WorkShareLockService workShareLockService;
 
 
-    public ScheduledJobExecution(DistributedJob job,
+    public ScheduledJobExecution(JobDescriptor job,
                                  Set<String> workShare,
                                  Profiler profiler,
                                  WorkShareLockService workShareLockService) {

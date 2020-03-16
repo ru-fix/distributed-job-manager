@@ -4,6 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
@@ -61,7 +62,7 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
         }
     }
 
-    final Map<DistributedJob, Map<String, WorkItemLock>> jobWorkItemLocks = new ConcurrentHashMap<>();
+    final Map<JobDescriptor, Map<String, WorkItemLock>> jobWorkItemLocks = new ConcurrentHashMap<>();
 
     public WorkShareLockServiceImpl(CuratorFramework curatorFramework,
                                     ZkPathsManager zkPathsManager,
@@ -92,8 +93,24 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
                         )));
     }
 
+    private static boolean checkAndProlong(JobDescriptor job,
+                                           String workItem,
+                                           PersistentExpiringDistributedLock lock) {
+        try {
+            log.info("checkAndProlong jobId={} item={}",
+                    job.getJobId(),
+                    workItem);
+
+            return lock.checkAndProlongIfExpiresIn(DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_EXPIRATION_PERIOD_MS);
+        } catch (Exception exc) {
+            log.error("Failed to checkAndProlong persistent locks for job {} for workItem {}",
+                    job.getJobId(), workItem, exc);
+            return false;
+        }
+    }
+
     @Override
-    public boolean tryAcquire(DistributedJob job, String workItem, LockProlongationFailedListener listener) {
+    public boolean tryAcquire(JobDescriptor job, String workItem, LockProlongationFailedListener listener) {
         Map<String, WorkItemLock> jobLocks = jobWorkItemLocks
                 .computeIfAbsent(job, jobKey -> new ConcurrentHashMap<>());
 
@@ -139,13 +156,13 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
     }
 
     @Override
-    public boolean existsLock(DistributedJob job, String workItem) {
+    public boolean existsLock(JobDescriptor job, String workItem) {
         Map<String, WorkItemLock> workItemLocks = this.jobWorkItemLocks.get(job);
         return workItemLocks != null && workItemLocks.containsKey(workItem);
     }
 
     @Override
-    public void release(DistributedJob job, String workItem) {
+    public void release(JobDescriptor job, String workItem) {
         Map<String, WorkItemLock> workItemLocks = this.jobWorkItemLocks.get(job);
         if (workItemLocks == null) {
             log.error("Illegal state of work item lock for job:{} workItem:{}. Job workItem locks do not exist.",
@@ -173,22 +190,6 @@ public class WorkShareLockServiceImpl implements AutoCloseable, WorkShareLockSer
             } catch (Exception e) {
                 log.error("error closing lock", e);
             }
-        }
-    }
-
-    private static boolean checkAndProlong(DistributedJob job,
-                                           String workItem,
-                                           PersistentExpiringDistributedLock lock) {
-        try {
-            log.info("checkAndProlong jobId={} item={}",
-                    job.getJobId(),
-                    workItem);
-
-            return lock.checkAndProlongIfExpiresIn(DEFAULT_RESERVATION_PERIOD_MS, DEFAULT_EXPIRATION_PERIOD_MS);
-        } catch (Exception exc) {
-            log.error("Failed to checkAndProlong persistent locks for job {} for workItem {}",
-                    job.getJobId(), workItem, exc);
-            return false;
         }
     }
 

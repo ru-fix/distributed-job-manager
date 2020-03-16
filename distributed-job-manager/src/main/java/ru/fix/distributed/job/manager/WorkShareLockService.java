@@ -1,13 +1,15 @@
 package ru.fix.distributed.job.manager;
 
+import ru.fix.distributed.job.manager.model.JobDescriptor;
+
 public interface WorkShareLockService extends AutoCloseable {
 
     boolean tryAcquire(
-            DistributedJob job,
+            JobDescriptor job,
             String workItem,
             WorkShareLockServiceImpl.LockProlongationFailedListener listener);
 
-    boolean existsLock(DistributedJob job, String workItem);
+    boolean existsLock(JobDescriptor job, String workItem);
 
-    void release(DistributedJob job, String workItem);
+    void release(JobDescriptor job, String workItem);
 }

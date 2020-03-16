@@ -7,6 +7,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -80,8 +81,8 @@ class StubbedMultiJob implements DistributedJob {
     }
 
     @Override
-    public String getJobId() {
-        return getJobId(jobId);
+    public Optional<String> getJobId() {
+        return Optional.of(getJobId(jobId));
     }
 
     @Override

@@ -3,7 +3,6 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
-import ru.fix.distributed.job.manager.annotation.JobIdField;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -46,9 +45,6 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     }
 
     private class SingleThreadMultiJob implements DistributedJob {
-
-        @JobIdField
-        private final String id = "job-id";
 
         private final Set<String> workerPool;
 

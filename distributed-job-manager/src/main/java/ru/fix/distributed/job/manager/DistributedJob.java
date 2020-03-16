@@ -3,6 +3,8 @@ package ru.fix.distributed.job.manager;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
+import java.util.Optional;
+
 /**
  * @author Ayrat Zulkarnyaev
  */
@@ -13,8 +15,8 @@ public interface DistributedJob {
      * To define job id you can use {@link ru.fix.distributed.job.manager.annotation.JobIdField} instead.
      * Overriding this method overrides the use of {@link ru.fix.distributed.job.manager.annotation.JobIdField}
      */
-    default String getJobId() {
-        return JobIdsHolder.getId(this);
+    default Optional<String> getJobId() {
+        return Optional.empty();
     }
 
     /**
