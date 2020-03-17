@@ -132,11 +132,11 @@ class Manager implements AutoCloseable {
         }
 
         Set<String> actualJobs = new HashSet<>();
-        for(String workerId: curatorFramework.getChildren().forPath(paths.aliveWorkers())){
-            actualJobs.addAll(curatorFramework.getChildren().forPath(paths.availableJobs(workerId)));
+        for(String workerId: getChildren(paths.aliveWorkers())){
+            actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
         }
 
-        for(String jobInWorkPool : curatorFramework.getChildren().forPath(paths.availableWorkPool())){
+        for(String jobInWorkPool : getChildren(paths.availableWorkPool())){
             if(!actualJobs.contains(jobInWorkPool)){
                 log.debug("cleanWorkPool removing {}", jobInWorkPool);
                 transaction.deletePathWithChildrenIfNeeded(paths.availableWorkPool(jobInWorkPool));
@@ -297,7 +297,7 @@ class Manager implements AutoCloseable {
     }
 
     private void removeAssignmentsOnDeadNodes(TransactionalClient transaction) throws Exception {
-        List<String> workersRoots = curatorFramework.getChildren().forPath(paths.allWorkers());
+        List<String> workersRoots = getChildren(paths.allWorkers());
 
         for (String worker : workersRoots) {
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {
@@ -311,6 +311,10 @@ class Manager implements AutoCloseable {
                 log.info("Node was already deleted", e);
             }
         }
+    }
+
+    private List<String> getChildren(String nodePath) throws Exception {
+        return curatorFramework.getChildren().forPath(nodePath);
     }
 
     private Map<JobId, List<WorkItem>> itemsToMap(Set<WorkItem> workItems) {
