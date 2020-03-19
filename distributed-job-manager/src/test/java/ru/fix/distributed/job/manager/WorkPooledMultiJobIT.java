@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.aggregating.profiler.ThrowableSupplier;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -18,9 +19,11 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
@@ -40,7 +43,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager1 = createNewJobManager(nodeId, curator)
         ) {
 
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(30_000),
                     () -> {
                         String jobId = getJobId(1);
@@ -63,7 +66,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager3 = createNewJobManager(nodeIds[2], curator)
         ) {
             String searchedWorkItem = "work-item-1.1";
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         // Work pool contains 3 work items. Then every distributed job should contains 1 work item.
                         for (String nodeId : nodeIds) {
@@ -94,7 +97,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager1 = createNewJobManager(worker1, proxiedCurator);
                 DistributedJobManager jobManager2 = createNewJobManager(worker2, zkTestingServer.getClient())
         ) {
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         if (proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker1, getJobId(1)))
                                 != null &&
@@ -116,11 +119,11 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             proxySocket.close();
             logger.info("Closed proxy to emulate network issue. Curator connection timeout is {}. Waiting {} + 10_000" +
                     " ms until connection lost.", sessionTimeout, 3_000);
-            assertTimeout(Duration.ofMillis(sessionTimeout + 3_000),
+            retryAssertTrue(Duration.ofMillis(sessionTimeout + 3_000),
                     () -> !proxiedCurator.getZookeeperClient().getZooKeeper().getState().isConnected(),
                     "Curator is disconnected");
 
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         if (zkTestingServer.getClient().checkExists().forPath(paths.assignedWorkPool(worker2,
                                 getJobId(1))) != null) {
@@ -146,7 +149,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             logger.info("Restored proxy on the same port {}. Curator could reconnect now.", proxySocket.getPort());
 
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> {
                         try {
@@ -156,7 +159,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         }
                     }, "Curator is connected");
 
-            assertTimeout(Duration.ofMillis(50_000),
+            retryAssertTrue(Duration.ofMillis(50_000),
                     () -> {
                         if (proxiedCurator.checkExists().forPath(paths.assignedWorkPool(worker1, getJobId(1)))
                                 != null &&
@@ -186,7 +189,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator);
                 DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator)
         ) {
-            assertTimeout(Duration.ofMillis(10_000),
+            retryAssertTrue(Duration.ofMillis(10_000),
                     () -> {
                         String pathForWorker1 = paths.assignedWorkPool(nodeIds[0], getJobId(1));
                         String pathForWorker2 = paths.assignedWorkPool(nodeIds[1], getJobId(1));
@@ -227,7 +230,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(Duration.ofMillis(10_000),
+            retryAssertTrue(Duration.ofMillis(10_000),
                     () -> Mockito.mockingDetails(testJob).getInvocations()
                             .stream().anyMatch(i -> i.getMethod().getName().equals("run")),
                     () -> "Stubbed multi job completed");
@@ -246,7 +249,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         Collections.singletonList(testJob))
         ) {
-            assertTimeout(Duration.ofMillis(10_000),
+            retryAssertTrue(Duration.ofMillis(10_000),
                     () -> Mockito.mockingDetails(testJob).getInvocations()
                             .stream().filter(i -> i.getMethod().getName().equals("run"))
                             .count() == 10L,
@@ -268,7 +271,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
@@ -282,7 +285,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             Collections.singletonList(testJob2)
                     )
             ) {
-                assertTimeout(
+                retryAssertTrue(
                         Duration.ofMillis(30_000),
                         () -> {
                             Set<String> localPool1 = testJob.getLocalWorkPool();
@@ -321,7 +324,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
@@ -339,7 +342,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree
@@ -361,7 +364,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
@@ -375,7 +378,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             Collections.singletonList(testJob)
                     )
             ) {
-                assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
+                retryAssertTrue(Duration.ofMillis(DEFAULT_TIMEOUT),
                         () -> testJob2.getLocalWorkPool().size() == testJob2.getWorkPool().getItems().size(),
                         () -> "Single distributed job2 should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
                 verify(testJob, times(1)).run(any());
@@ -395,7 +398,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
+            retryAssertTrue(Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getAllWorkPools().size() == 3 &&
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
                                     .size() == 3,
@@ -425,7 +428,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 )
 
         ) {
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         int localPoolSize1 = testJobOnWorker1.getLocalWorkPool().size();
                         int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
@@ -442,7 +445,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     getWorkPool(10, 1),
                     getWorkPool(10, 4))));
 
-            assertTimeout(
+            retryAssertTrue(
                     Duration.ofMillis(30_000),
                     () -> {
                         Set<String> worker1WorkPool = testJobOnWorker1.getLocalWorkPool();
@@ -479,7 +482,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJobOnWorker2)
                 )
         ) {
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         int localPoolSize1 = testJobOnWorker1.getLocalWorkPool().size();
                         int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
@@ -502,7 +505,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             testJobOnWorker1.updateWorkPool(new HashSet<>(Collections.singletonList(
                     getWorkPool(10, 2))));
 
-            assertTimeout(Duration.ofMillis(50_000),
+            retryAssertTrue(Duration.ofMillis(50_000),
                     () -> {
                         Set<String> worker1WorkPool = testJobOnWorker1.getLocalWorkPool();
                         int localPoolSize1 = worker1WorkPool.size();
@@ -531,7 +534,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             jobManager1.close();
             curator1.close();
 
-            assertTimeout(Duration.ofMillis(30_000),
+            retryAssertTrue(Duration.ofMillis(30_000),
                     () -> {
                         List<String> workPoolForFirstJob = curator2.getChildren()
                                 .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
@@ -588,6 +591,27 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     private String getWorkPool(int jobId, int workItemIndex) {
         return String.format("work-item-%d.%d", jobId, workItemIndex);
+    }
+
+
+    private void retryAssertTrue(
+            Duration duration, ThrowableSupplier<Boolean, Exception> testSupplier, String message
+    ) {
+        assertTimeoutPreemptively(duration, () -> {
+            while (!testSupplier.get()){
+                TimeUnit.MILLISECONDS.sleep(200);
+            }
+        }, message);
+    }
+
+    private void retryAssertTrue(
+            Duration duration, ThrowableSupplier<Boolean, Exception> testSupplier, Supplier<String> messageSupplier
+    ) {
+        assertTimeoutPreemptively(duration, () -> {
+            while (!testSupplier.get()){
+                TimeUnit.MILLISECONDS.sleep(200);
+            }
+        }, messageSupplier);
     }
 
 }
