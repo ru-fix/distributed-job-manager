@@ -412,8 +412,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldUpdateWorkPool() throws Exception {
-        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
-        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
+        Set<String> initialWorkPool = getWorkItems(10);
+        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, initialWorkPool, 100, 3000);
+        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, initialWorkPool, 100, 3000);
 
         try (
                 DistributedJobManager jobManager1 = createNewJobManager(
@@ -428,38 +429,22 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 )
 
         ) {
-            retryAssertTrue(Duration.ofMillis(30_000),
-                    () -> {
-                        int localPoolSize1 = testJobOnWorker1.getLocalWorkPool().size();
-                        int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
-                        return localPoolSize1 != 0 && localPoolSize2 != 0
-                                && 3 == localPoolSize1 + localPoolSize2;
-                    },
-                    () -> "Work pools distributed between two workers" + printZkTree
-                            (JOB_MANAGER_ZK_ROOT_PATH)
-                            + " localPool1 " + testJobOnWorker1.getLocalWorkPool()
-                            + " localPool2 " + testJobOnWorker2.getLocalWorkPool());
-
-
-            testJobOnWorker1.updateWorkPool(new HashSet<>(Arrays.asList(
-                    getWorkPool(10, 1),
-                    getWorkPool(10, 4))));
-
-            retryAssertTrue(
+            verifyWorkPoolIsDistributedBetweenWorkers(
+                    initialWorkPool,
                     Duration.ofMillis(30_000),
-                    () -> {
-                        Set<String> worker1WorkPool = testJobOnWorker1.getLocalWorkPool();
-                        int localPoolSize1 = worker1WorkPool.size();
-                        int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
-                        return localPoolSize1 != 0 && localPoolSize2 != 0
-                                && 4 == localPoolSize1 + localPoolSize2
-                                && worker1WorkPool.contains(getWorkPool(10, 4));
-                    },
-                    () -> "Work pools distributed between two workers and worker 1 has item " +
-                            getWorkPool(10, 4)
-                            + printZkTree(JOB_MANAGER_ZK_ROOT_PATH)
-                            + " localPool1 " + testJobOnWorker1.getLocalWorkPool()
-                            + " localPool2 " + testJobOnWorker2.getLocalWorkPool());
+                    testJobOnWorker1, testJobOnWorker2);
+
+            Set<String> updatedWorkPool = new HashSet<>(Arrays.asList(
+                    getWorkPool(10, 1),
+                    getWorkPool(10, 4)));
+
+            testJobOnWorker1.updateWorkPool(updatedWorkPool);
+            testJobOnWorker2.updateWorkPool(updatedWorkPool);
+
+            verifyWorkPoolIsDistributedBetweenWorkers(
+                    updatedWorkPool,
+                    Duration.ofMillis(30_000),
+                    testJobOnWorker1, testJobOnWorker2);
         }
     }
 
@@ -496,29 +481,27 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
 
             List<CompletableFuture<Void>> allUpdates = new ArrayList<>();
+            Set<String> updatedWorkPool1 = Set.of(getWorkPool(10, 3), getWorkPool(10, 4));
+            Set<String> updatedWorkPool2 = Set.of(getWorkPool(10, 1), getWorkPool(10, 5), getWorkPool(10, 6));
             for (int i = 0; i < 100; i++) {
-                allUpdates.add(CompletableFuture.runAsync(() -> testJobOnWorker1.updateWorkPool(
-                        Collections.singleton(getWorkPool(10, 1)))));
+                allUpdates.add(CompletableFuture.runAsync(() -> {
+                    testJobOnWorker1.updateWorkPool(updatedWorkPool1);
+                    testJobOnWorker2.updateWorkPool(updatedWorkPool1);
+                }));
+                allUpdates.add(CompletableFuture.runAsync(() -> {
+                    testJobOnWorker1.updateWorkPool(updatedWorkPool2);
+                    testJobOnWorker2.updateWorkPool(updatedWorkPool2);
+                }));
             }
             CompletableFuture.allOf(allUpdates.toArray(new CompletableFuture[0])).join();
 
-            testJobOnWorker1.updateWorkPool(new HashSet<>(Collections.singletonList(
-                    getWorkPool(10, 2))));
+            testJobOnWorker1.updateWorkPool(updatedWorkPool2);
+            testJobOnWorker2.updateWorkPool(updatedWorkPool2);
 
-            retryAssertTrue(Duration.ofMillis(50_000),
-                    () -> {
-                        Set<String> worker1WorkPool = testJobOnWorker1.getLocalWorkPool();
-                        int localPoolSize1 = worker1WorkPool.size();
-                        int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
-                        return localPoolSize1 != 0 && localPoolSize2 != 0
-                                && 3 == localPoolSize1 + localPoolSize2
-                                && worker1WorkPool.contains(getWorkPool(10, 2));
-                    },
-                    () -> "Work pools distributed between two workers and worker 1 has item " +
-                            getWorkPool(10, 2)
-                            + printZkTree(JOB_MANAGER_ZK_ROOT_PATH)
-                            + " localPool1 " + testJobOnWorker1.getLocalWorkPool()
-                            + " localPool2 " + testJobOnWorker2.getLocalWorkPool());
+            verifyWorkPoolIsDistributedBetweenWorkers(
+                    updatedWorkPool2,
+                    Duration.ofMillis(50_000),
+                    testJobOnWorker1, testJobOnWorker2);
         }
     }
 
@@ -544,6 +527,49 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             (JOB_MANAGER_ZK_ROOT_PATH));
         }
     }
+
+
+    private void verifyWorkPoolIsDistributedBetweenWorkers(
+            Set<String> commonWorkPool, Duration duration, StubbedMultiJob... jobsOnWorkers) {
+
+        retryAssertTrue(duration,
+                () -> {
+                    List<Set<String>> localWorkPools = Arrays.stream(jobsOnWorkers)
+                            .map(StubbedMultiJob::getLocalWorkPool)
+                            .collect(Collectors.toUnmodifiableList());
+
+                    List<String> commonWorkPoolFromLocals = localWorkPools.stream()
+                            .flatMap(Collection::stream)
+                            .collect(Collectors.toUnmodifiableList());
+
+                    return commonWorkPool.size() == commonWorkPoolFromLocals.size()
+                            && commonWorkPoolFromLocals.containsAll(commonWorkPool)
+                            && commonWorkPool.containsAll(commonWorkPoolFromLocals)
+                            && setsSizesDifferLessThanTwoItems(localWorkPools);
+                },
+                () -> "Work pools distributed between two workers and worker 1 has item " +
+                        commonWorkPool
+                        + printZkTree(JOB_MANAGER_ZK_ROOT_PATH)
+                        + " localPools: " + Arrays.stream(jobsOnWorkers)
+                        .map(StubbedMultiJob::getLocalWorkPool)
+                        .collect(Collectors.toUnmodifiableList()));
+    }
+
+    private boolean setsSizesDifferLessThanTwoItems(List<Set<String>> sets) {
+        Set<String> firstSet = sets.get(0);
+        int maxSize = firstSet.size();
+        int minSize = maxSize;
+        for (Set<String> set : sets) {
+            int size = set.size();
+            maxSize = Integer.max(maxSize, size);
+            minSize = Integer.min(minSize, size);
+            if(maxSize - minSize > 2) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     private DistributedJobManager createNewJobManager(
             String nodeId,
