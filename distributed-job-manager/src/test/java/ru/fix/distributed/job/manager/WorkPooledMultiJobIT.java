@@ -375,7 +375,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     DistributedJobManager jobManager2 = createNewJobManager(
                             "app-2",
                             zkTestingServer.createClient(),
-                            Collections.singletonList(testJob)
+                            Collections.singletonList(testJob2)
                     )
             ) {
                 retryAssertTrue(Duration.ofMillis(DEFAULT_TIMEOUT),
