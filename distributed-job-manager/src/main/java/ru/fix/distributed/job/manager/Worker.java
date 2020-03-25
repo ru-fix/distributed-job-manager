@@ -9,12 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
-import ru.fix.stdlib.concurrency.threads.ProfiledScheduledThreadPoolExecutor;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.transactional.TransactionalClient;
@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +58,9 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private DynamicProperty<Long> timeToWaitTermination;
+    private DynamicProperty<DistributedJobSettings> jobsEnabled;
+
+    private boolean isJobEnabled;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -65,15 +69,18 @@ class Worker implements AutoCloseable {
     private final WorkShareLockService workShareLockService;
 
     private final AtomicProperty<Integer> threadPoolSize;
-
     Worker(CuratorFramework curatorFramework,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
-           DistributedJobManagerSettings settings) {
+           DistributedJobManagerSettings settings,
+           DynamicProperty<DistributedJobSettings> jobsEnabled) {
+
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
         this.workerId = settings.getNodeId();
         this.availableJobs = distributedJobs;
+
+        this.jobsEnabled = jobsEnabled;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
                 "worker-" + workerId,
@@ -436,16 +443,23 @@ class Worker implements AutoCloseable {
     }
 
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
-        log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
+        //supplying status of the job based on job's id to pass it to ScheduledJobExecution
+        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getEnabled(newMultiJob.getJobId());
+        isJobEnabled = DynamicProperty.delegated(supplyStatusOfJob).get();
+
+        log.info("wid={} onWorkPooledJobReassigned start jobId={} with {}, delay={}, and isEnabled={}",
                 workerId,
                 newMultiJob.getJobId(),
                 workPoolToExecute,
-                newMultiJob.getInitialJobDelay());
+                newMultiJob.getInitialJobDelay(),
+                isJobEnabled);
+
         ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
                 profiler,
-                new SmartLockMonitorDecorator(workShareLockService)
+                new SmartLockMonitorDecorator(workShareLockService),
+                isJobEnabled
         );
 
         if (!isWorkerShutdown) {

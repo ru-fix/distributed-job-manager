@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.zookeeper.testing.ZKTestingServer;
 
 import java.util.Set;
@@ -16,7 +17,6 @@ public class AbstractJobManagerTest {
 
     static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
     private static final Logger log = LoggerFactory.getLogger(AbstractJobManagerTest.class);
-
     public ZKTestingServer zkTestingServer;
 
     @BeforeEach

@@ -83,7 +83,6 @@ class StubbedMultiJob implements DistributedJob {
     public String getJobId() {
         return getJobId(jobId);
     }
-
     @Override
     public void run(DistributedJobContext context) {
         logger.trace("{} Run distributed test job {} / {}", this, getJobId(), context.getWorkShare());

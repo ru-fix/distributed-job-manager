@@ -28,6 +28,7 @@ class ScheduledJobExecution implements Runnable {
 
     private volatile ScheduledFuture<?> scheduledFuture;
     private Lock lock = new ReentrantLock();
+    private boolean isJobEnabled;
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
@@ -41,7 +42,8 @@ class ScheduledJobExecution implements Runnable {
     public ScheduledJobExecution(DistributedJob job,
                                  Set<String> workShare,
                                  Profiler profiler,
-                                 WorkShareLockService workShareLockService) {
+                                 WorkShareLockService workShareLockService,
+                                 boolean isJobEnabled) {
         if (workShare.isEmpty()) {
             throw new IllegalArgumentException(
                     "ScheduledJobExecution should receive at least single workItem in workShare");
@@ -51,11 +53,15 @@ class ScheduledJobExecution implements Runnable {
         this.workShare = workShare;
         this.profiler = profiler;
         this.workShareLockService = workShareLockService;
+        this.isJobEnabled = isJobEnabled;
     }
 
     @Override
     public void run() {
         ProfiledCall stopProfiledCall = profiler.profiledCall(ProfilerMetrics.STOP(job.getJobId()));
+
+        //checks the status of enabled config, which corresponds to its job
+        if(!isJobEnabled) return;
 
         JobContext jobContext = new JobContext(job.getJobId(), workShare);
         jobRuns.add(jobContext);

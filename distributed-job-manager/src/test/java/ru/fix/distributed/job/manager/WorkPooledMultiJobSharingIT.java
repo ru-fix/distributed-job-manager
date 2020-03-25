@@ -5,41 +5,40 @@ import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
+import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.mockito.Mockito.*;
 
 class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
-
+    private Collection<?> listOfJobs = Collections.singletonList(
+            new SingleThreadMultiJob(
+                    new HashSet<>(Arrays.asList("1", "2", "3", "4"))));
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
+             DynamicProperty<DistributedJobSettings> jobsEnabled = allJobsEnabledFalse(listOfJobs);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
-                     new HashSet<>(Collections.singletonList(
-                             new SingleThreadMultiJob(
-                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))))),
+                     (Collection<DistributedJob>) listOfJobs,
                      new AggregatingProfiler(),
                      new DistributedJobManagerSettings(
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime()
+                             getTerminationWaitTime(),
+                             jobsEnabled
                      )
              )
         ) {
             verify(monitor, timeout(10_000)).check(anySet());
         }
     }
-
     private DynamicProperty<Long> getTerminationWaitTime() {
         return DynamicProperty.of(180_000L);
     }
@@ -82,5 +81,14 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
             return 0;
         }
 
+    }
+    private DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<?> collection){
+        DistributedJobSettings DJS = new DistributedJobSettings();
+
+        for (Object dj : collection) {
+            DJS.addConfig(((DistributedJob)dj).getJobId(), false);
+        }
+
+        return DynamicProperty.of(DJS);
     }
 }

@@ -6,11 +6,15 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
+import ru.fix.distributed.job.manager.example.RebillJob
+import ru.fix.distributed.job.manager.example.SmsJob
+import ru.fix.distributed.job.manager.example.UssdJob
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.generateAvailability
+import ru.fix.distributed.job.manager.util.DistributedJobSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import java.time.Duration
 
@@ -284,13 +288,21 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         2, createWorkPool("distr-job-id-2", 2).items, 50000L
                 ))
     }
-
+    //custom config to test the flag
+    private fun allJobsEnabledFalse(jobs: List<DistributedJob> ):DynamicProperty<DistributedJobSettings>{
+        val jobsPresetConfigs = DistributedJobSettings(HashMap<String,Boolean>())
+        for (job: DistributedJob in jobs){
+            jobsPresetConfigs.addConfig(job.jobId, false)
+        }
+        return DynamicProperty.of(jobsPresetConfigs)
+    }
     @Throws(Exception::class)
     private fun createDjm(
             nodeId: String,
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
+        val jobsEnabled: DynamicProperty<DistributedJobSettings> = allJobsEnabledFalse(jobs)
         return DistributedJobManager(
                 zkTestingServer.createClient(),
                 jobs,
@@ -299,7 +311,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         nodeId = nodeId,
                         rootPath = JOB_MANAGER_ZK_ROOT_PATH,
                         assignmentStrategy = strategy,
-                        timeToWaitTermination = DynamicProperty.of(10_000L)
+                        timeToWaitTermination = DynamicProperty.of(10_000L),
+                        jobsEnabled = jobsEnabled
                 )
         )
     }

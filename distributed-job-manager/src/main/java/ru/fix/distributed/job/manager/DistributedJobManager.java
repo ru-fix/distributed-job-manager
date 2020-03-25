@@ -7,6 +7,7 @@ import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
+import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
@@ -16,7 +17,7 @@ import java.util.Collection;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- *String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
+ * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -46,6 +47,7 @@ public class DistributedJobManager implements AutoCloseable {
     private final Worker worker;
     private final Manager manager;
     private String nodeId;
+    private DynamicProperty<DistributedJobSettings> jobsEnabled;
 
     private static class Timespan {
         long startTimestamp;
@@ -84,11 +86,14 @@ public class DistributedJobManager implements AutoCloseable {
 
         this.nodeId = settings.getNodeId();
 
+        this.jobsEnabled = settings.component5();
+
         this.worker = new Worker(
                 curatorFramework,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
-                settings);
+                settings,
+                jobsEnabled);
 
         workerInitTimespan.stop();
 

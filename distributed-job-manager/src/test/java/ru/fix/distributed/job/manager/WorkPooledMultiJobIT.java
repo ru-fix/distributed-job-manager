@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
+import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.socket.proxy.ProxySocket;
 
@@ -561,6 +562,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             CuratorFramework curatorFramework,
             Collection<DistributedJob> collection
     ) throws Exception {
+        DynamicProperty<DistributedJobSettings> settings = allJobsEnabledFalse(collection);
         return new DistributedJobManager(
                 curatorFramework,
                 collection,
@@ -569,7 +571,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         AssignmentStrategies.Companion.getDEFAULT(),
-                        getTerminationWaitTime()
+                        getTerminationWaitTime(),
+                        settings
                 )
         );
     }
@@ -577,6 +580,14 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private DynamicProperty<Long> getTerminationWaitTime() {
         return DynamicProperty.of(180_000L);
 
+    }
+
+    private DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<DistributedJob> collection){
+        DistributedJobSettings DJS = new DistributedJobSettings(new HashMap<>());
+        for (DistributedJob dj : collection) {
+            DJS.addConfig(dj.getJobId(), false);
+        }
+        return DynamicProperty.of(DJS);
     }
 
     private Set<String> getWorkItems(int jobId) {
