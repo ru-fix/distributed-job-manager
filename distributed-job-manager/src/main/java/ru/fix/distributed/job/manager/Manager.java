@@ -2,9 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
+import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.zookeeper.KeeperException;
@@ -36,7 +34,7 @@ class Manager implements AutoCloseable {
     private final AssignmentStrategy assignmentStrategy;
 
     private PathChildrenCache workersAliveChildrenCache;
-    private PathChildrenCache workPoolChildrenCache;
+    private TreeCache workPoolTreeCache;
 
     private RebalanceEventConsumer rebalanceEventConsumer;
 
@@ -59,19 +57,18 @@ class Manager implements AutoCloseable {
                 curatorFramework,
                 paths.aliveWorkers(),
                 false);
-        this.workPoolChildrenCache = new PathChildrenCache(
+        this.workPoolTreeCache = new TreeCache(
                 curatorFramework,
-                paths.availableWorkPool(),
-                false);
+                paths.availableWorkPool());
     }
 
     public void start() throws Exception {
         workersAliveChildrenCache.getListenable().addListener(rebalanceEventConsumer);
-        workPoolChildrenCache.getListenable().addListener(rebalanceEventConsumer);
+        workPoolTreeCache.getListenable().addListener(rebalanceEventConsumer);
         CompletableFuture.runAsync(rebalanceEventConsumer, Executors.newSingleThreadExecutor());
         leaderLatch.start();
         workersAliveChildrenCache.start();
-        workPoolChildrenCache.start();
+        workPoolTreeCache.start();
     }
 
     private LeaderLatch initLeaderLatch() {
@@ -352,7 +349,7 @@ class Manager implements AutoCloseable {
         log.info("Closing DJM manager entity...");
 
         workersAliveChildrenCache.close();
-        workPoolChildrenCache.close();
+        workPoolTreeCache.close();
         if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
             leaderLatch.close();
         }
@@ -367,10 +364,10 @@ class Manager implements AutoCloseable {
     }
 
 
-    private class RebalanceEventConsumer implements Runnable, PathChildrenCacheListener {
+    private class RebalanceEventConsumer implements Runnable, PathChildrenCacheListener, TreeCacheListener {
         private static final long CHECK_SHUTDOWN_PERIOD_MS = 1_000L;
 
-        private BlockingQueue<PathChildrenCacheEvent> rebalanceEventsQueue;
+        private BlockingQueue<Object> rebalanceEventsQueue;
 
         RebalanceEventConsumer() {
             rebalanceEventsQueue = new LinkedBlockingQueue<>();
@@ -423,9 +420,25 @@ class Manager implements AutoCloseable {
                 case CONNECTION_SUSPENDED:
                     break;
                 default:
-                    log.warn("nodeId={} Invalid event type {}", nodeId, event.getType());
+                    log.warn("nodeId={} Invalid PathChildrenCacheEvent type {}", nodeId, event.getType());
             }
         }
 
+        @Override
+        public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception {
+            log.trace("nodeId={} handleRebalanceEvent event={}", nodeId, event);
+            switch (event.getType()) {
+                case CONNECTION_RECONNECTED:
+                case NODE_UPDATED:
+                case NODE_ADDED:
+                case NODE_REMOVED:
+                    rebalanceEventsQueue.put(event);
+                    break;
+                case CONNECTION_SUSPENDED:
+                    break;
+                default:
+                    log.warn("nodeId={} Invalid TreeCacheEvent type {}", nodeId, event.getType());
+            }
+        }
     }
 }
