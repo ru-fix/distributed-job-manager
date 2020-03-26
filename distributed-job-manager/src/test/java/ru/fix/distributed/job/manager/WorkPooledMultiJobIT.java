@@ -564,12 +564,11 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             Set<String> commonWorkPool, long durationMs, StubbedMultiJob... jobsOnWorkers) throws Exception {
 
         RetryAssert.assertTrue(
-                () -> "Work pools distributed between two workers and worker 1 has item " +
-                        commonWorkPool
-                        + printZkTree(JOB_MANAGER_ZK_ROOT_PATH)
+                () -> "Work pools distributed between two workers " + commonWorkPool
                         + " localPools: " + Arrays.stream(jobsOnWorkers)
                         .map(StubbedMultiJob::getLocalWorkPool)
-                        .collect(Collectors.toUnmodifiableList()),
+                        .collect(Collectors.toUnmodifiableList())
+                        + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
                 () -> {
                     List<Set<String>> localWorkPools = Arrays.stream(jobsOnWorkers)
                             .map(StubbedMultiJob::getLocalWorkPool)
