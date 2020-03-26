@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
@@ -89,7 +90,6 @@ class StubbedMultiJob implements DistributedJob {
         localWorkPool.set(context.getWorkShare());
         allWorkPools.add(context.getWorkShare());
     }
-
     public Set<String> getLocalWorkPool() {
         Set<String> wp = localWorkPool.get();
         return wp == null ? Collections.emptySet() : wp;

@@ -6,9 +6,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
-import ru.fix.distributed.job.manager.example.RebillJob
-import ru.fix.distributed.job.manager.example.SmsJob
-import ru.fix.distributed.job.manager.example.UssdJob
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
@@ -288,21 +285,14 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         2, createWorkPool("distr-job-id-2", 2).items, 50000L
                 ))
     }
-    //custom config to test the flag
-    private fun allJobsEnabledFalse(jobs: List<DistributedJob> ):DynamicProperty<DistributedJobSettings>{
-        val jobsPresetConfigs = DistributedJobSettings(HashMap<String,Boolean>())
-        for (job: DistributedJob in jobs){
-            jobsPresetConfigs.addConfig(job.jobId, false)
-        }
-        return DynamicProperty.of(jobsPresetConfigs)
-    }
     @Throws(Exception::class)
     private fun createDjm(
             nodeId: String,
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
-        val jobsEnabled: DynamicProperty<DistributedJobSettings> = allJobsEnabledFalse(jobs)
+        val configTest = DistributedJobManagerConfigHelper()
+        val jobsEnabled: DynamicProperty<DistributedJobSettings> = configTest.allJobsEnabledFalse(jobs)
         return DistributedJobManager(
                 zkTestingServer.createClient(),
                 jobs,

@@ -60,7 +60,7 @@ class ScheduledJobExecution implements Runnable {
     public void run() {
         ProfiledCall stopProfiledCall = profiler.profiledCall(ProfilerMetrics.STOP(job.getJobId()));
 
-        //checks the status of enabled config, which corresponds to its job
+        //checks the status of `enabled` config, which corresponds to its job
         if(!isJobEnabled) return;
 
         JobContext jobContext = new JobContext(job.getJobId(), workShare);

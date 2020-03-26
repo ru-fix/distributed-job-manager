@@ -32,7 +32,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private static final int DEFAULT_TIMEOUT = 15_000;
 
     private static final Logger logger = LoggerFactory.getLogger(WorkPooledMultiJobIT.class);
-
+    private DistributedJobManagerConfigHelper configTest = new DistributedJobManagerConfigHelper();
     @Test
     public void shouldAddNewAvailableWorkPool() throws Exception {
         final String nodeId = "common-worker-1";
@@ -340,12 +340,14 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
+            if(!jobManager.getSettings().component5().get().getEnabled(testJob.getJobId())) return;
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree
                             (JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
+
             verify(testJob, times(1)).run(any());
         }
     }
@@ -367,6 +369,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
+            if(!jobManager.getSettings().component5().get().getEnabled(testJob.getJobId())) return;
             verify(testJob, times(1)).run(any());
 
             try (
@@ -396,6 +399,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
+            if(!jobManager.getSettings().component5().get().getEnabled(testJob.getJobId())) return;
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getAllWorkPools().size() == 3 &&
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
@@ -403,6 +407,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree
                             (JOB_MANAGER_ZK_ROOT_PATH) + testJob.getAllWorkPools());
             Thread.sleep(1000);
+
             // 3 times, because one thread per work item
             verify(testJob, times(3)).run(any());
         }
@@ -562,7 +567,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             CuratorFramework curatorFramework,
             Collection<DistributedJob> collection
     ) throws Exception {
-        DynamicProperty<DistributedJobSettings> settings = allJobsEnabledFalse(collection);
+        DynamicProperty<DistributedJobSettings> settings = configTest.toRunWith(1,collection);
+
         return new DistributedJobManager(
                 curatorFramework,
                 collection,
@@ -580,14 +586,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private DynamicProperty<Long> getTerminationWaitTime() {
         return DynamicProperty.of(180_000L);
 
-    }
-
-    private DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<DistributedJob> collection){
-        DistributedJobSettings DJS = new DistributedJobSettings(new HashMap<>());
-        for (DistributedJob dj : collection) {
-            DJS.addConfig(dj.getJobId(), false);
-        }
-        return DynamicProperty.of(DJS);
     }
 
     private Set<String> getWorkItems(int jobId) {
