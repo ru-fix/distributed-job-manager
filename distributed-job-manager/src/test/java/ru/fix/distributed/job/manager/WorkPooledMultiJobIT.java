@@ -444,8 +444,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldBalanceOnWorkPoolMultipleUpdate() throws Exception {
-        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 500);
-        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, getWorkItems(10), 100, 500);
+        Set<String> workPoolBeforeUpdates = getWorkItems(10);
+        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, workPoolBeforeUpdates, 100, 500);
+        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, workPoolBeforeUpdates, 100, 500);
         AggregatingProfiler profiler = new AggregatingProfiler();
 
         try (
@@ -461,22 +462,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJobOnWorker2)
                 )
         ) {
-            RetryAssert.assertTrue(
-                    () -> "Work pools distributed between two workers" + printZkTree
-                            (JOB_MANAGER_ZK_ROOT_PATH)
-                            + " localPool1 " + testJobOnWorker1.getLocalWorkPool()
-                            + " localPool2 " + testJobOnWorker2.getLocalWorkPool(),
-                    () -> {
-                        int localPoolSize1 = testJobOnWorker1.getLocalWorkPool().size();
-                        int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
-                        return localPoolSize1 != 0 && localPoolSize2 != 0
-                                && 3 == localPoolSize1 + localPoolSize2;
-                    }, 30_000);
-
+            verifyWorkPoolIsDistributedBetweenWorkers(
+                    workPoolBeforeUpdates,
+                    30_000,
+                    testJobOnWorker1, testJobOnWorker2);
 
             List<CompletableFuture<Void>> allUpdates = new ArrayList<>();
-            Set<String> updatedWorkPool1 = Set.of(getWorkPool(10, 3), getWorkPool(10, 4));
-            Set<String> updatedWorkPool2 = Set.of(getWorkPool(10, 1), getWorkPool(10, 5), getWorkPool(10, 6));
+            Set<String> updatedWorkPool1 = Set.of(
+                    getWorkPool(10, 3),
+                    getWorkPool(10, 4));
+            Set<String> updatedWorkPool2 = Set.of(
+                    getWorkPool(10, 1),
+                    getWorkPool(10, 5),
+                    getWorkPool(10, 6));
             for (int i = 0; i < 100; i++) {
                 allUpdates.add(CompletableFuture.runAsync(() -> {
                     testJobOnWorker1.updateWorkPool(updatedWorkPool1);
@@ -537,18 +535,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             .map(StubbedMultiJob::getLocalWorkPool)
                             .collect(Collectors.toUnmodifiableList());
 
-                    List<String> commonWorkPoolFromLocals = localWorkPools.stream()
+                    Set<String> commonWorkPoolFromLocals = localWorkPools.stream()
                             .flatMap(Collection::stream)
-                            .collect(Collectors.toUnmodifiableList());
-
-                    return commonWorkPool.size() == commonWorkPoolFromLocals.size()
-                            && commonWorkPoolFromLocals.containsAll(commonWorkPool)
-                            && commonWorkPool.containsAll(commonWorkPoolFromLocals)
-                            && setsSizesDifferLessThanTwoItems(localWorkPools);
+                            .collect(Collectors.toUnmodifiableSet());
+                    return commonWorkPoolFromLocals.equals(commonWorkPool)
+                            && setsSizesDifferLessThanTwo(localWorkPools);
                 }, durationMs);
     }
 
-    private boolean setsSizesDifferLessThanTwoItems(List<Set<String>> sets) {
+    private boolean setsSizesDifferLessThanTwo(List<Set<String>> sets) {
         Set<String> firstSet = sets.get(0);
         int maxSize = firstSet.size();
         int minSize = maxSize;
