@@ -223,10 +223,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            RetryAssert.assertTrue(() -> "Stubbed multi job completed",
-                    () -> Mockito.mockingDetails(testJob).getInvocations()
-                            .stream().anyMatch(i -> i.getMethod().getName().equals("run")),
-                    10_000);
+            verify(testJob, timeout(10_000)).run(any());
         }
     }
 
@@ -242,11 +239,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         Collections.singletonList(testJob))
         ) {
-            RetryAssert.assertTrue("Stubbed multi job with exception was run 10 times",
-                    () -> Mockito.mockingDetails(testJob).getInvocations()
-                            .stream().filter(i -> i.getMethod().getName().equals("run"))
-                            .count() == 10L,
-                    10_000);
+            verify(testJob, timeout(10_000).times(10)).run(any());
         }
     }
 
@@ -340,8 +333,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             (JOB_MANAGER_ZK_ROOT_PATH),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     DEFAULT_TIMEOUT);
-            Thread.sleep(500);
-            verify(testJob, times(1)).run(any());
+            verify(testJob, timeout(500)).run(any());
         }
     }
 
@@ -361,8 +353,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     DEFAULT_TIMEOUT);
-            Thread.sleep(500);
-            verify(testJob, times(1)).run(any());
+            verify(testJob, timeout(500)).run(any());
 
             try (
                     DistributedJobManager jobManager2 = createNewJobManager(
@@ -374,7 +365,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 RetryAssert.assertTrue(() -> "Single distributed job2 should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
                         () -> testJob2.getLocalWorkPool().size() == testJob2.getWorkPool().getItems().size(),
                         DEFAULT_TIMEOUT);
-                verify(testJob, times(1)).run(any());
+                verify(testJob).run(any());
             }
 
         }
@@ -398,9 +389,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
                                     .size() == 3,
                     DEFAULT_TIMEOUT);
-            Thread.sleep(1000);
             // 3 times, because one thread per work item
-            verify(testJob, times(3)).run(any());
+            verify(testJob, timeout(1_000).times(3)).run(any());
         }
     }
 
@@ -481,8 +471,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldBalanceOnWorkPoolMultipleUpdate() throws Exception {
-        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 500);
-        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, getWorkItems(10), 100, 500);
+        Set<String> workPoolBeforeUpdates = getWorkItems(10);
+        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, workPoolBeforeUpdates, 100, 500);
+        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, workPoolBeforeUpdates, 100, 500);
         AggregatingProfiler profiler = new AggregatingProfiler();
 
         try (
@@ -498,22 +489,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJobOnWorker2)
                 )
         ) {
-            RetryAssert.assertTrue(
-                    () -> "Work pools distributed between two workers" + printZkTree
-                            (JOB_MANAGER_ZK_ROOT_PATH)
-                            + " localPool1 " + testJobOnWorker1.getLocalWorkPool()
-                            + " localPool2 " + testJobOnWorker2.getLocalWorkPool(),
-                    () -> {
-                        int localPoolSize1 = testJobOnWorker1.getLocalWorkPool().size();
-                        int localPoolSize2 = testJobOnWorker2.getLocalWorkPool().size();
-                        return localPoolSize1 != 0 && localPoolSize2 != 0
-                                && 3 == localPoolSize1 + localPoolSize2;
-                    }, 30_000);
-
+            verifyWorkPoolIsDistributedBetweenWorkers(
+                    workPoolBeforeUpdates,
+                    30_000,
+                    testJobOnWorker1, testJobOnWorker2);
 
             List<CompletableFuture<Void>> allUpdates = new ArrayList<>();
-            Set<String> updatedWorkPool1 = Set.of(getWorkPool(10, 3), getWorkPool(10, 4));
-            Set<String> updatedWorkPool2 = Set.of(getWorkPool(10, 1), getWorkPool(10, 5), getWorkPool(10, 6));
+            Set<String> updatedWorkPool1 = Set.of(
+                    getWorkPool(10, 3),
+                    getWorkPool(10, 4));
+            Set<String> updatedWorkPool2 = Set.of(
+                    getWorkPool(10, 1),
+                    getWorkPool(10, 5),
+                    getWorkPool(10, 6));
             for (int i = 0; i < 100; i++) {
                 allUpdates.add(CompletableFuture.runAsync(() -> {
                     testJobOnWorker1.updateWorkPool(updatedWorkPool1);
@@ -574,18 +562,15 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             .map(StubbedMultiJob::getLocalWorkPool)
                             .collect(Collectors.toUnmodifiableList());
 
-                    List<String> commonWorkPoolFromLocals = localWorkPools.stream()
+                    Set<String> commonWorkPoolFromLocals = localWorkPools.stream()
                             .flatMap(Collection::stream)
-                            .collect(Collectors.toUnmodifiableList());
-
-                    return commonWorkPool.size() == commonWorkPoolFromLocals.size()
-                            && commonWorkPoolFromLocals.containsAll(commonWorkPool)
-                            && commonWorkPool.containsAll(commonWorkPoolFromLocals)
-                            && setsSizesDifferLessThanTwoItems(localWorkPools);
+                            .collect(Collectors.toUnmodifiableSet());
+                    return commonWorkPoolFromLocals.equals(commonWorkPool)
+                            && setsSizesDifferLessThanTwo(localWorkPools);
                 }, durationMs);
     }
 
-    private boolean setsSizesDifferLessThanTwoItems(List<Set<String>> sets) {
+    private boolean setsSizesDifferLessThanTwo(List<Set<String>> sets) {
         Set<String> firstSet = sets.get(0);
         int maxSize = firstSet.size();
         int minSize = maxSize;
