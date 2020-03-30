@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,11 @@ public class AbstractJobManagerTest {
     public void setUp() throws Exception {
         zkTestingServer = new ZKTestingServer();
         zkTestingServer.start();
+    }
+
+    @AfterEach
+    void tearDown() {
+        zkTestingServer.close();
     }
 
     ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
