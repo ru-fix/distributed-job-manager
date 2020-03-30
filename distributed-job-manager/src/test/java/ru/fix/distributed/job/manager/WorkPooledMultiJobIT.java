@@ -223,10 +223,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            RetryAssert.assertTrue(() -> "Stubbed multi job completed",
-                    () -> Mockito.mockingDetails(testJob).getInvocations()
-                            .stream().anyMatch(i -> i.getMethod().getName().equals("run")),
-                    10_000);
+            verify(testJob, timeout(10_000)).run(any());
         }
     }
 
@@ -242,11 +239,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         curator,
                         Collections.singletonList(testJob))
         ) {
-            RetryAssert.assertTrue("Stubbed multi job with exception was run 10 times",
-                    () -> Mockito.mockingDetails(testJob).getInvocations()
-                            .stream().filter(i -> i.getMethod().getName().equals("run"))
-                            .count() == 10L,
-                    10_000);
+            verify(testJob, timeout(10_000).times(10)).run(any());
         }
     }
 
@@ -340,8 +333,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             (JOB_MANAGER_ZK_ROOT_PATH),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     DEFAULT_TIMEOUT);
-            Thread.sleep(500);
-            verify(testJob, times(1)).run(any());
+            verify(testJob, timeout(500)).run(any());
         }
     }
 
@@ -361,8 +353,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
                     DEFAULT_TIMEOUT);
-            Thread.sleep(500);
-            verify(testJob, times(1)).run(any());
+            verify(testJob, timeout(500)).run(any());
 
             try (
                     DistributedJobManager jobManager2 = createNewJobManager(
@@ -374,7 +365,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 RetryAssert.assertTrue(() -> "Single distributed job2 should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
                         () -> testJob2.getLocalWorkPool().size() == testJob2.getWorkPool().getItems().size(),
                         DEFAULT_TIMEOUT);
-                verify(testJob, times(1)).run(any());
+                verify(testJob).run(any());
             }
 
         }
@@ -398,9 +389,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
                                     .size() == 3,
                     DEFAULT_TIMEOUT);
-            Thread.sleep(1000);
             // 3 times, because one thread per work item
-            verify(testJob, times(3)).run(any());
+            verify(testJob, timeout(1_000).times(3)).run(any());
         }
     }
 
