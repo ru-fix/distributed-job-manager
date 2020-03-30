@@ -395,10 +395,18 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     }
 
     @Test
-    public void shouldUpdateWorkPool() throws Exception {
-        Set<String> initialWorkPool = getWorkItems(10);
-        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, initialWorkPool, 100, 3000);
-        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, initialWorkPool, 100, 3000);
+    public void rebalance_WHEN_workPool_changes_THEN_assigned_tree_changes_accordingly() throws Exception {
+        Set<String> workItemsBeforeUpdate = new HashSet<>(Arrays.asList(
+                getWorkPool(10, 1),
+                getWorkPool(10, 2),
+                getWorkPool(10, 3)));
+        Set<String> workItemsAfterUpdate = new HashSet<>(Arrays.asList(
+                getWorkPool(10, 2),
+                getWorkPool(10, 3),
+                getWorkPool(10, 4)));
+
+        StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, workItemsBeforeUpdate, 100, 3000);
+        StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, workItemsBeforeUpdate, 100, 3000);
 
         try (
                 DistributedJobManager jobManager1 = createNewJobManager(
@@ -414,60 +422,21 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         ) {
             verifyWorkPoolIsDistributedBetweenWorkers(
-                    initialWorkPool,
-                    30_000,
+                    workItemsBeforeUpdate,
+                    DEFAULT_TIMEOUT,
                     testJobOnWorker1, testJobOnWorker2);
 
-            Set<String> updatedWorkPool = new HashSet<>(Arrays.asList(
-                    getWorkPool(10, 1),
-                    getWorkPool(10, 4)));
-
-            testJobOnWorker1.updateWorkPool(updatedWorkPool);
-            testJobOnWorker2.updateWorkPool(updatedWorkPool);
+            testJobOnWorker1.updateWorkPool(workItemsAfterUpdate);
+            testJobOnWorker2.updateWorkPool(workItemsAfterUpdate);
 
             verifyWorkPoolIsDistributedBetweenWorkers(
-                    updatedWorkPool,
-                    30_000,
+                    workItemsAfterUpdate,
+                    DEFAULT_TIMEOUT,
                     testJobOnWorker1, testJobOnWorker2);
         }
     }
 
 
-    @Test
-    public void rebalance_WHEN_workPool_changes_THEN_assigned_tree_changes_accordingly() throws Exception {
-        Set<String> workItemsBeforeUpdating = new HashSet<>(Arrays.asList(
-                getWorkPool(10, 1),
-                getWorkPool(10, 2),
-                getWorkPool(10, 3)));
-        Set<String> workItemsAfterUpdating = new HashSet<>(Arrays.asList(
-                getWorkPool(10, 2),
-                getWorkPool(10, 3),
-                getWorkPool(10, 4)));
-
-        StubbedMultiJob job1 = new StubbedMultiJob(10, workItemsBeforeUpdating, 100, 10);
-        StubbedMultiJob job2 = new StubbedMultiJob(10, workItemsBeforeUpdating, 100, 10);
-        try (
-                CuratorFramework zkClient1 = zkTestingServer.createClient();
-                DistributedJobManager jobManager1 = createNewJobManager(
-                        "app-1",
-                        zkClient1,
-                        Collections.singletonList(job1)
-                );
-                CuratorFramework zkClient2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = createNewJobManager(
-                        "app-2",
-                        zkClient2,
-                        Collections.singletonList(job2)
-                )
-        ) {
-            verifyWorkPoolIsDistributedBetweenWorkers(workItemsBeforeUpdating, 5_000, job1, job2);
-
-            job1.updateWorkPool(workItemsAfterUpdating);
-            job2.updateWorkPool(workItemsAfterUpdating);
-
-            verifyWorkPoolIsDistributedBetweenWorkers(workItemsAfterUpdating, 5_000, job1, job2);
-        }
-    }
 
     @Test
     public void shouldBalanceOnWorkPoolMultipleUpdate() throws Exception {
