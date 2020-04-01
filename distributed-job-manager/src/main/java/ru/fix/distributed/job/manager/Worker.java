@@ -14,7 +14,6 @@ import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
-import ru.fix.stdlib.concurrency.threads.ProfiledScheduledThreadPoolExecutor;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.transactional.TransactionalClient;
@@ -89,13 +88,11 @@ class Worker implements AutoCloseable {
 
         threadPoolSize = new AtomicProperty<>(1);
 
-        ProfiledScheduledThreadPoolExecutor jobExecutor = NamedExecutors.newScheduledExecutor(
+        this.jobReschedulableScheduler = new ReschedulableScheduler(
                 THREAD_NAME_DJM_WORKER_NONE,
                 threadPoolSize,
-                profiler
-        );
+                profiler);
 
-        this.jobReschedulableScheduler = new ReschedulableScheduler(jobExecutor);
         this.timeToWaitTermination = timeToWaitTermination;
 
         this.workShareLockService = new WorkShareLockServiceImpl(

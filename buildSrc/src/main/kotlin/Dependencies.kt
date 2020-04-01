@@ -12,9 +12,8 @@ object Vers {
 
     const val aggregating_profiler = "1.5.16"
     const val jfix_zookeeper = "1.0.8"
-    const val jfix_concurrency = "1.0.61"
-    const val jfix_socket = "1.0.42"
-    const val jfix_dynamic_property = "1.1.7"
+    const val jfix_stdlib = "3.0.0"
+    const val jfix_dynamic_property = "2.0.3"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "4.2.0"
@@ -46,7 +45,7 @@ object Libs {
     // JFIX
     const val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
     const val jfix_zookeeper = "ru.fix:jfix-zookeeper:${Vers.jfix_zookeeper}"
-    const val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_concurrency}"
+    const val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_stdlib}"
     const val jfix_dynamic_property_api = "ru.fix:dynamic-property-api:${Vers.jfix_dynamic_property}"
 
     // Common
@@ -59,7 +58,7 @@ object Libs {
     const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test
-    const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_socket}"
+    const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_stdlib}"
 
     // Test
     const val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
