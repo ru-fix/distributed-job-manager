@@ -285,14 +285,17 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         2, createWorkPool("distr-job-id-2", 2).items, 50000L
                 ))
     }
+
     @Throws(Exception::class)
     private fun createDjm(
             nodeId: String,
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
-        val configTest = DistributedJobManagerConfigHelper()
-        val jobsEnabled: DynamicProperty<DistributedJobSettings> = configTest.allJobsEnabledFalse(jobs)
+        val jobsEnabled: DynamicProperty<DistributedJobSettings> = DistributedJobManagerConfigHelper.allJobsEnabledFalse(jobs)
+        val timeToWaitTermination = DynamicProperty.of(10_000L)
+        val jobSettings = Pair<DynamicProperty<Long>, DynamicProperty<DistributedJobSettings>>(timeToWaitTermination, jobsEnabled)
+
         return DistributedJobManager(
                 zkTestingServer.createClient(),
                 jobs,
@@ -301,8 +304,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         nodeId = nodeId,
                         rootPath = JOB_MANAGER_ZK_ROOT_PATH,
                         assignmentStrategy = strategy,
-                        timeToWaitTermination = DynamicProperty.of(10_000L),
-                        jobsEnabled = jobsEnabled
+                        jobSettings = jobSettings
                 )
         )
     }

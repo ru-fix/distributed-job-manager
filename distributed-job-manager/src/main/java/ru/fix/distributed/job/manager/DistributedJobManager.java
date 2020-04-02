@@ -17,7 +17,7 @@ import java.util.Collection;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- * String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
+ *String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
@@ -87,7 +87,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         this.nodeId = settings.getNodeId();
 
-        this.jobsEnabled = settings.component5();
+        this.jobsEnabled = settings.getJobSettings().getSecond();
         this.configs = settings;
         this.worker = new Worker(
                 curatorFramework,
@@ -128,6 +128,7 @@ public class DistributedJobManager implements AutoCloseable {
         createIfNeeded(curatorFramework, paths.availableWorkPool());
         createIfNeeded(curatorFramework, paths.availableWorkPoolVersion());
     }
+
     private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
         if (curatorFramework.checkExists().forPath(path) == null) {
             curatorFramework.create().creatingParentsIfNeeded().forPath(path);
@@ -157,7 +158,7 @@ public class DistributedJobManager implements AutoCloseable {
                 managerClosing.getTimespan());
     }
 
-    public DistributedJobManagerSettings getSettings(){
+    public DistributedJobManagerSettings getSettings() {
         return configs;
     }
 }

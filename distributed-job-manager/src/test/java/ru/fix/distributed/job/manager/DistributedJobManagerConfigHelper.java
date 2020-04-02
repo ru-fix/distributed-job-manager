@@ -6,54 +6,36 @@ import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
-import java.util.HashMap;
 
 public class DistributedJobManagerConfigHelper {
     private static final Logger log = LoggerFactory.getLogger(DistributedJobManagerConfigHelper.class);
 
-    public DynamicProperty<DistributedJobSettings> toRunWith(int state, Collection<?> collection) {
-        switch (state) {
-            case 1:
-                log.info("All jobs 'enabled' status : FALSE");
-                return allJobsEnabledFalse(collection);
-            case 2:
-                log.info("All jobs 'enabled' status :  TRUE");
-                return allJobsEnabledTrue(collection);
-            case 3:
-                log.info("All jobs 'enabled' status : ");
-                return randomJobsEnabled(collection);
+    public static DynamicProperty<DistributedJobSettings> toRunWith(boolean state, Collection<?> collection) {
+        if (state) {
+            log.info("All jobs 'enabled' status :  TRUE");
+            return allJobsEnabledTrue(collection);
+        } else {
+            log.info("All jobs 'enabled' status : FALSE");
+            return allJobsEnabledFalse(collection);
         }
-        throw new Error();
     }
 
-    protected DynamicProperty<DistributedJobSettings> allJobsEnabledTrue(Collection<?> collection) {
-        DistributedJobSettings DJS = new DistributedJobSettings();
+    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledTrue(Collection<?> collection) {
+        DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
         for (Object dj : collection) {
-            DJS.addConfig(((DistributedJob) dj).getJobId(), true);
+            distributedJobSettings.addConfig(((DistributedJob) dj).getJobId(), true);
         }
 
-        return DynamicProperty.of(DJS);
+        return DynamicProperty.of(distributedJobSettings);
     }
 
 
-    protected DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<?> collection) {
-        DistributedJobSettings DJS = new DistributedJobSettings();
+    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<?> collection) {
+        DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
         for (Object dj : collection) {
-            DJS.addConfig(((DistributedJob) dj).getJobId(), false);
+            distributedJobSettings.addConfig(((DistributedJob) dj).getJobId(), false);
         }
 
-        return DynamicProperty.of(DJS);
-    }
-
-    protected DynamicProperty<DistributedJobSettings> randomJobsEnabled(Collection<?> collection) {
-        DistributedJobSettings DJS = new DistributedJobSettings(new HashMap<>());
-        for (Object dj : collection) {
-            DJS.addConfig(((DistributedJob)dj).getJobId(), randomBoolean());
-        }
-        return DynamicProperty.of(DJS);
-    }
-
-    private boolean randomBoolean() {
-        return Math.random() < 0.5;
+        return DynamicProperty.of(distributedJobSettings);
     }
 }

@@ -60,7 +60,7 @@ class Worker implements AutoCloseable {
     private DynamicProperty<Long> timeToWaitTermination;
     private DynamicProperty<DistributedJobSettings> jobsEnabled;
 
-    private boolean isJobEnabled;
+    private DynamicProperty<Boolean> isJobEnabled;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -69,6 +69,7 @@ class Worker implements AutoCloseable {
     private final WorkShareLockService workShareLockService;
 
     private final AtomicProperty<Integer> threadPoolSize;
+
     Worker(CuratorFramework curatorFramework,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
@@ -99,7 +100,7 @@ class Worker implements AutoCloseable {
                 threadPoolSize,
                 profiler);
 
-        this.timeToWaitTermination = settings.getTimeToWaitTermination();
+        this.timeToWaitTermination = settings.getJobSettings().getFirst();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -207,10 +208,10 @@ class Worker implements AutoCloseable {
     }
 
     /**
-     * @param path node, which version should be checked and updated
+     * @param path        node, which version should be checked and updated
      * @param transaction transaction, which used to check the version of node
      * @return previous version of updating node
-     * */
+     */
     private int checkAndUpdateVersion(String path, TransactionalClient transaction) throws Exception {
         int version = curatorFramework.checkExists().forPath(path).getVersion();
         transaction.checkPathWithVersion(path, version);
@@ -367,7 +368,7 @@ class Worker implements AutoCloseable {
     }
 
     private Set<String> getChildrenIfNodeExists(String path) throws Exception {
-        if(curatorFramework.checkExists().forPath(path) == null) {
+        if (curatorFramework.checkExists().forPath(path) == null) {
             return Collections.emptySet();
         } else {
             return new HashSet<>(curatorFramework.getChildren().forPath(path));
@@ -444,9 +445,8 @@ class Worker implements AutoCloseable {
 
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
         //supplying status of the job based on job's id to pass it to ScheduledJobExecution
-        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getEnabled(newMultiJob.getJobId());
-        isJobEnabled = DynamicProperty.delegated(supplyStatusOfJob).get();
-
+        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getJobProperty(newMultiJob.getJobId());
+        isJobEnabled = DynamicProperty.delegated(supplyStatusOfJob);
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {}, delay={}, and isEnabled={}",
                 workerId,
                 newMultiJob.getJobId(),

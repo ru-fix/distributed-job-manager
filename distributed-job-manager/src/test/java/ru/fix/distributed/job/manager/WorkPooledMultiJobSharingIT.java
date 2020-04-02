@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import kotlin.Pair;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
@@ -14,15 +15,15 @@ import java.util.*;
 import static org.mockito.Mockito.*;
 
 class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
-    private DistributedJobManagerConfigHelper configTest = new DistributedJobManagerConfigHelper();
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
     private Collection<?> listOfJobs = Collections.singletonList(
             new SingleThreadMultiJob(
                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))));
+
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
-             DynamicProperty<DistributedJobSettings> jobsEnabled = configTest.toRunWith(2,listOfJobs);
+             DynamicProperty<DistributedJobSettings> jobsEnabled = DistributedJobManagerConfigHelper.toRunWith(true, listOfJobs);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      (Collection<DistributedJob>) listOfJobs,
@@ -31,8 +32,10 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime(),
-                             jobsEnabled
+                             new Pair<>(
+                                     getTerminationWaitTime(),
+                                     jobsEnabled
+                             )
                      )
              )
         ) {
@@ -40,6 +43,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
             verify(monitor, timeout(10_000)).check(anySet());
         }
     }
+
     private DynamicProperty<Long> getTerminationWaitTime() {
         return DynamicProperty.of(180_000L);
     }

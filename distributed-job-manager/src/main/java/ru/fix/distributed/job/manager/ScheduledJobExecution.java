@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +29,7 @@ class ScheduledJobExecution implements Runnable {
 
     private volatile ScheduledFuture<?> scheduledFuture;
     private Lock lock = new ReentrantLock();
-    private boolean isJobEnabled;
+    private DynamicProperty<Boolean> isJobEnabled;
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
@@ -43,7 +44,7 @@ class ScheduledJobExecution implements Runnable {
                                  Set<String> workShare,
                                  Profiler profiler,
                                  WorkShareLockService workShareLockService,
-                                 boolean isJobEnabled) {
+                                 DynamicProperty<Boolean> isJobEnabled) {
         if (workShare.isEmpty()) {
             throw new IllegalArgumentException(
                     "ScheduledJobExecution should receive at least single workItem in workShare");
@@ -61,7 +62,7 @@ class ScheduledJobExecution implements Runnable {
         ProfiledCall stopProfiledCall = profiler.profiledCall(ProfilerMetrics.STOP(job.getJobId()));
 
         //checks the status of `enabled` config, which corresponds to its job
-        if(!isJobEnabled) return;
+        if (!isJobEnabled.get()) return;
 
         JobContext jobContext = new JobContext(job.getJobId(), workShare);
         jobRuns.add(jobContext);
@@ -161,7 +162,7 @@ class ScheduledJobExecution implements Runnable {
                 scheduledFuture, System.identityHashCode(scheduledFuture), job.getJobId(), workShare);
     }
 
-    boolean isShutdowned(){
+    boolean isShutdowned() {
         return shutdownFlag.get();
     }
 
