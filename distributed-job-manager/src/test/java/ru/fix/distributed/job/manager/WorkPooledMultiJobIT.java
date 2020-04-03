@@ -15,11 +15,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
@@ -356,27 +356,26 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 curator1,
                 List.of(job1, job2)
         );
-        try (
-                CuratorFramework curator2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = createNewJobManager(
-                        "djm-2",
-                        curator2,
-                        List.of(job2, job3)
-                )
-        ) {
-            assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+        CuratorFramework curator2 = zkTestingServer.createClient();
+        DistributedJobManager jobManager2 = createNewJobManager(
+                "djm-2",
+                curator2,
+                List.of(job2, job3)
+        );
+        assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
 
-            jobManager1.close();
-            curator1.close();
+        jobManager1.close();
+        curator1.close();
 
-            assertTimeoutPreemptively(Duration.ofMillis(awaitCleaningTimeout), () -> {
-                        while (curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId())) {
-                            Thread.sleep(getWorkPoolCleanPeriod().get());
-                        }
-                    },
-                    "cleaning wasn't performed in " + awaitCleaningTimeout
+        await().atMost(awaitCleaningTimeout, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            assertThat(
+                    String.format("cleaning wasn't performed in %s ms" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH), awaitCleaningTimeout),
+                    curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId())
             );
-        }
+        });
+
+        jobManager2.close();
+        curator2.close();
     }
 
 
