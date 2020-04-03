@@ -345,21 +345,29 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     @Test
     public void shouldAddAndRemoveDistributedJob() throws Exception {
         final String[] nodeIds = {"added-worker-1", "added-worker-2"};
+
         CuratorFramework curator1 = zkTestingServer.createClient();
         DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator1);
-        try (
-                CuratorFramework curator2 = zkTestingServer.createClient();
-                DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator2)
-        ) {
-            jobManager1.close();
-            curator1.close();
+        CuratorFramework curator2 = zkTestingServer.createClient();
+        DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator2);
 
-            await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                List<String> workPoolForFirstJob = curator2.getChildren()
-                        .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
-                return workPoolForFirstJob.size() == getWorkItems(1).size();
-            });
-        }
+        jobManager1.close();
+        curator1.close();
+
+        Set<String> totalWorkPoolForFirstJob = getWorkItems(1);
+        await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
+
+            List<String> workPoolForFirstJobOnSecondWorker = curator2.getChildren()
+                    .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
+
+            assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
+                    workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
+                    collectionsAreEqual(totalWorkPoolForFirstJob, workPoolForFirstJobOnSecondWorker)
+            );
+        });
+
+        jobManager2.close();
+        curator2.close();
     }
 
     private void assertNodeExists(String zkPath, CuratorFramework client) throws Exception {
