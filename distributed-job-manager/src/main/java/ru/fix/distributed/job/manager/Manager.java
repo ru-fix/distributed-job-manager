@@ -37,6 +37,7 @@ class Manager implements AutoCloseable {
     private final CuratorFramework curatorFramework;
     private final ZkPathsManager paths;
     private final AssignmentStrategy assignmentStrategy;
+    private final AvailableWorkPoolSubTree workPoolSubTree;
 
     private PathChildrenCache workersAliveChildrenCache;
 
@@ -54,6 +55,7 @@ class Manager implements AutoCloseable {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
+        this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
         this.assignmentStrategy = settings.getAssignmentStrategy();
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
@@ -111,12 +113,7 @@ class Manager implements AutoCloseable {
                                     curatorFramework,
                                     CLEAN_WORK_POOL_RETRIES_COUNT,
                                     transaction -> {
-
-                                        String workPoolVersion = paths.availableWorkPoolVersion();
-                                        int version = curatorFramework.checkExists().forPath(workPoolVersion).getVersion();
-                                        transaction.checkPathWithVersion(workPoolVersion, version);
-                                        transaction.setData(workPoolVersion, new byte[]{});
-
+                                        workPoolSubTree.checkAndUpdateVersion(transaction);
                                         cleanWorkPool(transaction);
                                     });
                         } catch (Exception e) {
@@ -136,12 +133,7 @@ class Manager implements AutoCloseable {
             actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
         }
 
-        for(String jobInWorkPool : getChildren(paths.availableWorkPool())){
-            if(!actualJobs.contains(jobInWorkPool)){
-                log.debug("cleanWorkPool removing {}", jobInWorkPool);
-                transaction.deletePathWithChildrenIfNeeded(paths.availableWorkPool(jobInWorkPool));
-            }
-        }
+        workPoolSubTree.pruneOutDatedJobs(transaction, actualJobs);
     }
 
     private LeaderLatch initLeaderLatch() {

@@ -14,7 +14,6 @@ import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
-import ru.fix.stdlib.concurrency.threads.ProfiledScheduledThreadPoolExecutor;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.transactional.TransactionalClient;
@@ -49,6 +48,7 @@ class Worker implements AutoCloseable {
     private final ZkPathsManager paths;
     private final String workerId;
     private volatile TreeCache workPooledCache;
+    private final AvailableWorkPoolSubTree workPoolSubTree;
 
     private final ReschedulableScheduler jobReschedulableScheduler;
 
@@ -74,6 +74,7 @@ class Worker implements AutoCloseable {
         this.paths = new ZkPathsManager(settings.getRootPath());
         this.workerId = settings.getNodeId();
         this.availableJobs = distributedJobs;
+        this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
                 "worker-" + workerId,
@@ -171,7 +172,7 @@ class Worker implements AutoCloseable {
                 WORKER_REGISTRATION_RETRIES_COUNT,
                 transaction -> {
 
-                    int workPoolVersion = checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
+                    int workPoolVersion = workPoolSubTree.checkAndUpdateVersion(transaction);
 
                     int workerVersion = checkAndUpdateVersion(paths.workerVersion(), transaction);
 
@@ -182,7 +183,7 @@ class Worker implements AutoCloseable {
 
                     recreateWorkerTree(transaction);
 
-                    updateAvailableWorkPool(workPools, transaction);
+                    workPoolSubTree.updateAllJobs(transaction, workPools);
                 }
         );
 
@@ -237,20 +238,6 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void updateAvailableWorkPool(
-            ConcurrentMap<DistributedJob, WorkPool> workPools, TransactionalClient transaction) throws Exception {
-
-        for (DistributedJob job : availableJobs) {
-            String workPoolsPath = paths.availableWorkPool(job.getJobId());
-            if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {
-                transaction.createPath(workPoolsPath);
-            }
-            Set<String> newWorkPool = workPools.get(job).getItems();
-            Set<String> currentWorkPool = getChildrenIfNodeExists(workPoolsPath);
-            updateZkJobWorkPool(newWorkPool, currentWorkPool, job.getJobId(), transaction);
-        }
-    }
-
     private void addListenerToAssignedTree() throws Exception {
         workPooledCache = new TreeCache(curatorFramework, paths.assignedJobs(workerId));
         workPooledCache.getListenable().addListener((client, event) -> {
@@ -274,29 +261,6 @@ class Worker implements AutoCloseable {
         workPooledCache.start();
     }
 
-
-    private boolean updateZkJobWorkPool(
-            Set<String> newWorkPool, Set<String> currentWorkPool, String jobId, TransactionalClient transaction
-    ) throws Exception {
-        if (!currentWorkPool.equals(newWorkPool)) {
-            log.info("wid={} updateZkJobWorkPool update for jobId={} from {} to {}",
-                    workerId,
-                    jobId,
-                    currentWorkPool,
-                    newWorkPool);
-
-            createItemsContainedInFirstSetButNotInSecond(newWorkPool, currentWorkPool, transaction, jobId);
-            removeItemsContainedInFirstSetButNotInSecond(currentWorkPool, newWorkPool, transaction, jobId);
-
-            return true;
-        } else {
-            log.info("wid={} updateZkJobWorkPool update unneed for jobId={} pool={}",
-                    workerId,
-                    jobId,
-                    newWorkPool);
-            return false;
-        }
-    }
 
     private void createItemsContainedInFirstSetButNotInSecond(
             Set<String> newWorkPool, Set<String> currentWorkPool, TransactionalClient transaction, String jobId
@@ -330,17 +294,14 @@ class Worker implements AutoCloseable {
                     WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
 
-                        checkAndUpdateVersion(paths.availableWorkPoolVersion(), transaction);
+                        workPoolSubTree.checkAndUpdateVersion(transaction);
 
                         boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
                         boolean availableJobPathExists = null != transaction.checkPath(availableJobPath);
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
 
                         if (workPoolsPathExists && availableJobPathExists && workerAliveFlagPathExists) {
-                            Set<String> currentWorkPools = getChildrenIfNodeExists(workPoolsPath);
-                            boolean workPoolUpdated
-                                    = updateZkJobWorkPool(newWorkPool, currentWorkPools, jobId, transaction);
-
+                            boolean workPoolUpdated = workPoolSubTree.updateJob(transaction, jobId, newWorkPool);
                             if (workPoolUpdated) {
                                 transaction.setData(paths.aliveWorker(workerId),
                                         curatorFramework.getData().forPath(workerAliveFlagPath));
@@ -356,14 +317,6 @@ class Worker implements AutoCloseable {
 
         } catch (Exception e) {
             log.error("Failed to update work pool for job {} wp {}", job, newWorkPool, e);
-        }
-    }
-
-    private Set<String> getChildrenIfNodeExists(String path) throws Exception {
-        if(curatorFramework.checkExists().forPath(path) == null) {
-            return Collections.emptySet();
-        } else {
-            return new HashSet<>(curatorFramework.getChildren().forPath(path));
         }
     }
 
