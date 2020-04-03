@@ -342,7 +342,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
-    @Test
+    //    @Test
     public void shouldAddAndRemoveDistributedJob() throws Exception {
         final String[] nodeIds = {"added-worker-1", "added-worker-2"};
 
