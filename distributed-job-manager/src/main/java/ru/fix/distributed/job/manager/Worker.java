@@ -262,26 +262,6 @@ class Worker implements AutoCloseable {
     }
 
 
-    private void createItemsContainedInFirstSetButNotInSecond(
-            Set<String> newWorkPool, Set<String> currentWorkPool, TransactionalClient transaction, String jobId
-    ) throws Exception {
-        Set<String> workPoolsToAdd = new HashSet<>(newWorkPool);
-        workPoolsToAdd.removeAll(currentWorkPool);
-        for (String workItemToAdd : workPoolsToAdd) {
-            transaction.createPath(paths.availableWorkItem(jobId, workItemToAdd));
-        }
-    }
-
-    private void removeItemsContainedInFirstSetButNotInSecond(
-            Set<String> currentWorkPool, Set<String> newWorkPool, TransactionalClient transaction, String jobId
-    ) throws Exception {
-        Set<String> workPoolsToDelete = new HashSet<>(currentWorkPool);
-        workPoolsToDelete.removeAll(newWorkPool);
-        for (String workItemToDelete : workPoolsToDelete) {
-            transaction.deletePath(paths.availableWorkItem(jobId, workItemToDelete));
-        }
-    }
-
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
         try {
             String jobId = job.getJobId();
