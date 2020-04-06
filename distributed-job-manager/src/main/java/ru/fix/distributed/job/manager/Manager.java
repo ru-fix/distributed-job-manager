@@ -106,16 +106,13 @@ class Manager implements AutoCloseable {
 
     private void startWorkPoolCleaningTask() {
             workPoolCleaningReschedulableScheduler.schedule(
-                    DynamicProperty.delegated(() -> Schedule.withDelay(workPoolCleanPeriodMs.get())),
+                    Schedule.withDelay(workPoolCleanPeriodMs),
                     () -> {
                         try {
                             TransactionalClient.tryCommit(
                                     curatorFramework,
                                     CLEAN_WORK_POOL_RETRIES_COUNT,
-                                    transaction -> {
-                                        workPoolSubTree.checkAndUpdateVersion(transaction);
-                                        cleanWorkPool(transaction);
-                                    });
+                                    this::cleanWorkPool);
                         } catch (Exception e) {
                             log.debug("Failed to clean work-pool", e);
                         }
@@ -124,12 +121,14 @@ class Manager implements AutoCloseable {
     }
 
     private void cleanWorkPool(TransactionalClient transaction) throws Exception {
-        if(log.isTraceEnabled()){
+        workPoolSubTree.checkAndUpdateVersion(transaction);
+
+        if (log.isTraceEnabled()) {
             log.trace("cleanWorkPool zk tree before cleaning: {}", buildZkTreeDump());
         }
 
         Set<String> actualJobs = new HashSet<>();
-        for(String workerId: getChildren(paths.aliveWorkers())){
+        for (String workerId : getChildren(paths.aliveWorkers())) {
             actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
         }
 
