@@ -22,7 +22,7 @@ object Vers {
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
     const val mockito = "3.0.0"
-    const val awaitility = "4.0.1"
+    const val awaitility = "4.0.2"
 
     const val log4j = "2.12.0"
 }
