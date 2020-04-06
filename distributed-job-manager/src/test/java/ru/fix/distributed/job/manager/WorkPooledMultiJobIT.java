@@ -368,9 +368,10 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         curator1.close();
 
         await().atMost(awaitCleaningTimeout, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            List<String> jobsFromZkWorkPool = curator2.getChildren().forPath(paths.availableWorkPool());
             assertThat(
                     String.format("cleaning wasn't performed in %s ms" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH), awaitCleaningTimeout),
-                    curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId())
+                    !jobsFromZkWorkPool.contains(job1.getJobId())
             );
         });
 
