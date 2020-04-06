@@ -107,6 +107,7 @@ class Manager implements AutoCloseable {
     private void startWorkPoolCleaningTask() {
             workPoolCleaningReschedulableScheduler.schedule(
                     Schedule.withDelay(workPoolCleanPeriodMs),
+                    workPoolCleanPeriodMs.get(),
                     () -> {
                         try {
                             TransactionalClient.tryCommit(
