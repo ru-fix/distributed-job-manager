@@ -203,7 +203,7 @@ fun main() {
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
                     timeToWaitTermination = DynamicProperty.of(180_000L),
-                    workPoolCleanPeriodMs = DynamicProperty.of(1_000L)
+                    workPoolCleanPeriod = DynamicProperty.of(1_000L)
             )
     )
 }

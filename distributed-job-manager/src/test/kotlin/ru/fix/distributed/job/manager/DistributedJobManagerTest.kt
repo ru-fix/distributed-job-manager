@@ -301,7 +301,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         rootPath = JOB_MANAGER_ZK_ROOT_PATH,
                         assignmentStrategy = strategy,
                         timeToWaitTermination = DynamicProperty.of(10_000L),
-                        workPoolCleanPeriodMs = DynamicProperty.of(1_000L)
+                        workPoolCleanPeriod = DynamicProperty.of(1_000L)
                 )
         )
     }

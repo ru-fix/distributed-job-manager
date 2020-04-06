@@ -16,5 +16,5 @@ data class DistributedJobManagerSettings(
          * Delay between launching task for removing not relevant jobs from `work-pool` subtree.
          * Minor process. Default value is three hours
          * */
-        val workPoolCleanPeriodMs: DynamicProperty<Long> = DynamicProperty.of(10_800_000)
+        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(10_800_000)
 )

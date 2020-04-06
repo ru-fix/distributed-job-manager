@@ -49,7 +49,7 @@ class Manager implements AutoCloseable {
     private final ExecutorService managerThread;
     private volatile LeaderLatch leaderLatch;
     private final String nodeId;
-    private DynamicProperty<Long> workPoolCleanPeriodMs;
+    private DynamicProperty<Long> workPoolCleanPeriod;
 
     Manager(CuratorFramework curatorFramework,
             Profiler profiler,
@@ -67,7 +67,7 @@ class Manager implements AutoCloseable {
                 false);
         this.nodeId = settings.getNodeId();
 
-        this.workPoolCleanPeriodMs = settings.getWorkPoolCleanPeriodMs();
+        this.workPoolCleanPeriod = settings.getWorkPoolCleanPeriod();
         this.workPoolCleaningReschedulableScheduler = NamedExecutors.newSingleThreadScheduler(
                 "work-pool cleaning task",
                 profiler
@@ -112,8 +112,8 @@ class Manager implements AutoCloseable {
 
     private void startWorkPoolCleaningTask() {
         workPoolCleaningReschedulableScheduler.schedule(
-                Schedule.withDelay(workPoolCleanPeriodMs),
-                workPoolCleanPeriodMs.get(),
+                Schedule.withDelay(workPoolCleanPeriod),
+                workPoolCleanPeriod.get(),
                 () -> {
                     try {
                         synchronized (managerThread) {
