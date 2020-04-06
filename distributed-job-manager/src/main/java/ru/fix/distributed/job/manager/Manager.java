@@ -22,6 +22,7 @@ import ru.fix.zookeeper.transactional.TransactionalClient;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Only single manager is active on the cluster.
@@ -41,6 +42,7 @@ class Manager implements AutoCloseable {
     private final AvailableWorkPoolSubTree workPoolSubTree;
 
     private PathChildrenCache workersAliveChildrenCache;
+    private AtomicBoolean workersCacheInitialized = new AtomicBoolean(false);
 
     private final ReschedulableScheduler workPoolCleaningReschedulableScheduler;
 
@@ -78,6 +80,9 @@ class Manager implements AutoCloseable {
                     nodeId,
                     event.toString());
             switch (event.getType()) {
+                case INITIALIZED:
+                    workersCacheInitialized.set(true);
+                    break;
                 case CONNECTION_RECONNECTED:
                 case CHILD_UPDATED:
                 case CHILD_ADDED:
@@ -101,25 +106,30 @@ class Manager implements AutoCloseable {
         });
 
         leaderLatch.start();
-        workersAliveChildrenCache.start();
+        workersAliveChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
         startWorkPoolCleaningTask();
     }
 
     private void startWorkPoolCleaningTask() {
-            workPoolCleaningReschedulableScheduler.schedule(
-                    Schedule.withDelay(workPoolCleanPeriodMs),
-                    workPoolCleanPeriodMs.get(),
-                    () -> {
-                        try {
-                            TransactionalClient.tryCommit(
-                                    curatorFramework,
-                                    CLEAN_WORK_POOL_RETRIES_COUNT,
-                                    this::cleanWorkPool);
-                        } catch (Exception e) {
-                            log.debug("Failed to clean work-pool", e);
+        workPoolCleaningReschedulableScheduler.schedule(
+                Schedule.withDelay(workPoolCleanPeriodMs),
+                workPoolCleanPeriodMs.get(),
+                () -> {
+                    try {
+                        synchronized (managerThread) {
+                            if (!leaderLatch.hasLeadership() || managerThread.isShutdown() || !workersCacheInitialized.get()) {
+                                return;
+                            }
                         }
+                        TransactionalClient.tryCommit(
+                                curatorFramework,
+                                CLEAN_WORK_POOL_RETRIES_COUNT,
+                                this::cleanWorkPool);
+                    } catch (Exception e) {
+                        log.debug("Failed to clean work-pool", e);
                     }
-            );
+                }
+        );
     }
 
     private void cleanWorkPool(TransactionalClient transaction) throws Exception {

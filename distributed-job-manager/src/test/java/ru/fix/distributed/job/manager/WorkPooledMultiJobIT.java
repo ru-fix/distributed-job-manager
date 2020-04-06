@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
+import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.*;
@@ -55,7 +56,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         ) {
             String searchedWorkItem = "work-item-1.1";
             await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
-                String assertionMessage = "ZK checks failure. " + printZkTree(JOB_MANAGER_ZK_ROOT_PATH);
+                String assertionMessage = "ZK checks failure. " + printDjmZkTree();
                 List<String> totalWorkPool = new ArrayList<>(3);
                 // Work pool contains 3 work items. Then every distributed job should contains 1 work item.
                 for (String nodeId : nodeIds) {
@@ -96,7 +97,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 mergedWorkPool.addAll(firstWorkPool);
                 mergedWorkPool.addAll(secondWorkPool);
 
-                String assertionMessage = "ZK checks failure. " + printZkTree(JOB_MANAGER_ZK_ROOT_PATH);
+                String assertionMessage = "ZK checks failure. " + printDjmZkTree();
                 assertThat(assertionMessage, !firstWorkPool.isEmpty());
                 assertThat(assertionMessage, !secondWorkPool.isEmpty());
                 assertThat(assertionMessage, mergedWorkPool, equalTo(getWorkItems(1)));
@@ -250,7 +251,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         .flatMap(Collection::stream)
                         .collect(Collectors.toSet());
 
-                assertThat("Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
+                assertThat("Single distributed job should has all work item" + printDjmZkTree(),
                         workPoolFromAllThreads, equalTo(testJob.getWorkPool().getItems()));
             });
             // 3 times, because one thread per work item
@@ -345,40 +346,65 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void cleaning_WHEN_last_djm_with_available_job_closed_THEN_removing_job_from_workPool() throws Exception {
+        AtomicProperty<Long> workPoolCleanPeriod = new AtomicProperty<>(500L);
         DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(4));
         DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(4));
         DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(4));
-        long awaitCleaningTimeout = getWorkPoolCleanPeriod().get() * 3;
 
         CuratorFramework curator1 = zkTestingServer.createClient();
         DistributedJobManager jobManager1 = createNewJobManager(
                 "djm-1",
                 curator1,
-                List.of(job1, job2)
+                List.of(job1, job2),
+                workPoolCleanPeriod
         );
         CuratorFramework curator2 = zkTestingServer.createClient();
         DistributedJobManager jobManager2 = createNewJobManager(
                 "djm-2",
                 curator2,
-                List.of(job2, job3)
+                List.of(job2, job3),
+                workPoolCleanPeriod
         );
         assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
 
         jobManager1.close();
         curator1.close();
 
-        await().atMost(awaitCleaningTimeout, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            List<String> jobsFromZkWorkPool = curator2.getChildren().forPath(paths.availableWorkPool());
-            assertThat(
-                    String.format("cleaning wasn't performed in %s ms" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH), awaitCleaningTimeout),
-                    !jobsFromZkWorkPool.contains(job1.getJobId())
-            );
-        });
+        awaitCleaningJob(0, workPoolCleanPeriod.get() + 1_000, job1.getJobId(), curator2);
+
+        workPoolCleanPeriod.set(7_000L);
+
+        CuratorFramework curator3 = zkTestingServer.createClient();
+        DistributedJobManager jobManager3 = createNewJobManager(
+                "djm-3",
+                curator3,
+                List.of(job1, job2),
+                workPoolCleanPeriod
+        );
+
+        assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
 
         jobManager2.close();
         curator2.close();
+
+        awaitCleaningJob(6_000L, workPoolCleanPeriod.get() + 1_000, job3.getJobId(), curator3);
+
+        jobManager3.close();
+        curator3.close();
     }
 
+    private void awaitCleaningJob(long atLeast, long atMost, String jobIdForRemoval, CuratorFramework curator) {
+        await()
+                .atLeast(atLeast, TimeUnit.MILLISECONDS)
+                .atMost(atMost, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    List<String> jobsFromZkWorkPool = curator.getChildren().forPath(paths.availableWorkPool());
+                    assertThat(
+                            "cleaning wasn't performed during period." + printDjmZkTree(),
+                            !jobsFromZkWorkPool.contains(jobIdForRemoval)
+                    );
+                });
+    }
 
     //    @Test
     public void shouldAddAndRemoveDistributedJob() throws Exception {
@@ -399,7 +425,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
 
             assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
-                    workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
+                    workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printDjmZkTree(),
                     collectionsAreEqual(totalWorkPoolForFirstJob, workPoolForFirstJobOnSecondWorker)
             );
         });
@@ -410,7 +436,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     private void assertNodeExists(String zkPath, CuratorFramework client) throws Exception {
         assertThat(
-                String.format("Node %s is not exists. ", zkPath) + printZkTree(JOB_MANAGER_ZK_ROOT_PATH),
+                String.format("Node %s is not exists. ", zkPath) + printDjmZkTree(),
                 client.checkExists().forPath(zkPath), notNullValue());
     }
 
@@ -443,12 +469,12 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             assertThat(
                     String.format("work-pool from locals isn't equal common work-pool. localWorkPools=%s commonWorkPool=%s"
-                            + printZkTree(JOB_MANAGER_ZK_ROOT_PATH), commonWorkPool, commonWorkPoolFromLocals, localWorkPools),
+                            + printDjmZkTree(), commonWorkPool, commonWorkPoolFromLocals, localWorkPools),
                     collectionsAreEqual(commonWorkPoolFromLocals, commonWorkPool)
             );
             assertThat(
                     String.format("work-pool isn't distributed evenly. localWorkPools={%s}"
-                            + printZkTree(JOB_MANAGER_ZK_ROOT_PATH), localWorkPools),
+                            + printDjmZkTree(), localWorkPools),
                     setsSizesDifferLessThanTwo(localWorkPools)
             );
         });
@@ -505,18 +531,32 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private DistributedJobManager createNewJobManager(
             String nodeId,
             CuratorFramework curatorFramework,
-            Collection<DistributedJob> collection
+            Collection<DistributedJob> jobs
+    ) throws Exception {
+        return createNewJobManager(
+                nodeId,
+                curatorFramework,
+                jobs,
+                getWorkPoolCleanPeriod()
+        );
+    }
+
+    private DistributedJobManager createNewJobManager(
+            String nodeId,
+            CuratorFramework curatorFramework,
+            Collection<DistributedJob> jobs,
+            DynamicProperty<Long> workPoolCleanPeriod
     ) throws Exception {
         return new DistributedJobManager(
                 curatorFramework,
-                collection,
+                jobs,
                 new AggregatingProfiler(),
                 new DistributedJobManagerSettings(
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         AssignmentStrategies.Companion.getDEFAULT(),
                         getTerminationWaitTime(),
-                        getWorkPoolCleanPeriod()
+                        workPoolCleanPeriod
                 )
         );
     }
