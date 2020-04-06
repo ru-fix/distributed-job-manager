@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
@@ -129,7 +130,10 @@ class Manager implements AutoCloseable {
         }
 
         Set<String> actualJobs = new HashSet<>();
-        for (String workerId : getChildren(paths.aliveWorkers())) {
+        for (ChildData aliveWorkerNodeData : workersAliveChildrenCache.getCurrentData()) {
+            String aliveWorkerPath = aliveWorkerNodeData.getPath();
+            String aliveWorkersPath = paths.aliveWorkers();
+            String workerId = aliveWorkerPath.substring(aliveWorkersPath.length() + 1);
             actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
         }
 
