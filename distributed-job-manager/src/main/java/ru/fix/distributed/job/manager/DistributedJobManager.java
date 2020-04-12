@@ -87,7 +87,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         this.nodeId = settings.getNodeId();
 
-        this.jobsEnabled = settings.getJobSettings().getSecond();
+        this.jobsEnabled = settings.getJobSettings().getJobsEnabledStatus();
         this.configs = settings;
         this.worker = new Worker(
                 curatorFramework,

@@ -2,9 +2,6 @@ package ru.fix.distributed.job.manager.model
 
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.distributed.job.manager.util.DistributedJobSettings
-import ru.fix.dynamic.property.api.DynamicProperty
-import java.awt.List
 
 data class DistributedJobManagerSettings(
         val nodeId: String,
@@ -13,5 +10,5 @@ data class DistributedJobManagerSettings(
         /**
          * Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
          * */
-        val jobSettings: Pair<DynamicProperty<Long>, DynamicProperty<DistributedJobSettings>>
+        val jobSettings: DistributedJobsPreset
 )

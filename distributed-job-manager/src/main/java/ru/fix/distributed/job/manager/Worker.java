@@ -60,8 +60,6 @@ class Worker implements AutoCloseable {
     private DynamicProperty<Long> timeToWaitTermination;
     private DynamicProperty<DistributedJobSettings> jobsEnabled;
 
-    private DynamicProperty<Boolean> isJobEnabled;
-
     private volatile boolean isWorkerShutdown = false;
     /**
      * Acquires locks for job for workItems, prolongs them and releases
@@ -100,7 +98,7 @@ class Worker implements AutoCloseable {
                 threadPoolSize,
                 profiler);
 
-        this.timeToWaitTermination = settings.getJobSettings().getFirst();
+        this.timeToWaitTermination = settings.getJobSettings().getTimeToWaitTermination();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -446,20 +444,19 @@ class Worker implements AutoCloseable {
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
         //supplying status of the job based on job's id to pass it to ScheduledJobExecution
         Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getJobProperty(newMultiJob.getJobId());
-        isJobEnabled = DynamicProperty.delegated(supplyStatusOfJob);
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {}, delay={}, and isEnabled={}",
                 workerId,
                 newMultiJob.getJobId(),
                 workPoolToExecute,
                 newMultiJob.getInitialJobDelay(),
-                isJobEnabled);
+                DynamicProperty.delegated(supplyStatusOfJob));
 
         ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
                 profiler,
                 new SmartLockMonitorDecorator(workShareLockService),
-                isJobEnabled
+                DynamicProperty.delegated(supplyStatusOfJob)
         );
 
         if (!isWorkerShutdown) {

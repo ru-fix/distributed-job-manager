@@ -294,8 +294,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     ): DistributedJobManager {
         val jobsEnabled: DynamicProperty<DistributedJobSettings> = DistributedJobManagerConfigHelper.allJobsEnabledFalse(jobs)
         val timeToWaitTermination = DynamicProperty.of(10_000L)
-        val jobSettings = Pair<DynamicProperty<Long>, DynamicProperty<DistributedJobSettings>>(timeToWaitTermination, jobsEnabled)
-
+//        val jobSettings = Pair<DynamicProperty<Long>, DynamicProperty<DistributedJobSettings>>(timeToWaitTermination, jobsEnabled)
+        val jobSettings = DistributedJobsPreset(timeToWaitTermination, jobsEnabled)
         return DistributedJobManager(
                 zkTestingServer.createClient(),
                 jobs,

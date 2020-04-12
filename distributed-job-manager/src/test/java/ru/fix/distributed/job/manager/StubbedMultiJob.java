@@ -2,7 +2,6 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 

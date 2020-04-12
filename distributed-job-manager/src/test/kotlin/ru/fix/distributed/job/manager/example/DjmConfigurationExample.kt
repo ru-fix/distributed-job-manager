@@ -213,9 +213,9 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    jobSettings = Pair<
-                            DynamicProperty<Long>,
-                            DynamicProperty<DistributedJobSettings>>(DynamicProperty.of(180_000L), jobsEnabled)
+                    jobSettings = DistributedJobsPreset(
+                                    timeToWaitTermination = DynamicProperty.of(180_000L),
+                                    jobsEnabledStatus = jobsEnabled)
 
             )
     )

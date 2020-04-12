@@ -10,8 +10,8 @@ import java.util.Collection;
 public class DistributedJobManagerConfigHelper {
     private static final Logger log = LoggerFactory.getLogger(DistributedJobManagerConfigHelper.class);
 
-    public static DynamicProperty<DistributedJobSettings> toRunWith(boolean state, Collection<?> collection) {
-        if (state) {
+    public static DynamicProperty<DistributedJobSettings> toRunWith(boolean enabled, Collection<?> collection) {
+        if (enabled) {
             log.info("All jobs 'enabled' status :  TRUE");
             return allJobsEnabledTrue(collection);
         } else {

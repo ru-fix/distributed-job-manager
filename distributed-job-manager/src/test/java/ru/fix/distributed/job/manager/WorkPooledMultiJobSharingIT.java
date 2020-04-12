@@ -1,10 +1,10 @@
 package ru.fix.distributed.job.manager;
 
-import kotlin.Pair;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.model.DistributedJobsPreset;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -23,7 +23,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
-             DynamicProperty<DistributedJobSettings> jobsEnabled = DistributedJobManagerConfigHelper.toRunWith(true, listOfJobs);
+             DynamicProperty<DistributedJobSettings> jobsPresetSettings = DistributedJobManagerConfigHelper.toRunWith(true, listOfJobs);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      (Collection<DistributedJob>) listOfJobs,
@@ -32,10 +32,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             new Pair<>(
-                                     getTerminationWaitTime(),
-                                     jobsEnabled
-                             )
+                             new DistributedJobsPreset(getTerminationWaitTime(), jobsPresetSettings)
                      )
              )
         ) {

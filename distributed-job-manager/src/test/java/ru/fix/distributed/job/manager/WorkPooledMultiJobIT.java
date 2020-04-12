@@ -1,6 +1,5 @@
 package ru.fix.distributed.job.manager;
 
-import kotlin.Pair;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -11,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.model.DistributedJobsPreset;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.distributed.job.manager.util.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -341,7 +341,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getSecond().get().getJobProperty(testJob.getJobId());
+            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());
             if (!isTestJobEnabled) return;
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
@@ -372,7 +372,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
 
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getSecond().get().getJobProperty(testJob.getJobId());
+            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());
 
             if (!isTestJobEnabled) return;
             verify(testJob, times(1)).run(any());
@@ -404,8 +404,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getSecond().get().getJobProperty(testJob.getJobId());
-            if (!isTestJobEnabled) return;
+            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());            if (!isTestJobEnabled) return;
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getAllWorkPools().size() == 3 &&
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
@@ -573,7 +572,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             CuratorFramework curatorFramework,
             Collection<DistributedJob> collection
     ) throws Exception {
-        DynamicProperty<DistributedJobSettings> settings = DistributedJobManagerConfigHelper.toRunWith(false, collection);
+        DynamicProperty<DistributedJobSettings> jobsPresetSettings = DistributedJobManagerConfigHelper.toRunWith(false, collection);
 
         return new DistributedJobManager(
                 curatorFramework,
@@ -583,10 +582,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         AssignmentStrategies.Companion.getDEFAULT(),
-                        new Pair<>(
-                                getTerminationWaitTime(),
-                                settings
-                        )
+                        new DistributedJobsPreset(getTerminationWaitTime(), jobsPresetSettings)
                 )
         );
     }
