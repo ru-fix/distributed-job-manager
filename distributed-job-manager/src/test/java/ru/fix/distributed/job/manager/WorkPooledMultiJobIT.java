@@ -341,8 +341,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());
-            if (!isTestJobEnabled) return;
+            boolean isJobEnabled = setJobSettings(false, Collections.singleton(testJob)).get().getJobProperty(testJob.getJobId());
+            if (!isJobEnabled) return;
             assertTimeout(
                     Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getLocalWorkPool().size() == testJob.getWorkPool().getItems().size(),
@@ -372,9 +372,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                     () -> "Single distributed job should has all work item" + printZkTree(JOB_MANAGER_ZK_ROOT_PATH));
             Thread.sleep(500);
 
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());
-
-            if (!isTestJobEnabled) return;
+            boolean isJobEnabled = setJobSettings(false, Collections.singleton(testJob)).get().getJobProperty(testJob.getJobId());
+            if (!isJobEnabled) return;
             verify(testJob, times(1)).run(any());
 
             try (
@@ -404,7 +403,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         Collections.singletonList(testJob)
                 )
         ) {
-            boolean isTestJobEnabled = jobManager.getSettings().getJobSettings().getJobsEnabledStatus().get().getJobProperty(testJob.getJobId());            if (!isTestJobEnabled) return;
+            boolean isJobEnabled = setJobSettings(false, Collections.singleton(testJob)).get().getJobProperty(testJob.getJobId());            if (!isJobEnabled) return;
             assertTimeout(Duration.ofMillis(DEFAULT_TIMEOUT),
                     () -> testJob.getAllWorkPools().size() == 3 &&
                             testJob.getAllWorkPools().stream().flatMap(Collection::stream).collect(Collectors.toSet())
@@ -590,6 +589,10 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private DynamicProperty<Long> getTerminationWaitTime() {
         return DynamicProperty.of(180_000L);
 
+    }
+
+    private DynamicProperty<DistributedJobSettings> setJobSettings(boolean enabled, Collection<DistributedJob> collection) {
+        return DistributedJobManagerConfigHelper.toRunWith(enabled, collection);
     }
 
     private Set<String> getWorkItems(int jobId) {
