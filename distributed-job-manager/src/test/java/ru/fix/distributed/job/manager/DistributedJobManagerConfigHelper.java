@@ -10,17 +10,7 @@ import java.util.Collection;
 public class DistributedJobManagerConfigHelper {
     private static final Logger log = LoggerFactory.getLogger(DistributedJobManagerConfigHelper.class);
 
-    public static DynamicProperty<DistributedJobSettings> toRunWith(boolean enabled, Collection<?> collection) {
-        if (enabled) {
-            log.info("All jobs 'enabled' status :  TRUE");
-            return allJobsEnabledTrue(collection);
-        } else {
-            log.info("All jobs 'enabled' status : FALSE");
-            return allJobsEnabledFalse(collection);
-        }
-    }
-
-    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledTrue(Collection<?> collection) {
+    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledTrue(Collection<DistributedJob> collection) {
         DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
         for (Object dj : collection) {
             distributedJobSettings.addConfig(((DistributedJob) dj).getJobId(), true);
@@ -30,7 +20,7 @@ public class DistributedJobManagerConfigHelper {
     }
 
 
-    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<?> collection) {
+    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<DistributedJob> collection) {
         DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
         for (Object dj : collection) {
             distributedJobSettings.addConfig(((DistributedJob) dj).getJobId(), false);

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
+import ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledFalse
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
@@ -292,9 +293,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
-        val jobsEnabled: DynamicProperty<DistributedJobSettings> = DistributedJobManagerConfigHelper.allJobsEnabledFalse(jobs)
+        val jobsEnabled: DynamicProperty<DistributedJobSettings> = allJobsEnabledFalse(jobs)
         val timeToWaitTermination = DynamicProperty.of(10_000L)
-//        val jobSettings = Pair<DynamicProperty<Long>, DynamicProperty<DistributedJobSettings>>(timeToWaitTermination, jobsEnabled)
         val jobSettings = DistributedJobsPreset(timeToWaitTermination, jobsEnabled)
         return DistributedJobManager(
                 zkTestingServer.createClient(),

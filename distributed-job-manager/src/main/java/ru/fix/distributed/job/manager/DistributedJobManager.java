@@ -47,7 +47,6 @@ public class DistributedJobManager implements AutoCloseable {
     private final Worker worker;
     private final Manager manager;
     private String nodeId;
-    private DynamicProperty<DistributedJobSettings> jobsEnabled;
 
     private static class Timespan {
         long startTimestamp;
@@ -86,7 +85,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         this.nodeId = settings.getNodeId();
 
-        this.jobsEnabled = settings.getJobSettings().getJobsEnabledStatus();
+        DynamicProperty<DistributedJobSettings> jobsEnabled = settings.getJobSettings().getJobsEnabledStatus();
         this.worker = new Worker(
                 curatorFramework,
                 distributedJobs,
