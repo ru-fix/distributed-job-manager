@@ -4,9 +4,10 @@ import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.model.DistributedJobsPreset;
+
+import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
-import ru.fix.distributed.job.manager.util.DistributedJobSettings;
+
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
@@ -33,7 +34,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             new DistributedJobsPreset(getTerminationWaitTime(), jobsPresetSettings)
+                             jobsPresetSettings
+
                      )
              )
         ) {

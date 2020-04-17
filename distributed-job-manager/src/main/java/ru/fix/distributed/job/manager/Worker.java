@@ -9,7 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.util.DistributedJobSettings;
+
+import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -98,7 +99,7 @@ class Worker implements AutoCloseable {
                 threadPoolSize,
                 profiler);
 
-        this.timeToWaitTermination = settings.getJobSettings().getTimeToWaitTermination();
+        this.timeToWaitTermination = DynamicProperty.of(settings.getJobSettings().get().getTimeToWaitTermination());
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -443,7 +444,7 @@ class Worker implements AutoCloseable {
 
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
         //supplying status of the job based on job's id to pass it to ScheduledJobExecution
-        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getJobProperty(newMultiJob.getJobId());
+        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getJobsEnabledStatus().get(newMultiJob.getJobId());
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {}, delay={}, and isEnabled={}",
                 workerId,
                 newMultiJob.getJobId(),

@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.model.DistributedJobsPreset;
+import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
-import ru.fix.distributed.job.manager.util.DistributedJobSettings;
+
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.socket.proxy.ProxySocket;
 
@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.Mockito.*;
+import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledFalse;
 import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledTrue;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
@@ -257,6 +258,29 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
+
+    @Test
+    public void shouldRunThenStopDistributedJob() throws Exception {
+        final String nodeId = "worker";
+        StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
+        List collection = Collections.singletonList(testJob);
+        try (
+                CuratorFramework curator = zkTestingServer.createClient();
+                DistributedJobManager jobManager = createNewJobManager(
+                        nodeId,
+                        curator,
+                        Collections.singletonList(testJob)
+                )
+        ) {
+            assertTimeout(Duration.ofMillis(10_000),
+                    () -> Mockito.mockingDetails(testJob).getInvocations()
+                            .stream().anyMatch(i -> i.getMethod().getName().equals("run")),
+                    () -> "Stubbed multi job completed");
+            allJobsEnabledFalse(collection);
+        }
+
+
+    }
 
     @Test
     public void shouldRunAndRebalanceDistributedJob() throws Exception {
@@ -566,7 +590,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             CuratorFramework curatorFramework,
             Collection<DistributedJob> collection
     ) throws Exception {
-        DynamicProperty<DistributedJobSettings> jobsPresetSettings = allJobsEnabledTrue(collection);
+        Map<String,Boolean> jobsPresetSettings = allJobsEnabledTrue(collection).get().getJobsEnabledStatus();
 
         return new DistributedJobManager(
                 curatorFramework,
@@ -576,13 +600,13 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,
                         AssignmentStrategies.Companion.getDEFAULT(),
-                        new DistributedJobsPreset(getTerminationWaitTime(), jobsPresetSettings)
+                        DynamicProperty.of(new DistributedJobSettings(getTerminationWaitTime(),jobsPresetSettings))
                 )
         );
     }
 
-    private DynamicProperty<Long> getTerminationWaitTime() {
-        return DynamicProperty.of(180_000L);
+    private Long getTerminationWaitTime() {
+        return 180_000L;
 
     }
 

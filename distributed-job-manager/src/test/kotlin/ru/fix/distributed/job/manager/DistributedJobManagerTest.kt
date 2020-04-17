@@ -6,13 +6,13 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
-import ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledFalse
+import ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledTrue
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.generateAvailability
-import ru.fix.distributed.job.manager.util.DistributedJobSettings
+
 import ru.fix.dynamic.property.api.DynamicProperty
 import java.time.Duration
 
@@ -293,9 +293,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
-        val jobsEnabled: DynamicProperty<DistributedJobSettings> = allJobsEnabledFalse(jobs)
-        val timeToWaitTermination = DynamicProperty.of(10_000L)
-        val jobSettings = DistributedJobsPreset(timeToWaitTermination, jobsEnabled)
+        val jobsEnabled = allJobsEnabledTrue(jobs).get().jobsEnabledStatus
+        val timeToWaitTermination = 10_000L
+        val jobSettings = DynamicProperty.of(DistributedJobSettings(timeToWaitTermination, jobsEnabled))
+
         return DistributedJobManager(
                 zkTestingServer.createClient(),
                 jobs,

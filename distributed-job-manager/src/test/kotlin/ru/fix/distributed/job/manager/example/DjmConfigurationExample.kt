@@ -8,7 +8,6 @@ import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.distributed.job.manager.util.DistributedJobSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
@@ -196,13 +195,11 @@ class CustomAssignmentStrategy : AssignmentStrategy {
 
 
 val jobList = listOf(SmsJob(), UssdJob(), RebillJob())
-val jobsPresetConfigs: DistributedJobSettings = DistributedJobSettings(hashMapOf(
+val jobsEnabled: MutableMap<String, Boolean> = (mutableMapOf(
         SmsJob().jobId to false,
         UssdJob().jobId to false,
         RebillJob().jobId to true
 ))
-val jobsEnabled: DynamicProperty<DistributedJobSettings> = DynamicProperty.of(jobsPresetConfigs)
-
 
 fun main() {
     DistributedJobManager(
@@ -213,10 +210,10 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    jobSettings = DistributedJobsPreset(
-                                    timeToWaitTermination = DynamicProperty.of(180_000L),
+                    jobSettings = DynamicProperty.of(DistributedJobSettings(
+                                    timeToWaitTermination = (180_000L),
                                     jobsEnabledStatus = jobsEnabled)
-
+                    )
             )
     )
 }
