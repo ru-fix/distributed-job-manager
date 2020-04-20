@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 
-import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -58,8 +57,11 @@ class Worker implements AutoCloseable {
     private final ReschedulableScheduler workPoolReschedulableScheduler;
     private final Profiler profiler;
 
+    private DynamicProperty<Map<String,Boolean>> jobSettings;
     private DynamicProperty<Long> timeToWaitTermination;
-    private DynamicProperty<DistributedJobSettings> jobsEnabled;
+
+    private Supplier<Long> timeToWaitTerminationSupplier;
+    private Supplier<Map<String,Boolean>> jobSettingsSupplier;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -72,15 +74,12 @@ class Worker implements AutoCloseable {
     Worker(CuratorFramework curatorFramework,
            Collection<DistributedJob> distributedJobs,
            Profiler profiler,
-           DistributedJobManagerSettings settings,
-           DynamicProperty<DistributedJobSettings> jobsEnabled) {
+           DistributedJobManagerSettings settings) {
 
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
         this.workerId = settings.getNodeId();
         this.availableJobs = distributedJobs;
-
-        this.jobsEnabled = jobsEnabled;
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
                 "worker-" + workerId,
@@ -98,8 +97,10 @@ class Worker implements AutoCloseable {
                 THREAD_NAME_DJM_WORKER_NONE,
                 threadPoolSize,
                 profiler);
-
-        this.timeToWaitTermination = DynamicProperty.of(settings.getJobSettings().get().getTimeToWaitTermination());
+        this.timeToWaitTerminationSupplier = () -> settings.getJobSettings().get().getTimeToWaitTermination();
+        this.jobSettingsSupplier = () -> settings.getJobSettings().get().getJobsEnabledStatus();
+        this.timeToWaitTermination = DynamicProperty.delegated(timeToWaitTerminationSupplier);
+        this.jobSettings = DynamicProperty.delegated(jobSettingsSupplier);
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -444,7 +445,7 @@ class Worker implements AutoCloseable {
 
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
         //supplying status of the job based on job's id to pass it to ScheduledJobExecution
-        Supplier<Boolean> supplyStatusOfJob = () -> jobsEnabled.get().getJobsEnabledStatus().get(newMultiJob.getJobId());
+        Supplier<Boolean> supplyStatusOfJob = () -> jobSettings.get().get(newMultiJob.getJobId());
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {}, delay={}, and isEnabled={}",
                 workerId,
                 newMultiJob.getJobId(),

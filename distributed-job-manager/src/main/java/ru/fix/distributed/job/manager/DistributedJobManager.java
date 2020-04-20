@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -85,14 +84,11 @@ public class DistributedJobManager implements AutoCloseable {
         final Timespan workerInitTimespan = new Timespan().start();
 
         this.nodeId = settings.getNodeId();
-
-        DynamicProperty<DistributedJobSettings> jobsEnabled = DynamicProperty.of(settings.getJobSettings().get());
         this.worker = new Worker(
                 curatorFramework,
                 distributedJobs,
                 new PrefixedProfiler(profiler, "djm."),
-                settings,
-                jobsEnabled);
+                settings);
 
         workerInitTimespan.stop();
 

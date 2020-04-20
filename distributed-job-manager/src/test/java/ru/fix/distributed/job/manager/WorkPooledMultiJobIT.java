@@ -24,8 +24,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.Mockito.*;
-import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledFalse;
-import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledTrue;
+import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 
 /**
@@ -269,14 +268,14 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager = createNewJobManager(
                         nodeId,
                         curator,
-                        Collections.singletonList(testJob)
+                        collection
                 )
         ) {
             assertTimeout(Duration.ofMillis(10_000),
                     () -> Mockito.mockingDetails(testJob).getInvocations()
                             .stream().anyMatch(i -> i.getMethod().getName().equals("run")),
                     () -> "Stubbed multi job completed");
-            allJobsEnabledFalse(collection);
+            allJobsDisabled(collection);
         }
 
 
@@ -590,7 +589,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             CuratorFramework curatorFramework,
             Collection<DistributedJob> collection
     ) throws Exception {
-        Map<String,Boolean> jobsPresetSettings = allJobsEnabledTrue(collection).get().getJobsEnabledStatus();
+        Map<String,Boolean> jobsPresetSettings = allJobsEnabled(collection).get().getJobsEnabledStatus();
 
         return new DistributedJobManager(
                 curatorFramework,

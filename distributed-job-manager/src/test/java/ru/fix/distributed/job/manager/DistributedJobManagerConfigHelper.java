@@ -1,34 +1,27 @@
 package ru.fix.distributed.job.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
 
 public class DistributedJobManagerConfigHelper {
-    private static final Logger log = LoggerFactory.getLogger(DistributedJobManagerConfigHelper.class);
-
-    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledTrue(Collection<DistributedJob> collection) {
-        DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
-        for (Object dj : collection) {
-            log.warn("jobId: {}, status: TRUE", ((DistributedJob) dj).getJobId());
-            distributedJobSettings.component2().put(((DistributedJob) dj).getJobId(), true);
-        }
-
-        return DynamicProperty.of(distributedJobSettings);
+    public static DynamicProperty<DistributedJobSettings> allJobsEnabled(Collection<DistributedJob> jobs) {
+        return allJobs(true, jobs);
     }
 
 
-    protected static DynamicProperty<DistributedJobSettings> allJobsEnabledFalse(Collection<DistributedJob> collection) {
-        DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
-        for (Object dj : collection) {
-            log.warn("jobId: {}, status: FALSE", ((DistributedJob) dj).getJobId());
-            distributedJobSettings.component2().put(((DistributedJob) dj).getJobId(), false);
-        }
+    public static DynamicProperty<DistributedJobSettings> allJobsDisabled(Collection<DistributedJob> jobs) {
+        return allJobs(false, jobs);
+    }
 
+
+    private static DynamicProperty<DistributedJobSettings> allJobs(boolean enabled,
+                                                                   Collection<DistributedJob> jobs) {
+        DistributedJobSettings distributedJobSettings = new DistributedJobSettings();
+        for (DistributedJob dj : jobs) {
+            distributedJobSettings.getJobsEnabledStatus().put(dj.getJobId(), enabled);
+        }
         return DynamicProperty.of(distributedJobSettings);
     }
 }

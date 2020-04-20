@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
-import ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledTrue
+import ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabled
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
@@ -15,7 +15,9 @@ import ru.fix.distributed.job.manager.strategy.generateAvailability
 
 import ru.fix.dynamic.property.api.DynamicProperty
 import java.time.Duration
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
@@ -100,6 +102,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"), mutableSetOf(WorkerId("worker-2"))))
     }
 
+    @ExperimentalTime
     @Test
     @Throws(Exception::class)
     fun `evenly spread when start 3 servers with identical work pool`() {
@@ -118,6 +121,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
     }
 
+    @ExperimentalTime
     @Test
     @Throws(Exception::class)
     fun `start 3 servers with rendezvous strategy with different work pools`() {
@@ -135,6 +139,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"), mutableSetOf(WorkerId("worker-2"))))
     }
 
+    @ExperimentalTime
     @Test
     @Throws(Exception::class)
     fun `start 3 servers with rendezvous strategy with identical work pool`() {
@@ -165,6 +170,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         }
     }
 
+    @ExperimentalTime
     @Test
     @Disabled("It's hard to get moment, when 3 workers alive and last third worker already have assigned paths")
     @Throws(Exception::class)
@@ -190,7 +196,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
     }
-
+    @ExperimentalTime
     @Test
     @Throws(Exception::class)
     fun `custom assigment strategy on 4 workers with identical work pool`() {
@@ -287,13 +293,14 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 ))
     }
 
+    @ExperimentalTime
     @Throws(Exception::class)
     private fun createDjm(
             nodeId: String,
             jobs: List<DistributedJob>,
             strategy: AssignmentStrategy
     ): DistributedJobManager {
-        val jobsEnabled = allJobsEnabledTrue(jobs).get().jobsEnabledStatus
+        val jobsEnabled = allJobsEnabled(jobs).get().jobsEnabledStatus
         val timeToWaitTermination = 10_000L
         val jobSettings = DynamicProperty.of(DistributedJobSettings(timeToWaitTermination, jobsEnabled))
 
@@ -360,11 +367,13 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         return assignedState
     }
 
+    @ExperimentalTime
     @Throws(Exception::class)
     private fun createDjmWithEvenlySpread(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
         return createDjm(nodeId, jobs, AssignmentStrategies.EVENLY_SPREAD)
     }
 
+    @ExperimentalTime
     @Throws(Exception::class)
     private fun createDjmWithRendezvous(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
         return createDjm(nodeId, jobs, AssignmentStrategies.RENDEZVOUS)

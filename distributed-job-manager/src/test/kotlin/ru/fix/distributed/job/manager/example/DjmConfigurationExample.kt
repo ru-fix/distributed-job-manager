@@ -10,6 +10,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
+import kotlin.time.ExperimentalTime
 
 class RebillJob : DistributedJob {
     override fun getJobId(): String {
@@ -201,6 +202,7 @@ val jobsEnabled: MutableMap<String, Boolean> = (mutableMapOf(
         RebillJob().jobId to true
 ))
 
+@ExperimentalTime
 fun main() {
     DistributedJobManager(
             CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),

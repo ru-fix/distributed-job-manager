@@ -14,7 +14,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule;
 import java.util.*;
 
 import static org.mockito.Mockito.*;
-import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabledTrue;
+import static ru.fix.distributed.job.manager.DistributedJobManagerConfigHelper.allJobsEnabled;
 
 class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
@@ -25,7 +25,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
         try (CuratorFramework curator = zkTestingServer.createClient();
-             DynamicProperty<DistributedJobSettings> jobsPresetSettings = allJobsEnabledTrue(listOfJobs);
+             DynamicProperty<DistributedJobSettings> jobsPresetSettings = allJobsEnabled(listOfJobs);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      listOfJobs,
