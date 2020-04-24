@@ -1,8 +1,6 @@
 package ru.fix.distributed.job.manager.model
 
-import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import java.time.Duration
 
-@ExperimentalTime
-data class DistributedJobSettings(val timeToWaitTermination: Long = 30.seconds.toLongMilliseconds(),
+data class DistributedJobSettings(val timeToWaitTermination: Long = Duration.ofSeconds(30).seconds,
                                   var jobsEnabledStatus: MutableMap<String, Boolean> = mutableMapOf())

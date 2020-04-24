@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 
+import ru.fix.distributed.job.manager.model.DistributedJobSettings;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -58,10 +59,8 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private DynamicProperty<Map<String,Boolean>> jobSettings;
-    private DynamicProperty<Long> timeToWaitTermination;
-
-    private Supplier<Long> timeToWaitTerminationSupplier;
     private Supplier<Map<String,Boolean>> jobSettingsSupplier;
+    private DynamicProperty<Long> timeToWaitTermination;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -97,9 +96,8 @@ class Worker implements AutoCloseable {
                 THREAD_NAME_DJM_WORKER_NONE,
                 threadPoolSize,
                 profiler);
-        this.timeToWaitTerminationSupplier = () -> settings.getJobSettings().get().getTimeToWaitTermination();
+        this.timeToWaitTermination = settings.getJobSettings().map(DistributedJobSettings::getTimeToWaitTermination);
         this.jobSettingsSupplier = () -> settings.getJobSettings().get().getJobsEnabledStatus();
-        this.timeToWaitTermination = DynamicProperty.delegated(timeToWaitTerminationSupplier);
         this.jobSettings = DynamicProperty.delegated(jobSettingsSupplier);
 
         this.workShareLockService = new WorkShareLockServiceImpl(

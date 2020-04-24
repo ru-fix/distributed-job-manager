@@ -202,7 +202,6 @@ val jobsEnabled: MutableMap<String, Boolean> = (mutableMapOf(
         RebillJob().jobId to true
 ))
 
-@ExperimentalTime
 fun main() {
     DistributedJobManager(
             CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
