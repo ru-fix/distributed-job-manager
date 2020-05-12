@@ -56,7 +56,7 @@ class Worker implements AutoCloseable {
     private final ReschedulableScheduler workPoolReschedulableScheduler;
     private final Profiler profiler;
 
-    private DynamicProperty<Long> timeToWaitTermination;
+    private final DynamicProperty<Long> timeToWaitTermination;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -174,7 +174,7 @@ class Worker implements AutoCloseable {
 
                     int workPoolVersion = workPoolSubTree.checkAndUpdateVersion(transaction);
 
-                    int workerVersion = checkAndUpdateVersion(paths.workerVersion(), transaction);
+                    int workerVersion = transaction.checkAndUpdateVersion(paths.workerVersion());
 
                     log.info("Registering worker {} (worker version {}, work-pool version {})",
                             workerId, workerVersion, workPoolVersion);
@@ -200,17 +200,6 @@ class Worker implements AutoCloseable {
         }
     }
 
-    /**
-     * @param path node, which version should be checked and updated
-     * @param transaction transaction, which used to check the version of node
-     * @return previous version of updating node
-     * */
-    private int checkAndUpdateVersion(String path, TransactionalClient transaction) throws Exception {
-        int version = curatorFramework.checkExists().forPath(path).getVersion();
-        transaction.checkPathWithVersion(path, version);
-        transaction.setData(path, new byte[]{});
-        return version;
-    }
 
     private void registerWorkerAsAlive(TransactionalClient transaction) throws Exception {
         String nodeAlivePath = paths.aliveWorker(workerId);

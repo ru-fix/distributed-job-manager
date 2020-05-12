@@ -41,15 +41,15 @@ class Manager implements AutoCloseable {
     private final AssignmentStrategy assignmentStrategy;
     private final AvailableWorkPoolSubTree workPoolSubTree;
 
-    private PathChildrenCache workersAliveChildrenCache;
-    private AtomicBoolean workersCacheInitialized = new AtomicBoolean(false);
+    private final PathChildrenCache workersAliveChildrenCache;
+    private final AtomicBoolean workersCacheInitialized = new AtomicBoolean(false);
 
     private final ReschedulableScheduler workPoolCleaningReschedulableScheduler;
 
     private final ExecutorService managerThread;
-    private volatile LeaderLatch leaderLatch;
+    private final LeaderLatch leaderLatch;
     private final String nodeId;
-    private DynamicProperty<Long> workPoolCleanPeriod;
+    private final DynamicProperty<Long> workPoolCleanPeriod;
 
     Manager(CuratorFramework curatorFramework,
             Profiler profiler,
@@ -193,13 +193,7 @@ class Manager implements AutoCloseable {
                     curatorFramework,
                     ASSIGNMENT_COMMIT_RETRIES_COUNT,
                     transaction -> {
-                        String assignmentVersionNode = paths.assignmentVersion();
-
-                        int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
-
-                        transaction.checkPathWithVersion(assignmentVersionNode, version);
-                        transaction.setData(assignmentVersionNode, new byte[]{});
-
+                        transaction.checkAndUpdateVersion(paths.assignmentVersion());
                         assignWorkPools(getZookeeperGlobalState(), transaction);
                     }
             );
@@ -406,8 +400,8 @@ class Manager implements AutoCloseable {
     }
 
     private static class GlobalAssignmentState {
-        private AssignmentState availableState;
-        private AssignmentState assignedState;
+        private final AssignmentState availableState;
+        private final AssignmentState assignedState;
 
         GlobalAssignmentState(
                 AssignmentState availableState,

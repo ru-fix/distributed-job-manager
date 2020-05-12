@@ -13,13 +13,8 @@ internal class AvailableWorkPoolSubTree(
         private val log = KotlinLogging.logger {}
     }
 
-    fun checkAndUpdateVersion(transaction: TransactionalClient): Int {
-        val workPoolVersion = paths.availableWorkPoolVersion()
-        val version = curatorFramework.checkExists().forPath(workPoolVersion).version
-        transaction.checkPathWithVersion(workPoolVersion, version)
-        transaction.setData(workPoolVersion, byteArrayOf())
-        return version
-    }
+    fun checkAndUpdateVersion(transaction: TransactionalClient): Int =
+            transaction.checkAndUpdateVersion(paths.availableWorkPoolVersion())
 
     fun pruneOutDatedJobs(transaction: TransactionalClient, actualJobs: Set<String>) {
         for (jobIdFromZk in currentJobsFromZk()) {
