@@ -13,7 +13,10 @@ internal class LeaderLatchExecutor(
         paths: ZkPathsManager,
         curatorFramework: CuratorFramework
 ) : AutoCloseable {
-    private val executor = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler)
+    private val executor = NamedExecutors.newSingleThreadPool(
+            "distributed-manager-thread",
+            profiler
+    )
     private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
     fun start() = leaderLatch.start()
@@ -50,7 +53,7 @@ internal class LeaderLatchExecutor(
             executor.shutdown()
         }
         if (!executor.awaitTermination(3, TimeUnit.MINUTES)) {
-            log.error("Failed to wait LeaderLatchExecutor thread pool termination")
+            log.error("Failed to wait LeaderLatchExecutor executor termination")
             executor.shutdownNow()
         }
     }

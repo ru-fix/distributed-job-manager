@@ -28,6 +28,8 @@ internal class Rebalancer(
         private val assignmentStrategy: AssignmentStrategy,
         private val nodeId: String
 ) : AutoCloseable {
+    private val zkPrinter = ZkTreePrinter(curatorFramework)
+
     private val rebalanceRequestReceivingExecutor = Executors.newSingleThreadExecutor()
 
     private val rebalanceQueue = LinkedBlockingQueue<Any>()
@@ -38,8 +40,8 @@ internal class Rebalancer(
         CompletableFuture.runAsync(Runnable {
             while (true) {
                 when (awaitRebalanceOrShutdown()) {
-                    AwaitingResult.SHUTDOWN -> return@Runnable
                     AwaitingResult.REBALANCE -> leaderLatchExecutor.tryExecute(Runnable { reassignAndBalanceTasks() })
+                    AwaitingResult.SHUTDOWN -> return@Runnable
                     AwaitingResult.ERROR -> {
                     }
                 }
@@ -70,7 +72,7 @@ internal class Rebalancer(
     override fun close() {
         rebalanceRequestReceivingExecutor.shutdown()
         if (!rebalanceRequestReceivingExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
-            log.warn { "Failed to wait cleaner's scheduler termination" }
+            log.warn("Failed to wait cleaner's scheduler termination")
             rebalanceRequestReceivingExecutor.shutdownNow()
         }
     }
@@ -88,8 +90,7 @@ internal class Rebalancer(
             return
         }
         if (log.isTraceEnabled) {
-            val treeDump = buildZkTreeDump()
-            log.trace("nodeId={} tree before rebalance: \n {}", nodeId, treeDump)
+            log.trace("nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}")
         }
         try {
             TransactionalClient.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
@@ -100,16 +101,10 @@ internal class Rebalancer(
             log.warn("Can't reassign and balance tasks: ", e)
         }
         if (log.isTraceEnabled) {
-            log.trace("nodeId={} tree after rebalance: \n {}", nodeId, buildZkTreeDump())
+            log.trace("nodeId=$nodeId tree after rebalance: \n ${zkPrinter.print(paths.rootPath)}")
         }
     }
 
-    private fun buildZkTreeDump(): String = try {
-        ZkTreePrinter(curatorFramework).print(paths.rootPath)
-    } catch (ex: Exception) {
-        log.warn("Failed to build zk tree", ex)
-        ""
-    }
 
     private fun TransactionalClient.assignWorkPools(globalState: GlobalAssignmentState) {
         val currentState = AssignmentState()
@@ -138,10 +133,6 @@ internal class Rebalancer(
         rewriteZookeeperNodes(previousState, newAssignmentState)
     }
 
-    /**
-     * Add in zk paths of new work items, that contains in newAssignmentState, but doesn't in previousState and
-     * remove work items, that contains in previousState, but doesn't in newAssignmentState.
-     */
     private fun TransactionalClient.rewriteZookeeperNodes(
             previousState: AssignmentState,
             newAssignmentState: AssignmentState
@@ -200,7 +191,7 @@ internal class Rebalancer(
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {
                 continue
             }
-            log.info("nodeId={} Remove dead worker {}", nodeId, worker)
+            log.info("nodeId=$nodeId Remove dead worker $worker")
             try {
                 deletePathWithChildrenIfNeeded(paths.worker(worker))
             } catch (e: NoNodeException) {

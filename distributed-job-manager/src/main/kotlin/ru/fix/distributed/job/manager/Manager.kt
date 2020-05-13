@@ -43,7 +43,7 @@ class Manager(
 
     fun start() {
         workersAliveChildrenCache.listenable.addListener(PathChildrenCacheListener { _: CuratorFramework, event: PathChildrenCacheEvent ->
-            log.trace("nodeId={} handleRebalanceEvent event={}", nodeId, event)
+            log.trace("nodeId=$nodeId handleRebalanceEvent event=$event")
             when (event.type) {
                 PathChildrenCacheEvent.Type.CONNECTION_RECONNECTED,
                 PathChildrenCacheEvent.Type.CHILD_UPDATED,
@@ -56,13 +56,13 @@ class Manager(
                         workersAliveChildrenCache,
                         workPoolCleanPeriod
                 )
-                else -> log.warn("nodeId={} Invalid event type {}", nodeId, event.type)
+                else -> log.warn("nodeId=$nodeId Invalid event type ${event.type}")
             }
         })
         workersAliveChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT)
 
         leaderLatchExecutor.addLeadershipListener {
-            log.info("nodeId={} initLeaderLatch Became a leader", nodeId)
+            log.info("nodeId=$nodeId became a leader")
             rebalancer.enqueueRebalance()
         }
         leaderLatchExecutor.start()

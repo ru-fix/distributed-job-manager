@@ -26,6 +26,7 @@ internal class Cleaner(
             profiler
     )
     private val workPoolSubTree = AvailableWorkPoolSubTree(curatorFramework, paths)
+    private val zkPrinter = ZkTreePrinter(curatorFramework)
 
     fun startWorkPoolCleaningTask(
             initializedAliveWorkersCache: PathChildrenCache,
@@ -50,7 +51,7 @@ internal class Cleaner(
     private fun cleanWorkPool(transaction: TransactionalClient, initializedAliveWorkersCache: PathChildrenCache) {
         workPoolSubTree.checkAndUpdateVersion(transaction)
         if (log.isTraceEnabled) {
-            log.trace("cleanWorkPool zk tree before cleaning: {}", ZkTreePrinter(curatorFramework).print(paths.rootPath))
+            log.trace("cleanWorkPool zk tree before cleaning: ${zkPrinter.print(paths.rootPath)}")
         }
         val actualJobs: MutableSet<String> = HashSet()
         for (aliveWorkerNodeData in initializedAliveWorkersCache.currentData) {
@@ -65,7 +66,7 @@ internal class Cleaner(
     override fun close() {
         scheduler.shutdown()
         if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
-            log.warn { "Failed to wait cleaner's scheduler termination" }
+            log.warn("Failed to wait cleaner's scheduler termination")
             scheduler.shutdownNow()
         }
     }
