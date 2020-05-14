@@ -28,19 +28,18 @@ internal class EventReducerTest {
     fun `WHEN reducer triggered several times at once AND handler is slow THEN handler invoked one or two times`() {
         val eventsQuantity = 10
         val invokes = ArrayBlockingQueue<Any>(2)
+        val awaitingEventsFromAllThreadsLatch = CountDownLatch(eventsQuantity)
         EventReducer(handler = {
             invokes.put(Any())
-            Thread.sleep(1_000)
+            awaitingEventsFromAllThreadsLatch.await() //simulate slow handler
         }).use { reducer ->
             reducer.start()
 
             val executor = Executors.newFixedThreadPool(eventsQuantity)
-            val countDownLatch = CountDownLatch(eventsQuantity)
             repeat(eventsQuantity) {
                 executor.execute {
-                    countDownLatch.countDown()
-                    countDownLatch.await()
                     reducer.handle()
+                    awaitingEventsFromAllThreadsLatch.countDown()
                 }
             }
 
