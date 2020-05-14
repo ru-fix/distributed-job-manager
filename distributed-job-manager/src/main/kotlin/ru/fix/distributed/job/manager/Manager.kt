@@ -5,6 +5,7 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.PathChildrenCache
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener
+import org.apache.curator.framework.recipes.leader.LeaderLatch
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 
@@ -23,7 +24,7 @@ class Manager(
     private val paths = ZkPathsManager(settings.rootPath)
 
     private val leaderLatchExecutor = LeaderLatchExecutor(
-            profiler, paths, curatorFramework
+            profiler, LeaderLatch(curatorFramework, paths.leaderLatch())
     )
     private val cleaner = Cleaner(
             profiler, paths, curatorFramework, leaderLatchExecutor

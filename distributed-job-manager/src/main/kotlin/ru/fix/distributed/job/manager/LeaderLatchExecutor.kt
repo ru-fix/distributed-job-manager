@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager
 
 import mu.KotlinLogging
-import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.leader.LeaderLatch
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import ru.fix.aggregating.profiler.Profiler
@@ -10,14 +9,12 @@ import java.util.concurrent.TimeUnit
 
 internal class LeaderLatchExecutor(
         profiler: Profiler,
-        paths: ZkPathsManager,
-        curatorFramework: CuratorFramework
+        private val leaderLatch: LeaderLatch
 ) : AutoCloseable {
     private val executor = NamedExecutors.newSingleThreadPool(
             "distributed-manager-thread",
             profiler
     )
-    private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
     fun start() = leaderLatch.start()
 
