@@ -6,6 +6,15 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
+/**
+ * EventReducer invokes given [handler] when [handle] function was invoked.
+ * If [handle] function was invoked (one or many times) during [handler] working,
+ * [handler] will be invoked after completing and so on.
+ *
+ * Therefore if [handle] function was invoked 100 times with breaks in 1 millisecond,
+ * and [handler]'s work takes 70 milliseconds,
+ * then [handler] wasn't invoked 100 times, but 3 times, consistently.
+ * */
 class EventReducer(
         private val handler: () -> Unit,
         private val shutdownCheckPeriodMs: Long = 1_000,
