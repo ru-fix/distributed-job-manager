@@ -13,8 +13,6 @@ import ru.fix.distributed.job.manager.util.ZkTreePrinter
 import ru.fix.zookeeper.transactional.TransactionalClient
 import java.util.*
 
-private const val CHECK_SHUTDOWN_PERIOD_MS = 1000L
-
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
 internal class Rebalancer(
