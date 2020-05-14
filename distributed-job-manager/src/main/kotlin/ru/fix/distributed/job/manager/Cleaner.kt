@@ -13,7 +13,7 @@ import java.util.*
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-private val CLEAN_WORK_POOL_RETRIES_COUNT = 1
+private const val CLEAN_WORK_POOL_RETRIES_COUNT = 1
 
 internal class Cleaner(
         profiler: Profiler,
