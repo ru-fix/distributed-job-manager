@@ -12,10 +12,6 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.distributed.job.manager.util.ZkTreePrinter
 import ru.fix.zookeeper.transactional.TransactionalClient
 import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 
 private const val CHECK_SHUTDOWN_PERIOD_MS = 1000L
 
@@ -30,52 +26,17 @@ internal class Rebalancer(
 ) : AutoCloseable {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
-    private val rebalanceRequestReceivingExecutor = Executors.newSingleThreadExecutor()
+    private val rebalanceEventReducer = EventReducer(handler = {
+        leaderLatchExecutor.tryExecute(Runnable(this::reassignAndBalanceTasks))
+    })
 
-    private val rebalanceQueue = LinkedBlockingQueue<Any>()
-
-    fun enqueueRebalance() = rebalanceQueue.add(Any())
-
-    fun start() {
-        CompletableFuture.runAsync(Runnable {
-            while (true) {
-                when (awaitRebalanceOrShutdown()) {
-                    AwaitingResult.REBALANCE -> leaderLatchExecutor.tryExecute(Runnable { reassignAndBalanceTasks() })
-                    AwaitingResult.SHUTDOWN -> return@Runnable
-                    AwaitingResult.ERROR -> {
-                    }
-                }
-            }
-        }, rebalanceRequestReceivingExecutor)
+    fun handleRebalanceEvent() {
+        rebalanceEventReducer.handle()
     }
 
-    private fun awaitRebalanceOrShutdown(): AwaitingResult {
-        try {
-            while (rebalanceQueue.poll(CHECK_SHUTDOWN_PERIOD_MS, TimeUnit.MILLISECONDS) == null) {
-                if (leaderLatchExecutor.isShutdown() || rebalanceRequestReceivingExecutor.isShutdown) {
-                    return AwaitingResult.SHUTDOWN
-                }
-            }
-        } catch (e: Exception) {
-            log.error("waiting rebalance event was interrupted", e)
-            return AwaitingResult.ERROR
-        } finally {
-            rebalanceQueue.clear()
-        }
-        return AwaitingResult.REBALANCE
-    }
+    fun start() = rebalanceEventReducer.start()
 
-    enum class AwaitingResult {
-        REBALANCE, SHUTDOWN, ERROR
-    }
-
-    override fun close() {
-        rebalanceRequestReceivingExecutor.shutdown()
-        if (!rebalanceRequestReceivingExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
-            log.warn("Failed to wait rebalancer's executor termination")
-            rebalanceRequestReceivingExecutor.shutdownNow()
-        }
-    }
+    override fun close() = rebalanceEventReducer.close()
 
     /**
      * Rebalance tasks in tasks tree for all available workers after any failure or workers count change

@@ -22,6 +22,8 @@ class Manager(
         settings: DistributedJobManagerSettings
 ) : AutoCloseable {
     private val paths = ZkPathsManager(settings.rootPath)
+    private val nodeId = settings.nodeId
+    private val workPoolCleanPeriod = settings.workPoolCleanPeriod
 
     private val leaderLatchExecutor = LeaderLatchExecutor(
             profiler, LeaderLatch(curatorFramework, paths.leaderLatch())
@@ -30,7 +32,7 @@ class Manager(
             profiler, paths, curatorFramework, leaderLatchExecutor
     )
     private val rebalancer = Rebalancer(
-            paths, curatorFramework, leaderLatchExecutor, settings.assignmentStrategy, settings.nodeId
+            paths, curatorFramework, leaderLatchExecutor, settings.assignmentStrategy, nodeId
     )
 
     private val workersAliveChildrenCache = PathChildrenCache(
@@ -38,8 +40,6 @@ class Manager(
             paths.aliveWorkers(),
             false
     )
-    private val nodeId = settings.nodeId
-    private val workPoolCleanPeriod = settings.workPoolCleanPeriod
 
 
     fun start() {
@@ -50,7 +50,7 @@ class Manager(
                 PathChildrenCacheEvent.Type.CHILD_UPDATED,
                 PathChildrenCacheEvent.Type.CHILD_ADDED,
                 PathChildrenCacheEvent.Type.CHILD_REMOVED ->
-                    rebalancer.enqueueRebalance()
+                    rebalancer.handleRebalanceEvent()
                 PathChildrenCacheEvent.Type.CONNECTION_SUSPENDED -> {
                 }
                 PathChildrenCacheEvent.Type.INITIALIZED -> cleaner.startWorkPoolCleaningTask(
@@ -64,7 +64,7 @@ class Manager(
 
         leaderLatchExecutor.addLeadershipListener {
             log.info("nodeId=$nodeId became a leader")
-            rebalancer.enqueueRebalance()
+            rebalancer.handleRebalanceEvent()
         }
         leaderLatchExecutor.start()
 
