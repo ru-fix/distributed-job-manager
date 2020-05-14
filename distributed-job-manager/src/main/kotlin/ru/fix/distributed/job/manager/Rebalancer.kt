@@ -72,7 +72,7 @@ internal class Rebalancer(
     override fun close() {
         rebalanceRequestReceivingExecutor.shutdown()
         if (!rebalanceRequestReceivingExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
-            log.warn("Failed to wait cleaner's scheduler termination")
+            log.warn("Failed to wait rebalancer's executor termination")
             rebalanceRequestReceivingExecutor.shutdownNow()
         }
     }
