@@ -27,7 +27,7 @@ class ScheduledJobExecution implements Runnable {
     private final Profiler profiler;
 
     private volatile ScheduledFuture<?> scheduledFuture;
-    private Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
@@ -155,7 +155,7 @@ class ScheduledJobExecution implements Runnable {
                 scheduledFuture, System.identityHashCode(scheduledFuture), job.getJobId(), workShare);
     }
 
-    boolean isShutdowned(){
+    boolean isShutdowned() {
         return shutdownFlag.get();
     }
 
