@@ -56,6 +56,7 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private DynamicProperty<Long> timeToWaitTermination;
+    private final DynamicProperty<Boolean> disableAllJobsProperty;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -92,6 +93,7 @@ class Worker implements AutoCloseable {
                 profiler);
 
         this.timeToWaitTermination = settings.getTimeToWaitTermination();
+        this.disableAllJobsProperty = settings.getDisableAllJobs();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -444,7 +446,8 @@ class Worker implements AutoCloseable {
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
                 profiler,
-                new SmartLockMonitorDecorator(workShareLockService)
+                new SmartLockMonitorDecorator(workShareLockService),
+                disableAllJobsProperty
         );
 
         if (!isWorkerShutdown) {
