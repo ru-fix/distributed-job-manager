@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
-import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
 
@@ -16,7 +14,7 @@ import java.util.Collection;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- *String, CuratorFramework, String, Collection, AssignmentStrategy, Profiler, DynamicProperty)}
+ * CuratorFramework, Collection, Profiler, DistributedJobManagerSettings)}
  * register list
  * of jobs that could be run on this server (JVM instance). {@link DistributedJobManager} will balance workload between
  * available servers for you.
