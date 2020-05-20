@@ -55,7 +55,7 @@ class Worker implements AutoCloseable {
     private final ReschedulableScheduler workPoolReschedulableScheduler;
     private final Profiler profiler;
 
-    private DynamicProperty<Long> timeToWaitTermination;
+    private final DynamicProperty<Long> timeToWaitTermination;
     private final DynamicProperty<Boolean> disableAllJobsProperty;
 
     private volatile boolean isWorkerShutdown = false;
@@ -101,7 +101,13 @@ class Worker implements AutoCloseable {
                 workerId,
                 profiler);
 
-        distributedJobs.forEach(job ->
+        attachProfilerIndicators();
+    }
+
+    private void attachProfilerIndicators() {
+        profiler.attachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR, () -> disableAllJobsProperty.get() ? 1L : 0L);
+
+        availableJobs.forEach(job ->
                 profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
                     List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
                     if (executions != null) {
@@ -576,6 +582,7 @@ class Worker implements AutoCloseable {
 
         workShareLockService.close();
 
+        detachProfilerIndicators();
 
         log.info("Distributed job manager closing completed. Closing took {} ms.",
                 System.currentTimeMillis() - closingStart);
@@ -615,5 +622,13 @@ class Worker implements AutoCloseable {
 
     private void shutdownAllJobExecutions() {
         scheduledJobManager.shutdownAllJobExecutions();
+    }
+
+    private void detachProfilerIndicators() {
+        profiler.detachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR);
+
+        availableJobs.forEach(job ->
+                profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()))
+        );
     }
 }
