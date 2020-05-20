@@ -13,8 +13,8 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
          * */
         val timeToWaitTermination: DynamicProperty<Long>,
         /**
-         * False: djm works normally.
-         * True: workers skip run method of all jobs
+         * False: djm works normally, all jobs are enabled
+         * True: all jobs are disabled
          * */
         val disableAllJobs: DynamicProperty<Boolean> = DynamicProperty.of(false)
 )

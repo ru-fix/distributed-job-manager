@@ -1,4 +1,5 @@
 package ru.fix.distributed.job.manager;
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 
 /**
  * @author Kamil Asfandiyarov
@@ -6,8 +7,7 @@ package ru.fix.distributed.job.manager;
 public final class ProfilerMetrics {
 
     /**
-     * 1 means all jobs are disabled now (workers skip jobs run method);
-     * 0 means djm works normally
+     * @see DistributedJobManagerSettings#getDisableAllJobs()
      */
     public static String DISABLE_ALL_JOBS_INDICATOR = "disable_all_jobs";
 
