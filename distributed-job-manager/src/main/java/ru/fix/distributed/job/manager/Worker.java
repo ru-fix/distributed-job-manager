@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -56,7 +57,7 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private final DynamicProperty<Long> timeToWaitTermination;
-    private final DynamicProperty<Boolean> disableAllJobsProperty;
+    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -93,7 +94,7 @@ class Worker implements AutoCloseable {
                 profiler);
 
         this.timeToWaitTermination = settings.getTimeToWaitTermination();
-        this.disableAllJobsProperty = settings.getDisableAllJobs();
+        this.jobDisableConfig = settings.getJobDisableConfig();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -105,7 +106,10 @@ class Worker implements AutoCloseable {
     }
 
     private void attachProfilerIndicators() {
-        profiler.attachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR, () -> disableAllJobsProperty.get() ? 1L : 0L);
+        profiler.attachIndicator(
+                ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR,
+                () -> jobDisableConfig.get().getDisableAllJobs() ? 1L : 0L
+        );
 
         availableJobs.forEach(job ->
                 profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
@@ -453,7 +457,7 @@ class Worker implements AutoCloseable {
                 new HashSet<>(workPoolToExecute),
                 profiler,
                 new SmartLockMonitorDecorator(workShareLockService),
-                disableAllJobsProperty
+                jobDisableConfig
         );
 
         if (!isWorkerShutdown) {

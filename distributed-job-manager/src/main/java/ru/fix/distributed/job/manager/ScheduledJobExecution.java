@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Set;
@@ -28,11 +29,11 @@ class ScheduledJobExecution implements Runnable {
     private final Profiler profiler;
 
     private volatile ScheduledFuture<?> scheduledFuture;
-    private Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
-    private final DynamicProperty<Boolean> disableAllJobsProperty;
+    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
 
     final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
 
@@ -45,7 +46,7 @@ class ScheduledJobExecution implements Runnable {
                                  Set<String> workShare,
                                  Profiler profiler,
                                  WorkShareLockService workShareLockService,
-                                 DynamicProperty<Boolean> disableAllJobsProperty) {
+                                 DynamicProperty<JobDisableConfig> jobDisableConfig) {
         if (workShare.isEmpty()) {
             throw new IllegalArgumentException(
                     "ScheduledJobExecution should receive at least single workItem in workShare");
@@ -55,13 +56,13 @@ class ScheduledJobExecution implements Runnable {
         this.workShare = workShare;
         this.profiler = profiler;
         this.workShareLockService = workShareLockService;
-        this.disableAllJobsProperty = disableAllJobsProperty;
+        this.jobDisableConfig = jobDisableConfig;
     }
 
     @Override
     public void run() {
-        if(disableAllJobsProperty.get()) {
-            log.trace("Job {} wasn't launched due to disableAllJobsProperty", job.getJobId());
+        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId())) {
+            log.trace("Job {} wasn't launched due to jobDisableConfig", job.getJobId());
             return;
         }
 
