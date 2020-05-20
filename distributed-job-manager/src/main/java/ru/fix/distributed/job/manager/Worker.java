@@ -105,7 +105,7 @@ class Worker implements AutoCloseable {
     }
 
     private void attachProfilerIndicators() {
-        profiler.attachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR, () -> disableAllJobsProperty.get() ? 0L : 1L);
+        profiler.attachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR, () -> disableAllJobsProperty.get() ? 1L : 0L);
 
         availableJobs.forEach(job ->
                 profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
