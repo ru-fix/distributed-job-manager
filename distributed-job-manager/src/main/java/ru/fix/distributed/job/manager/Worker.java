@@ -111,18 +111,22 @@ class Worker implements AutoCloseable {
                 () -> jobDisableConfig.get().getDisableAllJobs() ? 1L : 0L
         );
 
-        availableJobs.forEach(job ->
-                profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
-                    List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
-                    if (executions != null) {
-                        return executions.stream()
-                                .mapToLong(ScheduledJobExecution::getRunningJobsCount)
-                                .sum();
-                    } else {
-                        return 0L;
-                    }
-                })
-        );
+        availableJobs.forEach(job -> {
+            profiler.attachIndicator(
+                    ProfilerMetrics.DISABLE_SWITCH_INDICATOR(job.getJobId()),
+                    () -> jobDisableConfig.get().isJobIsDisabledBySwitch(job.getJobId()) ? 1L : 0L
+            );
+            profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
+                List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
+                if (executions != null) {
+                    return executions.stream()
+                            .mapToLong(ScheduledJobExecution::getRunningJobsCount)
+                            .sum();
+                } else {
+                    return 0L;
+                }
+            });
+        });
     }
 
     public void start() throws Exception {
@@ -211,10 +215,10 @@ class Worker implements AutoCloseable {
     }
 
     /**
-     * @param path node, which version should be checked and updated
+     * @param path        node, which version should be checked and updated
      * @param transaction transaction, which used to check the version of node
      * @return previous version of updating node
-     * */
+     */
     private int checkAndUpdateVersion(String path, TransactionalClient transaction) throws Exception {
         int version = curatorFramework.checkExists().forPath(path).getVersion();
         transaction.checkPathWithVersion(path, version);
@@ -371,7 +375,7 @@ class Worker implements AutoCloseable {
     }
 
     private Set<String> getChildrenIfNodeExists(String path) throws Exception {
-        if(curatorFramework.checkExists().forPath(path) == null) {
+        if (curatorFramework.checkExists().forPath(path) == null) {
             return Collections.emptySet();
         } else {
             return new HashSet<>(curatorFramework.getChildren().forPath(path));
@@ -631,8 +635,9 @@ class Worker implements AutoCloseable {
     private void detachProfilerIndicators() {
         profiler.detachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR);
 
-        availableJobs.forEach(job ->
-                profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()))
-        );
+        availableJobs.forEach(job -> {
+            profiler.detachIndicator(ProfilerMetrics.DISABLE_SWITCH_INDICATOR(job.getJobId()));
+            profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()));
+        });
     }
 }
