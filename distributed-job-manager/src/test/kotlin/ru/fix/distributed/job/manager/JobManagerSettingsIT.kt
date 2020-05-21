@@ -52,7 +52,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
     }
 
     @Test
-    fun `WHEN jobS disabled flag changed THEN jobs running accordingly`() {
+    fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
         val job1 = spy(createStubbedJob(1))
         val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
@@ -83,6 +83,25 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
         }
     }
 
+    @Test
+    fun `WHEN disableAllJobsProperty is true THEN jobs switches don't matter`() {
+        val job1 = spy(createStubbedJob(1))
+        val job2 = spy(createStubbedJob(2))
+        val settingsEditor = JobManagerSettingsEditor().apply {
+            setDisableAllJobProperty(true)
+            enableConcreteJob(job1)
+            setDisableJobDefaultValue(false)
+        }
+        createDjm(
+                settingsEditor = settingsEditor,
+                jobs = listOf(job1, job2)
+        ).use {
+            await().pollDelay(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+                verify(job1, never()).run(any())
+                verify(job2, never()).run(any())
+            }
+        }
+    }
 
     private fun createStubbedJob(
             jobId: Int = 1,
@@ -125,9 +144,12 @@ private class JobManagerSettingsEditor(
             jobDisableConfig = jobDisableConfig
     )
 
-    fun setDisableAllJobProperty(value: Boolean) {
-        jobDisableConfig.set(jobDisableConfig.get().copy(disableAllJobs = value))
-        println(jobDisableConfig)
+    fun setDisableAllJobProperty(disableAll: Boolean) {
+        jobDisableConfig.set(jobDisableConfig.get().copy(disableAllJobs = disableAll))
+    }
+
+    fun setDisableJobDefaultValue(disabledByDefault: Boolean) {
+        jobDisableConfig.set(jobDisableConfig.get().copy(defaultDisableJobSwitchValue = disabledByDefault))
     }
 
     fun disableConcreteJob(job: DistributedJob) {
