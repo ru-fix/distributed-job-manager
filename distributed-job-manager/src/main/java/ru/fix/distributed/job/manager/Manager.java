@@ -140,9 +140,10 @@ class Manager implements AutoCloseable {
         }
 
         Set<String> actualJobs = new HashSet<>();
+        String aliveWorkersPath = paths.aliveWorkers();
         for (ChildData aliveWorkerNodeData : workersAliveChildrenCache.getCurrentData()) {
             String aliveWorkerPath = aliveWorkerNodeData.getPath();
-            String aliveWorkersPath = paths.aliveWorkers();
+            // getting "worker-id" from "workers/worker-id"
             String workerId = aliveWorkerPath.substring(aliveWorkersPath.length() + 1);
             actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
         }
