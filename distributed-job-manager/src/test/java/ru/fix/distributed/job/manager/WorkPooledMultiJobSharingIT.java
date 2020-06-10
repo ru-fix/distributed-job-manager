@@ -70,7 +70,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime()
+                             getTerminationWaitTime(),
+                             getWorkPoolCleanPeriod()
                      )
              )
         ) {
@@ -78,7 +79,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
             verify(monitor, after(3000).never()).check(anySet());
 
             // change schedule delay setting of the job with implicit start delay settings,
-            // so the job should start in seconds
+            // so the job should start in moments
             delay.set(TimeUnit.SECONDS.toMillis(1L));
 
             verify(monitor, timeout(5_000)).check(anySet());
@@ -106,7 +107,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime()
+                             getTerminationWaitTime(),
+                             getWorkPoolCleanPeriod()
                      )
              )
         ) {

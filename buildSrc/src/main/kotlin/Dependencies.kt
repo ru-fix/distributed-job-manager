@@ -13,7 +13,7 @@ object Vers {
     const val aggregating_profiler = "1.5.16"
     const val jfix_zookeeper = "1.0.12"
     const val jfix_stdlib = "3.0.3"
-    const val jfix_dynamic_property = "2.0.3"
+    const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "4.2.0"

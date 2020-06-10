@@ -25,7 +25,7 @@ interface DistributedJob {
      */
     @JvmDefault
     fun getInitialJobDelay(): DynamicProperty<Long> {
-        return DynamicProperty.delegated { getSchedule().get().value }
+        return getSchedule().map { it.value }
     }
 
     /**
