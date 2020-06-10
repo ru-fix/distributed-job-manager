@@ -2,7 +2,8 @@ package ru.fix.distributed.job.manager
 
 import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
@@ -299,7 +300,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                         nodeId = nodeId,
                         rootPath = JOB_MANAGER_ZK_ROOT_PATH,
                         assignmentStrategy = strategy,
-                        timeToWaitTermination = DynamicProperty.of(10_000L)
+                        timeToWaitTermination = DynamicProperty.of(10_000L),
+                        workPoolCleanPeriod = DynamicProperty.of(1_000L)
                 )
         )
     }

@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
@@ -12,12 +13,16 @@ import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.*;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
+import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
+import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
+import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.transactional.TransactionalClient;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Only single manager is active on the cluster.
@@ -29,16 +34,22 @@ import java.util.concurrent.TimeUnit;
 class Manager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(Manager.class);
     private static final int ASSIGNMENT_COMMIT_RETRIES_COUNT = 3;
+    private static final int CLEAN_WORK_POOL_RETRIES_COUNT = 1;
 
     private final CuratorFramework curatorFramework;
     private final ZkPathsManager paths;
     private final AssignmentStrategy assignmentStrategy;
+    private final AvailableWorkPoolSubTree workPoolSubTree;
 
-    private PathChildrenCache workersAliveChildrenCache;
+    private final PathChildrenCache workersAliveChildrenCache;
+    private final AtomicBoolean workersCacheInitialized = new AtomicBoolean(false);
+
+    private final ReschedulableScheduler workPoolCleaningReschedulableScheduler;
 
     private final ExecutorService managerThread;
-    private volatile LeaderLatch leaderLatch;
+    private final LeaderLatch leaderLatch;
     private final String nodeId;
+    private final DynamicProperty<Long> workPoolCleanPeriod;
 
     Manager(CuratorFramework curatorFramework,
             Profiler profiler,
@@ -47,6 +58,7 @@ class Manager implements AutoCloseable {
         this.managerThread = NamedExecutors.newSingleThreadPool("distributed-manager-thread", profiler);
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
+        this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
         this.assignmentStrategy = settings.getAssignmentStrategy();
         this.leaderLatch = initLeaderLatch();
         this.workersAliveChildrenCache = new PathChildrenCache(
@@ -54,6 +66,12 @@ class Manager implements AutoCloseable {
                 paths.aliveWorkers(),
                 false);
         this.nodeId = settings.getNodeId();
+
+        this.workPoolCleanPeriod = settings.getWorkPoolCleanPeriod();
+        this.workPoolCleaningReschedulableScheduler = NamedExecutors.newSingleThreadScheduler(
+                "work-pool cleaning task",
+                profiler
+        );
     }
 
     public void start() throws Exception {
@@ -62,6 +80,9 @@ class Manager implements AutoCloseable {
                     nodeId,
                     event.toString());
             switch (event.getType()) {
+                case INITIALIZED:
+                    workersCacheInitialized.set(true);
+                    break;
                 case CONNECTION_RECONNECTED:
                 case CHILD_UPDATED:
                 case CHILD_ADDED:
@@ -85,7 +106,49 @@ class Manager implements AutoCloseable {
         });
 
         leaderLatch.start();
-        workersAliveChildrenCache.start();
+        workersAliveChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+        startWorkPoolCleaningTask();
+    }
+
+    private void startWorkPoolCleaningTask() {
+        workPoolCleaningReschedulableScheduler.schedule(
+                Schedule.withDelay(workPoolCleanPeriod),
+                workPoolCleanPeriod.get(),
+                () -> {
+                    try {
+                        synchronized (managerThread) {
+                            if (!leaderLatch.hasLeadership() || managerThread.isShutdown() || !workersCacheInitialized.get()) {
+                                return;
+                            }
+                        }
+                        TransactionalClient.tryCommit(
+                                curatorFramework,
+                                CLEAN_WORK_POOL_RETRIES_COUNT,
+                                this::cleanWorkPool);
+                    } catch (Exception e) {
+                        log.debug("Failed to clean work-pool", e);
+                    }
+                }
+        );
+    }
+
+    private void cleanWorkPool(TransactionalClient transaction) throws Exception {
+        workPoolSubTree.checkAndUpdateVersion(transaction);
+
+        if (log.isTraceEnabled()) {
+            log.trace("cleanWorkPool zk tree before cleaning: {}", buildZkTreeDump());
+        }
+
+        Set<String> actualJobs = new HashSet<>();
+        String aliveWorkersPath = paths.aliveWorkers();
+        for (ChildData aliveWorkerNodeData : workersAliveChildrenCache.getCurrentData()) {
+            String aliveWorkerPath = aliveWorkerNodeData.getPath();
+            // getting "worker-id" from "workers/worker-id"
+            String workerId = aliveWorkerPath.substring(aliveWorkersPath.length() + 1);
+            actualJobs.addAll(getChildren(paths.availableJobs(workerId)));
+        }
+
+        workPoolSubTree.pruneOutDatedJobs(transaction, actualJobs);
     }
 
     private LeaderLatch initLeaderLatch() {
@@ -131,13 +194,7 @@ class Manager implements AutoCloseable {
                     curatorFramework,
                     ASSIGNMENT_COMMIT_RETRIES_COUNT,
                     transaction -> {
-                        String assignmentVersionNode = paths.assignmentVersion();
-
-                        int version = curatorFramework.checkExists().forPath(assignmentVersionNode).getVersion();
-
-                        transaction.checkPathWithVersion(assignmentVersionNode, version);
-                        transaction.setData(assignmentVersionNode, new byte[]{});
-
+                        transaction.checkAndUpdateVersion(paths.assignmentVersion());
                         assignWorkPools(getZookeeperGlobalState(), transaction);
                     }
             );
@@ -241,7 +298,7 @@ class Manager implements AutoCloseable {
     }
 
     private void removeAssignmentsOnDeadNodes(TransactionalClient transaction) throws Exception {
-        List<String> workersRoots = curatorFramework.getChildren().forPath(paths.allWorkers());
+        List<String> workersRoots = getChildren(paths.allWorkers());
 
         for (String worker : workersRoots) {
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {
@@ -255,6 +312,10 @@ class Manager implements AutoCloseable {
                 log.info("Node was already deleted", e);
             }
         }
+    }
+
+    private List<String> getChildren(String nodePath) throws Exception {
+        return curatorFramework.getChildren().forPath(nodePath);
     }
 
     private Map<JobId, List<WorkItem>> itemsToMap(Set<WorkItem> workItems) {
@@ -340,8 +401,8 @@ class Manager implements AutoCloseable {
     }
 
     private static class GlobalAssignmentState {
-        private AssignmentState availableState;
-        private AssignmentState assignedState;
+        private final AssignmentState availableState;
+        private final AssignmentState assignedState;
 
         GlobalAssignmentState(
                 AssignmentState availableState,
@@ -365,6 +426,7 @@ class Manager implements AutoCloseable {
         long managerStopTime = System.currentTimeMillis();
         log.info("Closing DJM manager entity...");
 
+        workPoolCleaningReschedulableScheduler.close();
         workersAliveChildrenCache.close();
         if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
             leaderLatch.close();

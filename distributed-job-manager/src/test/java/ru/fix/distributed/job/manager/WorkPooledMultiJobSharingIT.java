@@ -38,12 +38,17 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                              "work-name",
                              JOB_MANAGER_ZK_ROOT_PATH,
                              AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime()
+                             getTerminationWaitTime(),
+                             getWorkPoolCleanPeriod()
                      )
              )
         ) {
             verify(monitor, timeout(10_000)).check(anySet());
         }
+    }
+
+    private DynamicProperty<Long> getWorkPoolCleanPeriod() {
+        return DynamicProperty.of(1_000L);
     }
 
     @Test
