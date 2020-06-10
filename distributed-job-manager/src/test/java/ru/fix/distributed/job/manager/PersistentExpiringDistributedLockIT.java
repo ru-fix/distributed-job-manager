@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.aggregating.profiler.NoopProfiler;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.zookeeper.lock.PersistentExpiringDistributedLock;
 import ru.fix.zookeeper.testing.ZKTestingServer;
@@ -41,7 +42,7 @@ public class PersistentExpiringDistributedLockIT {
     public void test_lock_release() throws Exception {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
                 "PersistentExpiringDistributedLock-Notifications-",
-                new AggregatingProfiler());
+                new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
@@ -66,7 +67,7 @@ public class PersistentExpiringDistributedLockIT {
     public void deleting_node_if_lock_release() throws Exception {
         ExecutorService notificationsExecutor =
                 NamedExecutors.newSingleThreadPool("PersistentExpiringDistributedLock-Notifications-",
-                        new AggregatingProfiler());
+                        new NoopProfiler());
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(
                 zkTestingServer.getClient(), notificationsExecutor, "1", "/lockingNode",
                 nodeId);
@@ -84,7 +85,7 @@ public class PersistentExpiringDistributedLockIT {
     @Timeout(20_000)
     public void test_lock_prolong_after_timeout() throws Exception {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
@@ -109,7 +110,7 @@ public class PersistentExpiringDistributedLockIT {
         int renewCount = 10;
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
 
@@ -131,7 +132,7 @@ public class PersistentExpiringDistributedLockIT {
         long lock0Timeout = 1000;
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
-                "PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                "PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
 
@@ -164,7 +165,7 @@ public class PersistentExpiringDistributedLockIT {
                     while (j < threadIncrementLoop) {
                         PersistentExpiringDistributedLock lock = null;
                         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
                         try {
                             lock = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                                     notificationsExecutor, lockId, "/lockingNode", nodeId);
@@ -217,7 +218,7 @@ public class PersistentExpiringDistributedLockIT {
         long tryTimeout = 100;
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
@@ -244,7 +245,7 @@ public class PersistentExpiringDistributedLockIT {
         long lock1Timeout = 10;
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
@@ -270,7 +271,7 @@ public class PersistentExpiringDistributedLockIT {
         int renewCount = 15;
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
 
@@ -290,7 +291,7 @@ public class PersistentExpiringDistributedLockIT {
     @Test
     public void test_lock_prolong_if_expires_in_call_count() throws Exception {
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "0", "/lockingNode", nodeId);
         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
@@ -323,7 +324,7 @@ public class PersistentExpiringDistributedLockIT {
         ScheduledExecutorService backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
 
         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
-                ("PersistentExpiringDistributedLock-Listeners-", new AggregatingProfiler());
+                ("PersistentExpiringDistributedLock-Listeners-", new NoopProfiler());
 
         try (PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
                 notificationsExecutor, "A", "/lockingNode", nodeId);

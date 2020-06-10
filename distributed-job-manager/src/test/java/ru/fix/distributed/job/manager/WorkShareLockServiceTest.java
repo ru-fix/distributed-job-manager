@@ -4,7 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.listen.ListenerManager;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.junit.jupiter.api.Test;
-import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.aggregating.profiler.NoopProfiler;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 
@@ -28,8 +28,8 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         final String rootPath = "/test";
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
-                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new ZkPathsManager
-                        (rootPath), nodeId, new AggregatingProfiler())
+                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
+                        new ZkPathsManager(rootPath), nodeId, new NoopProfiler())
         ) {
             ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
                     (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
@@ -55,7 +55,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
         try (
                 CuratorFramework curator = zkTestingServer.createClient();
                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
-                        new ZkPathsManager(rootPath), nodeId, new AggregatingProfiler())
+                        new ZkPathsManager(rootPath), nodeId, new NoopProfiler())
         ) {
             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
             assertThat(beforeAcquire, is(false));

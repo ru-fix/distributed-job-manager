@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.aggregating.profiler.AggregatingProfiler;
+import ru.fix.aggregating.profiler.NoopProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -550,7 +550,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         return new DistributedJobManager(
                 curatorFramework,
                 jobs,
-                new AggregatingProfiler(),
+                new NoopProfiler(),
                 new DistributedJobManagerSettings(
                         nodeId,
                         JOB_MANAGER_ZK_ROOT_PATH,

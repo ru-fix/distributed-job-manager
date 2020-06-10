@@ -191,15 +191,15 @@ class Worker implements AutoCloseable {
     }
 
     private void closeListenerToAssignedTree() {
-        if (workPooledCache != null) {
+        TreeCache cache = workPooledCache;
+        if (cache != null) {
             try {
-                workPooledCache.close();
+                cache.close();
             } catch (Exception e) {
                 log.error("Failed to close pooled assignment listener", e);
             }
         }
     }
-
 
     private void registerWorkerAsAlive(TransactionalClient transaction) throws Exception {
         String nodeAlivePath = paths.aliveWorker(workerId);
@@ -358,11 +358,13 @@ class Worker implements AutoCloseable {
     }
 
     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
+        DynamicProperty<Long> initialJobDelay = newMultiJob.getInitialJobDelay();
+        long initialJobDelayVal = initialJobDelay.get();
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
                 workerId,
                 newMultiJob.getJobId(),
                 workPoolToExecute,
-                newMultiJob.getInitialJobDelay());
+                initialJobDelayVal);
         ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
@@ -374,17 +376,17 @@ class Worker implements AutoCloseable {
             ScheduledFuture<?> scheduledFuture =
                     jobReschedulableScheduler.schedule(
                             newMultiJob.getSchedule(),
-                            newMultiJob.getInitialJobDelay(),
+                            initialJobDelay,
                             jobExecutionWrapper);
             jobExecutionWrapper.setScheduledFuture(scheduledFuture);
             scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
 
             log.debug("Future {} with hash={} scheduled for jobId={} with {} and delay={}",
                     scheduledFuture, System.identityHashCode(scheduledFuture),
-                    newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+                    newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
         } else {
             log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                    workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+                    workerId, newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
         }
     }
 
@@ -453,7 +455,10 @@ class Worker implements AutoCloseable {
         long closingStart = System.currentTimeMillis();
 
         // shutdown cache to stop updates
-        workPooledCache.close();
+        TreeCache treeCache = workPooledCache;
+        if (treeCache != null) {
+            treeCache.close();
+        }
 
         // shutdown work pool update executor
         workPoolReschedulableScheduler.shutdown();
