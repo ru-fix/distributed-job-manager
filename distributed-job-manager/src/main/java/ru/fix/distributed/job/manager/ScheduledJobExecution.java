@@ -166,7 +166,7 @@ class ScheduledJobExecution implements Runnable {
                 scheduledFuture, System.identityHashCode(scheduledFuture), job.getJobId(), workShare);
     }
 
-    boolean isShutdowned(){
+    boolean isShutdowned() {
         return shutdownFlag.get();
     }
 

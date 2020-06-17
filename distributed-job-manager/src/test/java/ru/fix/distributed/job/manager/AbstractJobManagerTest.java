@@ -33,6 +33,10 @@ public class AbstractJobManagerTest {
 
     ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
+    String printDjmZkTree() {
+        return printZkTree(JOB_MANAGER_ZK_ROOT_PATH);
+    }
+
     String printZkTree(String path) {
         return new ZkTreePrinter(zkTestingServer.getClient()).print(path);
     }

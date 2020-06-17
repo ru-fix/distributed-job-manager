@@ -31,7 +31,7 @@ public class ZkTreePrinter {
     public String print(String path) {
         try {
             StringBuilder out = new StringBuilder();
-            out.append("\n");
+            out.append('\n');
 
             print(path, out, 0);
             return out.toString();
@@ -44,12 +44,11 @@ public class ZkTreePrinter {
     private void print(String path, StringBuilder out, int level) {
         for (String child : getChildren(path)) {
             for (int i = 0; i < level; i++) {
-                out.append(" ");
+                out.append(' ');
             }
-            out.append("└ ").append(child);
-            out.append("\n");
+            out.append("└ ").append(child).append('\n');
 
-            print(path + "/" + child, out, level + 1);
+            print(path + '/' + child, out, level + 1);
         }
     }
 

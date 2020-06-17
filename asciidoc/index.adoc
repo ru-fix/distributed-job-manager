@@ -170,15 +170,15 @@ Worker also periodically updates its jobs in `work-pool` subtree using `work-poo
 
 Manager life-cycle:
 
-Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed: +
+Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed.
+During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock  +
 
-* Updates workers `assigned` subtree using `worker-assignment-version` lock
+Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
+using `work-pool-version` lock (clearing process) +
 
 In future releases:
 
 * Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
-* Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
-using `work-pool-version` lock (clearing process)
 
 Full ZK tree you can see below:
 ```

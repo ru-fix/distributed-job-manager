@@ -21,8 +21,8 @@ class StubbedMultiJob implements DistributedJob {
     private final boolean singleThread;
     private final long workPoolExpirationPeriod;
 
-    private AtomicReference<Set<String>> localWorkPool = new AtomicReference<>();
-    private Set<Set<String>> allWorkPools = Collections.synchronizedSet(new HashSet<>());
+    private final AtomicReference<Set<String>> localWorkPool = new AtomicReference<>();
+    private final Set<Set<String>> allWorkPools = Collections.synchronizedSet(new HashSet<>());
 
     public StubbedMultiJob(int jobId, Set<String> workPool) {
         this(jobId, workPool, 100);
@@ -65,8 +65,8 @@ class StubbedMultiJob implements DistributedJob {
     }
 
     @Override
-    public long getInitialJobDelay() {
-        return 0;
+    public DynamicProperty<Long> getInitialJobDelay() {
+        return DynamicProperty.of(0L);
     }
 
     @Override

@@ -11,9 +11,9 @@ object Vers {
     const val slf4j = "1.7.28"
 
     const val aggregating_profiler = "1.5.16"
-    const val jfix_zookeeper = "1.0.8"
-    const val jfix_stdlib = "3.0.0"
-    const val jfix_dynamic_property = "2.0.3"
+    const val jfix_zookeeper = "1.0.12"
+    const val jfix_stdlib = "3.0.3"
+    const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "4.2.0"
@@ -22,7 +22,7 @@ object Vers {
     const val junit = "5.5.1"
     const val hamkrest = "1.3"
     const val mockito = "3.0.0"
-    const val awaitility = "4.0.1"
+    const val awaitility = "4.0.2"
 
     const val log4j = "2.12.0"
 }

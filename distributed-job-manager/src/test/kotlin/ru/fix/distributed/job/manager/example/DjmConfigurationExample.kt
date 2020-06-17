@@ -16,8 +16,8 @@ class RebillJob : DistributedJob {
         return "rebill-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -25,16 +25,16 @@ class RebillJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
 
     override fun getWorkPoolCheckPeriod(): Long {
-        return 0
+        return 0L
     }
     //...
 }
@@ -44,8 +44,8 @@ class SmsJob : DistributedJob {
         return "sms-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -53,16 +53,16 @@ class SmsJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
 
     override fun getWorkPoolCheckPeriod(): Long {
-        return 0
+        return 0L
     }
     // ...
 }
@@ -72,8 +72,8 @@ class UssdJob : DistributedJob {
         return "ussd-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -81,16 +81,16 @@ class UssdJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
 
     override fun getWorkPoolCheckPeriod(): Long {
-        return 0
+        return 0L
     }
 }
 
@@ -202,7 +202,9 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    timeToWaitTermination = DynamicProperty.of(180_000L))
+                    timeToWaitTermination = DynamicProperty.of(180_000L),
+                    workPoolCleanPeriod = DynamicProperty.of(1_000L)
+            )
     )
 }
 

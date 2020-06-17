@@ -12,6 +12,11 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
          * Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
          * */
         val timeToWaitTermination: DynamicProperty<Long>,
+        /**
+         * Delay between launching task for removing not relevant jobs from `work-pool` subtree.
+         * Minor process. Default value is three hours
+         * */
+        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(10_800_000),
 
         val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig())
 )
