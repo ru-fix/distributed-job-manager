@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.JobDisableConfig;
+import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +33,8 @@ class ScheduledJobExecution implements Runnable {
 
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
 
+    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
+
     final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
 
     private volatile long lastShutdownTime;
@@ -41,7 +45,8 @@ class ScheduledJobExecution implements Runnable {
     public ScheduledJobExecution(DistributedJob job,
                                  Set<String> workShare,
                                  Profiler profiler,
-                                 WorkShareLockService workShareLockService) {
+                                 WorkShareLockService workShareLockService,
+                                 DynamicProperty<JobDisableConfig> jobDisableConfig) {
         if (workShare.isEmpty()) {
             throw new IllegalArgumentException(
                     "ScheduledJobExecution should receive at least single workItem in workShare");
@@ -51,10 +56,16 @@ class ScheduledJobExecution implements Runnable {
         this.workShare = workShare;
         this.profiler = profiler;
         this.workShareLockService = workShareLockService;
+        this.jobDisableConfig = jobDisableConfig;
     }
 
     @Override
     public void run() {
+        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId())) {
+            log.trace("Job {} wasn't launched due to jobDisableConfig", job.getJobId());
+            return;
+        }
+
         ProfiledCall stopProfiledCall = profiler.profiledCall(ProfilerMetrics.STOP(job.getJobId()));
 
         JobContext jobContext = new JobContext(job.getJobId(), workShare);

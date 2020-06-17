@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -57,6 +58,7 @@ class Worker implements AutoCloseable {
     private final Profiler profiler;
 
     private final DynamicProperty<Long> timeToWaitTermination;
+    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
 
     private volatile boolean isWorkerShutdown = false;
     /**
@@ -94,6 +96,7 @@ class Worker implements AutoCloseable {
                 profiler);
 
         this.timeToWaitTermination = settings.getTimeToWaitTermination();
+        this.jobDisableConfig = settings.getJobDisableConfig();
 
         this.workShareLockService = new WorkShareLockServiceImpl(
                 curatorFramework,
@@ -101,18 +104,20 @@ class Worker implements AutoCloseable {
                 workerId,
                 profiler);
 
-        distributedJobs.forEach(job ->
-                profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
-                    List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
-                    if (executions != null) {
-                        return executions.stream()
-                                .mapToLong(ScheduledJobExecution::getRunningJobsCount)
-                                .sum();
-                    } else {
-                        return 0L;
-                    }
-                })
-        );
+        attachProfilerIndicators();
+    }
+
+    private void attachProfilerIndicators() {
+        availableJobs.forEach(job -> profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
+            List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
+            if (executions != null) {
+                return executions.stream()
+                        .mapToLong(ScheduledJobExecution::getRunningJobsCount)
+                        .sum();
+            } else {
+                return 0L;
+            }
+        }));
     }
 
     public void start() throws Exception {
@@ -369,7 +374,8 @@ class Worker implements AutoCloseable {
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
                 profiler,
-                new SmartLockMonitorDecorator(workShareLockService)
+                new SmartLockMonitorDecorator(workShareLockService),
+                jobDisableConfig
         );
 
         if (!isWorkerShutdown) {
@@ -501,6 +507,7 @@ class Worker implements AutoCloseable {
 
         workShareLockService.close();
 
+        detachProfilerIndicators();
 
         log.info("Distributed job manager closing completed. Closing took {} ms.",
                 System.currentTimeMillis() - closingStart);
@@ -540,5 +547,9 @@ class Worker implements AutoCloseable {
 
     private void shutdownAllJobExecutions() {
         scheduledJobManager.shutdownAllJobExecutions();
+    }
+
+    private void detachProfilerIndicators() {
+        availableJobs.forEach(job -> profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId())));
     }
 }
