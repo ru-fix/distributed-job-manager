@@ -106,27 +106,16 @@ class Worker implements AutoCloseable {
     }
 
     private void attachProfilerIndicators() {
-        profiler.attachIndicator(
-                ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR,
-                () -> jobDisableConfig.get().getDisableAllJobs() ? 1L : 0L
-        );
-
-        availableJobs.forEach(job -> {
-            profiler.attachIndicator(
-                    ProfilerMetrics.DISABLE_SWITCH_INDICATOR(job.getJobId()),
-                    () -> jobDisableConfig.get().isJobIsDisabledBySwitch(job.getJobId()) ? 1L : 0L
-            );
-            profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
-                List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
-                if (executions != null) {
-                    return executions.stream()
-                            .mapToLong(ScheduledJobExecution::getRunningJobsCount)
-                            .sum();
-                } else {
-                    return 0L;
-                }
-            });
-        });
+        availableJobs.forEach(job -> profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
+            List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
+            if (executions != null) {
+                return executions.stream()
+                        .mapToLong(ScheduledJobExecution::getRunningJobsCount)
+                        .sum();
+            } else {
+                return 0L;
+            }
+        }));
     }
 
     public void start() throws Exception {
@@ -633,11 +622,6 @@ class Worker implements AutoCloseable {
     }
 
     private void detachProfilerIndicators() {
-        profiler.detachIndicator(ProfilerMetrics.DISABLE_ALL_JOBS_INDICATOR);
-
-        availableJobs.forEach(job -> {
-            profiler.detachIndicator(ProfilerMetrics.DISABLE_SWITCH_INDICATOR(job.getJobId()));
-            profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()));
-        });
+        availableJobs.forEach(job -> profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId())));
     }
 }

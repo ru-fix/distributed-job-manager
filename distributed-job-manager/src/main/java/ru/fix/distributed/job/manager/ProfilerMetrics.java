@@ -1,23 +1,9 @@
 package ru.fix.distributed.job.manager;
-import ru.fix.distributed.job.manager.model.JobDisableConfig;
 
 /**
  * @author Kamil Asfandiyarov
  */
 public final class ProfilerMetrics {
-
-    /**
-     * @see JobDisableConfig#getDisableAllJobs()
-     */
-    public static String DISABLE_ALL_JOBS_INDICATOR = "disable_all_jobs";
-
-    /**
-     * @see JobDisableConfig#getJobsDisableSwitches()
-     * */
-    public static String DISABLE_SWITCH_INDICATOR(String jobId) {
-        return jobId.replace('.', '_') + ".disable";
-    }
-
     /**
      * .jobId.start
      */
