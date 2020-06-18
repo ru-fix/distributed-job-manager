@@ -4,8 +4,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.zookeeper.testing.ZKTestingServer;
+import ru.fix.zookeeper.utils.ZkTreePrinter;
 
 import java.util.Set;
 

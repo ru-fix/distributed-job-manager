@@ -11,14 +11,17 @@ import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
-import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
-import ru.fix.zookeeper.transactional.TransactionalClient;
+import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
+import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig;
+import ru.fix.zookeeper.transactional.ZkTransaction;
+import ru.fix.zookeeper.utils.ZkTreePrinter;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -64,7 +67,7 @@ class Worker implements AutoCloseable {
     /**
      * Acquires locks for job for workItems, prolongs them and releases
      */
-    private final WorkShareLockService workShareLockService;
+    private final PersistentExpiringLockManager lockManager;
 
     private final AtomicProperty<Integer> threadPoolSize;
 
@@ -98,11 +101,18 @@ class Worker implements AutoCloseable {
         this.timeToWaitTermination = settings.getTimeToWaitTermination();
         this.jobDisableConfig = settings.getJobDisableConfig();
 
-        this.workShareLockService = new WorkShareLockServiceImpl(
+        this.lockManager = new PersistentExpiringLockManager(
                 curatorFramework,
-                paths,
-                workerId,
-                profiler);
+                DynamicProperty.of(
+                        new PersistentExpiringLockManagerConfig(
+                                Duration.ofMinutes(10),
+                                Duration.ofMinutes(10),
+                                Duration.ofMinutes(10),
+                                Duration.ofMinutes(10)
+                        )
+                ),
+                profiler
+        );
 
         attachProfilerIndicators();
     }
@@ -172,7 +182,7 @@ class Worker implements AutoCloseable {
 
         closeListenerToAssignedTree();
 
-        TransactionalClient.tryCommit(
+        ZkTransaction.tryCommit(
                 curatorFramework,
                 WORKER_REGISTRATION_RETRIES_COUNT,
                 transaction -> {
@@ -206,7 +216,7 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void registerWorkerAsAlive(TransactionalClient transaction) throws Exception {
+    private void registerWorkerAsAlive(ZkTransaction transaction) throws Exception {
         String nodeAlivePath = paths.aliveWorker(workerId);
         if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
             transaction.deletePath(nodeAlivePath);
@@ -214,7 +224,7 @@ class Worker implements AutoCloseable {
         transaction.createPathWithMode(nodeAlivePath, CreateMode.EPHEMERAL);
     }
 
-    private void recreateWorkerTree(TransactionalClient transaction) throws Exception {
+    private void recreateWorkerTree(ZkTransaction transaction) throws Exception {
         // clean up all available jobs
         String workerPath = paths.worker(workerId);
         if (curatorFramework.checkExists().forPath(workerPath) != null) {
@@ -263,7 +273,7 @@ class Worker implements AutoCloseable {
             String availableJobPath = paths.availableJob(workerId, jobId);
             String workerAliveFlagPath = paths.aliveWorker(workerId);
 
-            TransactionalClient.tryCommit(
+            ZkTransaction.tryCommit(
                     curatorFramework,
                     WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
@@ -374,8 +384,9 @@ class Worker implements AutoCloseable {
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
                 profiler,
-                new SmartLockMonitorDecorator(workShareLockService),
-                jobDisableConfig
+                lockManager,
+                jobDisableConfig,
+                paths
         );
 
         if (!isWorkerShutdown) {
@@ -505,7 +516,7 @@ class Worker implements AutoCloseable {
             log.warn("Alive node was already terminated", e);
         }
 
-        workShareLockService.close();
+        lockManager.close();
 
         detachProfilerIndicators();
 

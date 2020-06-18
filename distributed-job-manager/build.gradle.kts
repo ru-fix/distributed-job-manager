@@ -5,35 +5,36 @@ plugins {
 
 dependencies {
 
-    compile(Libs.kotlin_jdk8)
+    implementation(Libs.kotlin_jdk8)
 
     // JFIX
-    compile(Libs.aggregating_profiler)
-    compile(Libs.jfix_zookeeper) {
+    implementation(Libs.aggregating_profiler)
+    implementation(Libs.jfix_zookeeper) {
         exclude("org.apache.curator", "curator-recipes")
     }
-    compile(Libs.jfix_concurrency)
-    compile(Libs.jfix_dynamic_property_api)
+    implementation(Libs.jfix_zookeeper_test)
+    implementation(Libs.jfix_concurrency)
+    implementation(Libs.jfix_dynamic_property_api)
 
     // Common
-    compile(Libs.slf4j)
-    compile(Libs.commons_io)
-    compile(Libs.validation_api)
-    compile(Libs.curator) {
+    implementation(Libs.slf4j)
+    implementation(Libs.commons_io)
+    implementation(Libs.validation_api)
+    implementation(Libs.curator) {
         exclude("org.slf4j", "slf4j-api")
     }
 
     // JFIX Test
-    testCompile(Libs.jfix_socket)
+    implementation(Libs.jfix_socket)
 
     // Test
-    testCompile(Libs.junit_jupiter)
-    testCompile(Libs.junit_jupiter_api)
-    testCompile(Libs.junit_jupiter_params)
-    testCompile(Libs.mockito)
-    testCompile(Libs.hamkrest)
-    testCompile(Libs.curator_test)
-    testCompile(Libs.log4j_core)
-    testCompile(Libs.slf4j_over_log4j)
-    testCompile(Libs.awaitility)
+    implementation(Libs.junit_jupiter)
+    implementation(Libs.junit_jupiter_api)
+    implementation(Libs.junit_jupiter_params)
+    implementation(Libs.mockito)
+    implementation(Libs.hamkrest)
+    implementation(Libs.curator_test)
+    implementation(Libs.log4j_core)
+    implementation(Libs.slf4j_over_log4j)
+    implementation(Libs.awaitility)
 }

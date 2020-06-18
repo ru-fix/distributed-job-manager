@@ -1,11 +1,14 @@
 package ru.fix.distributed.job.manager;
 
+import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.dynamic.property.api.DynamicProperty;
+import ru.fix.zookeeper.lock.LockIdentity;
+import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +30,7 @@ class ScheduledJobExecution implements Runnable {
     private final DistributedJob job;
     private final Set<String> workShare;
     private final Profiler profiler;
+    private final ZkPathsManager zkPathsManager;
 
     private volatile ScheduledFuture<?> scheduledFuture;
     private final Lock lock = new ReentrantLock();
@@ -39,14 +43,17 @@ class ScheduledJobExecution implements Runnable {
 
     private volatile long lastShutdownTime;
 
-    final WorkShareLockService workShareLockService;
+    final PersistentExpiringLockManager lockManager;
 
 
-    public ScheduledJobExecution(DistributedJob job,
-                                 Set<String> workShare,
-                                 Profiler profiler,
-                                 WorkShareLockService workShareLockService,
-                                 DynamicProperty<JobDisableConfig> jobDisableConfig) {
+    public ScheduledJobExecution(
+            DistributedJob job,
+            Set<String> workShare,
+            Profiler profiler,
+            PersistentExpiringLockManager lockManager,
+            DynamicProperty<JobDisableConfig> jobDisableConfig,
+            ZkPathsManager zkPathsManager
+    ) {
         if (workShare.isEmpty()) {
             throw new IllegalArgumentException(
                     "ScheduledJobExecution should receive at least single workItem in workShare");
@@ -55,8 +62,9 @@ class ScheduledJobExecution implements Runnable {
         this.job = job;
         this.workShare = workShare;
         this.profiler = profiler;
-        this.workShareLockService = workShareLockService;
+        this.lockManager = lockManager;
         this.jobDisableConfig = jobDisableConfig;
+        this.zkPathsManager = zkPathsManager;
     }
 
     @Override
@@ -91,7 +99,10 @@ class ScheduledJobExecution implements Runnable {
                  * Worker2 sees new zk node
                  * Worker2 tries to acquire lock for jobA and fails because Worker1 still holds the lock.
                  */
-                if (!workShareLockService.tryAcquire(job, workItem, jobContext::shutdown)) {
+                if (!lockManager.tryAcquire(
+                        new LockIdentity(zkPathsManager.workItemLock(job.getJobId(), workItem), null),
+                        lockIdentity -> jobContext.shutdown())
+                ) {
                     log.info("Failed to tryAcquire work share '{}' for job '{}'. Job launching will rescheduled.",
                             workItem, job.getJobId());
                     return;
@@ -117,8 +128,10 @@ class ScheduledJobExecution implements Runnable {
                 jobRuns.remove(jobContext);
 
                 for (String workItem : workShare) {
-                    if (workShareLockService.existsLock(job, workItem)) {
-                        workShareLockService.release(job, workItem);
+                    String workItemPath = zkPathsManager.workItemLock(job.getJobId(), workItem);
+                    LockIdentity lockId = new LockIdentity(workItemPath, null);
+                    if (lockManager.isLockManaged(lockId)) {
+                        lockManager.release(lockId);
                     }
                 }
 

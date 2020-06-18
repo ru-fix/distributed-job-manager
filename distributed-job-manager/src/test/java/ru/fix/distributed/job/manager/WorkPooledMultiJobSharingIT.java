@@ -24,7 +24,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
-        try (CuratorFramework curator = zkTestingServer.createClient();
+        try (CuratorFramework curator =  zkTestingServer.createClient(60000, 15000);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      Collections.singleton(
@@ -56,7 +56,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     void delayedJobShouldStartAccordingToNewScheduleSettings() throws Exception {
         // initial setting - 1h delay, and implicit 1h initial delay
         AtomicProperty<Long> delay = new AtomicProperty<>(TimeUnit.HOURS.toMillis(1));
-        try (CuratorFramework curator = zkTestingServer.createClient();
+        try (CuratorFramework curator =  zkTestingServer.createClient(60000, 15000);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      Collections.singleton(
@@ -92,7 +92,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         // initial setting - 1h delay, and explicit 1h initial delay
         long delay1H = TimeUnit.HOURS.toMillis(1);
         AtomicProperty<Long> startDelay = new AtomicProperty<>(delay1H);
-        try (CuratorFramework curator = zkTestingServer.createClient();
+        try (CuratorFramework curator =  zkTestingServer.createClient(60000, 15000);
              DistributedJobManager ignored = new DistributedJobManager(
                      curator,
                      Collections.singleton(

@@ -12,12 +12,12 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.*;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
-import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
-import ru.fix.zookeeper.transactional.TransactionalClient;
+import ru.fix.zookeeper.transactional.ZkTransaction;
+import ru.fix.zookeeper.utils.ZkTreePrinter;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -121,7 +121,7 @@ class Manager implements AutoCloseable {
                                 return;
                             }
                         }
-                        TransactionalClient.tryCommit(
+                        ZkTransaction.tryCommit(
                                 curatorFramework,
                                 CLEAN_WORK_POOL_RETRIES_COUNT,
                                 this::cleanWorkPool);
@@ -132,7 +132,7 @@ class Manager implements AutoCloseable {
         );
     }
 
-    private void cleanWorkPool(TransactionalClient transaction) throws Exception {
+    private void cleanWorkPool(ZkTransaction transaction) throws Exception {
         workPoolSubTree.checkAndUpdateVersion(transaction);
 
         if (log.isTraceEnabled()) {
@@ -190,7 +190,7 @@ class Manager implements AutoCloseable {
         }
 
         try {
-            TransactionalClient.tryCommit(
+            ZkTransaction.tryCommit(
                     curatorFramework,
                     ASSIGNMENT_COMMIT_RETRIES_COUNT,
                     transaction -> {
@@ -217,7 +217,7 @@ class Manager implements AutoCloseable {
         }
     }
 
-    private void assignWorkPools(GlobalAssignmentState globalState, TransactionalClient transaction) throws Exception {
+    private void assignWorkPools(GlobalAssignmentState globalState, ZkTransaction transaction) throws Exception {
         AssignmentState currentState = new AssignmentState();
         AssignmentState previousState = globalState.getAssignedState();
         AssignmentState availableState = globalState.getAvailableState();
@@ -250,7 +250,7 @@ class Manager implements AutoCloseable {
     private void rewriteZookeeperNodes(
             AssignmentState previousState,
             AssignmentState newAssignmentState,
-            TransactionalClient transaction
+            ZkTransaction transaction
     ) throws Exception {
         removeAssignmentsOnDeadNodes(transaction);
 
@@ -291,13 +291,13 @@ class Manager implements AutoCloseable {
         }
     }
 
-    private void createIfNotExist(TransactionalClient transactionalClient, String path) throws Exception {
+    private void createIfNotExist(ZkTransaction ZkTransaction, String path) throws Exception {
         if (curatorFramework.checkExists().forPath(path) == null) {
-            transactionalClient.createPath(path);
+            ZkTransaction.createPath(path);
         }
     }
 
-    private void removeAssignmentsOnDeadNodes(TransactionalClient transaction) throws Exception {
+    private void removeAssignmentsOnDeadNodes(ZkTransaction transaction) throws Exception {
         List<String> workersRoots = getChildren(paths.allWorkers());
 
         for (String worker : workersRoots) {
