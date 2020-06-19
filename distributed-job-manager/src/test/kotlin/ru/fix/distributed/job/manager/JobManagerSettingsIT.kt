@@ -55,7 +55,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
-        val jobRunTimeout = Duration.ofSeconds(3)
+        val jobRunTimeout = Duration.ofSeconds(4)
         val job1 = spy(createStubbedJob(1))
         val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
