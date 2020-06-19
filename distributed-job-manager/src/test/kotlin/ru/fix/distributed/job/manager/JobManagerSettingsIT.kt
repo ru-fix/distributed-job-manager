@@ -18,7 +18,7 @@ import java.time.Duration
 internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
     companion object {
-        private val defaultJobRunTimeout = Duration.ofSeconds(1)
+        private val defaultJobRunTimeout = Duration.ofSeconds(2)
     }
 
     @Test
