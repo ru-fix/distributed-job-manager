@@ -10,21 +10,19 @@ object Vers {
 
     const val slf4j = "1.7.30"
 
-    const val aggregating_profiler = "1.5.16"
+    const val aggregating_profiler = "1.6.5"
     const val jfix_zookeeper = "1.1.1"
     const val jfix_stdlib = "3.0.3"
     const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "5.0.0"
-    const val commons_io = "2.6"
 
     const val junit = "5.6.2"
-    const val hamkrest = "1.3"
-    const val mockito = "3.0.0"
+    const val mockito = "3.3.3"
     const val awaitility = "4.0.3"
 
-    const val log4j = "2.12.0"
+    const val log4j = "2.13.3"
 }
 
 object Libs {
@@ -50,7 +48,6 @@ object Libs {
     const val jfix_dynamic_property_api = "ru.fix:dynamic-property-api:${Vers.jfix_dynamic_property}"
 
     // Common
-    const val commons_io = "commons-io:commons-io:${Vers.commons_io}"
     const val validation_api = "javax.validation:validation-api:${Vers.validation_api}"
     const val slf4j = "org.slf4j:slf4j-api:${Vers.slf4j}"
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
@@ -67,6 +64,5 @@ object Libs {
     const val junit_jupiter_params = "org.junit.jupiter:junit-jupiter-params:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
-    const val hamkrest = "org.hamcrest:hamcrest-all:${Vers.hamkrest}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
 }

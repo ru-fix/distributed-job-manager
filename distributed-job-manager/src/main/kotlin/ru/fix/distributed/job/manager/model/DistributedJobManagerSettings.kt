@@ -3,6 +3,7 @@ package ru.fix.distributed.job.manager.model
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 
 data class DistributedJobManagerSettings @JvmOverloads constructor(
         val nodeId: String,
@@ -18,7 +19,10 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
          * */
         val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(10_800_000),
 
-        val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig())
+        val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig()),
+
+        val lockManagerConfig: DynamicProperty<PersistentExpiringLockManagerConfig> =
+                DynamicProperty.of(PersistentExpiringLockManagerConfig())
 )
 
 data class JobDisableConfig(

@@ -55,6 +55,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
+        val jobRunTimeout = Duration.ofSeconds(3)
         val job1 = spy(createStubbedJob(1))
         val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
@@ -63,22 +64,22 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            await().atMost(defaultJobRunTimeout).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.disableConcreteJob(job2)
-            await().pollDelay(defaultJobRunTimeout).untilAsserted {
+            await().pollDelay(jobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job1)
-            await().atMost(defaultJobRunTimeout).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, times(1)).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job2)
-            await().atMost(defaultJobRunTimeout).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, times(2)).run(any())
                 verify(job2, times(2)).run(any())
             }

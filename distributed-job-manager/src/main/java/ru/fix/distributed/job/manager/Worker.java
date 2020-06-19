@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import com.google.common.collect.Lists;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.CuratorCache;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -17,11 +17,9 @@ import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
 import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
-import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig;
 import ru.fix.zookeeper.transactional.ZkTransaction;
 import ru.fix.zookeeper.utils.ZkTreePrinter;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -51,7 +49,7 @@ class Worker implements AutoCloseable {
 
     private final ZkPathsManager paths;
     private final String workerId;
-    private volatile TreeCache workPooledCache;
+    private volatile CuratorCache workPooledCache;
     private final AvailableWorkPoolSubTree workPoolSubTree;
 
     private final ReschedulableScheduler jobReschedulableScheduler;
@@ -103,14 +101,7 @@ class Worker implements AutoCloseable {
 
         this.lockManager = new PersistentExpiringLockManager(
                 curatorFramework,
-                DynamicProperty.of(
-                        new PersistentExpiringLockManagerConfig(
-                                Duration.ofMinutes(10),
-                                Duration.ofMinutes(10),
-                                Duration.ofMinutes(10),
-                                Duration.ofMinutes(10)
-                        )
-                ),
+                settings.getLockManagerConfig(),
                 profiler
         );
 
@@ -206,7 +197,7 @@ class Worker implements AutoCloseable {
     }
 
     private void closeListenerToAssignedTree() {
-        TreeCache cache = workPooledCache;
+        CuratorCache cache = workPooledCache;
         if (cache != null) {
             try {
                 cache.close();
@@ -243,13 +234,13 @@ class Worker implements AutoCloseable {
     }
 
     private void addListenerToAssignedTree() throws Exception {
-        workPooledCache = new TreeCache(curatorFramework, paths.assignedJobs(workerId));
-        workPooledCache.getListenable().addListener((client, event) -> {
-            log.info("wid={} registerWorkerAsAliveAndRegisterJobs event={}", workerId, event);
-            switch (event.getType()) {
-                case INITIALIZED:
-                case NODE_ADDED:
-                case NODE_REMOVED:
+        workPooledCache = CuratorCache.build(curatorFramework, paths.assignedJobs(workerId));
+        workPooledCache.listenable().addListener((type, oldData, data) -> {
+            log.info("wid={} registerWorkerAsAliveAndRegisterJobs eventType={}", workerId, type);
+            switch (type) {
+                case NODE_CHANGED:
+                case NODE_CREATED:
+                case NODE_DELETED:
                     if (!isWorkerShutdown) {
                         assignmentUpdatesExecutor.submit(() -> {
                             try {
@@ -472,9 +463,9 @@ class Worker implements AutoCloseable {
         long closingStart = System.currentTimeMillis();
 
         // shutdown cache to stop updates
-        TreeCache treeCache = workPooledCache;
-        if (treeCache != null) {
-            treeCache.close();
+        CuratorCache curatorCache = workPooledCache;
+        if (curatorCache != null) {
+            curatorCache.close();
         }
 
         // shutdown work pool update executor
