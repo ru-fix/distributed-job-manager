@@ -119,7 +119,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
     private fun createDjm(
             settingsEditor: JobManagerSettingsEditor = JobManagerSettingsEditor(),
             jobs: Collection<DistributedJob>,
-            curatorFramework: CuratorFramework =  zkTestingServer.createClient(60000, 15000),
+            curatorFramework: CuratorFramework = zkTestingServer.createClient(60000, 15000),
             profiler: Profiler = NoopProfiler()
     ) = DistributedJobManager(
             curatorFramework,

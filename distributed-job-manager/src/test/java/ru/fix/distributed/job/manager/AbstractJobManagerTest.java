@@ -19,6 +19,7 @@ public class AbstractJobManagerTest {
     private static final Logger log = LoggerFactory.getLogger(AbstractJobManagerTest.class);
 
     public ZKTestingServer zkTestingServer;
+    ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -30,8 +31,6 @@ public class AbstractJobManagerTest {
     void tearDown() {
         zkTestingServer.close();
     }
-
-    ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
     String printDjmZkTree() {
         return printZkTree(JOB_MANAGER_ZK_ROOT_PATH);

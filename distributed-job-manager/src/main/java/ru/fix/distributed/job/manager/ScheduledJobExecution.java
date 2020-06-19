@@ -1,6 +1,5 @@
 package ru.fix.distributed.job.manager;
 
-import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
@@ -26,24 +25,17 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 class ScheduledJobExecution implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ScheduledJobExecution.class);
-
+    final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
+    final PersistentExpiringLockManager lockManager;
     private final DistributedJob job;
     private final Set<String> workShare;
     private final Profiler profiler;
     private final ZkPathsManager zkPathsManager;
-
-    private volatile ScheduledFuture<?> scheduledFuture;
     private final Lock lock = new ReentrantLock();
-
-    ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
-
     private final DynamicProperty<JobDisableConfig> jobDisableConfig;
-
-    final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
-
+    ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
+    private volatile ScheduledFuture<?> scheduledFuture;
     private volatile long lastShutdownTime;
-
-    final PersistentExpiringLockManager lockManager;
 
 
     public ScheduledJobExecution(

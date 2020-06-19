@@ -400,6 +400,26 @@ class Manager implements AutoCloseable {
         return itemsToAssign;
     }
 
+    @Override
+    public void close() throws Exception {
+        long managerStopTime = System.currentTimeMillis();
+        log.info("Closing DJM manager entity...");
+
+        workPoolCleaningReschedulableScheduler.close();
+        workersAliveChildrenCache.close();
+        if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
+            leaderLatch.close();
+        }
+        synchronized (managerThread) {
+            managerThread.shutdown();
+        }
+        if (!managerThread.awaitTermination(3, TimeUnit.MINUTES)) {
+            log.error("Failed to wait manager thread pool termination");
+            managerThread.shutdownNow();
+        }
+        log.info("DJM manager was closed. Took {} ms", System.currentTimeMillis() - managerStopTime);
+    }
+
     private static class GlobalAssignmentState {
         private final AssignmentState availableState;
         private final AssignmentState assignedState;
@@ -419,25 +439,5 @@ class Manager implements AutoCloseable {
         AssignmentState getAssignedState() {
             return assignedState;
         }
-    }
-
-    @Override
-    public void close() throws Exception {
-        long managerStopTime = System.currentTimeMillis();
-        log.info("Closing DJM manager entity...");
-
-        workPoolCleaningReschedulableScheduler.close();
-        workersAliveChildrenCache.close();
-        if (LeaderLatch.State.STARTED == leaderLatch.getState()) {
-            leaderLatch.close();
-        }
-        synchronized (managerThread) {
-            managerThread.shutdown();
-        }
-        if (!managerThread.awaitTermination(3, TimeUnit.MINUTES)) {
-            log.error("Failed to wait manager thread pool termination");
-            managerThread.shutdownNow();
-        }
-        log.info("DJM manager was closed. Took {} ms", System.currentTimeMillis() - managerStopTime);
     }
 }

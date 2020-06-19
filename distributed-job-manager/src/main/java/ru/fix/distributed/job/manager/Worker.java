@@ -36,12 +36,10 @@ import java.util.stream.Collectors;
  * @see Manager
  */
 class Worker implements AutoCloseable {
+    public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
     private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
     private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
-
-    public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
-
     private final CuratorFramework curatorFramework;
 
     private final Collection<DistributedJob> availableJobs;
@@ -49,25 +47,20 @@ class Worker implements AutoCloseable {
 
     private final ZkPathsManager paths;
     private final String workerId;
-    private volatile CuratorCache workPooledCache;
     private final AvailableWorkPoolSubTree workPoolSubTree;
-
     private final ReschedulableScheduler jobReschedulableScheduler;
-
     private final ExecutorService assignmentUpdatesExecutor;
     private final ReschedulableScheduler workPoolReschedulableScheduler;
     private final Profiler profiler;
-
     private final DynamicProperty<Long> timeToWaitTermination;
     private final DynamicProperty<JobDisableConfig> jobDisableConfig;
-
-    private volatile boolean isWorkerShutdown = false;
     /**
      * Acquires locks for job for workItems, prolongs them and releases
      */
     private final PersistentExpiringLockManager lockManager;
-
     private final AtomicProperty<Integer> threadPoolSize;
+    private volatile CuratorCache workPooledCache;
+    private volatile boolean isWorkerShutdown = false;
 
     Worker(CuratorFramework curatorFramework,
            Collection<DistributedJob> distributedJobs,
@@ -106,6 +99,46 @@ class Worker implements AutoCloseable {
         );
 
         attachProfilerIndicators();
+    }
+
+    private static Map<DistributedJob, Integer> getThreadCounts(
+            Map<DistributedJob, Set<String>> assignedWorkPools) {
+        return assignedWorkPools.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        o -> o.getKey().getWorkPoolRunningStrategy().getThreadCount(o.getValue()))
+                );
+    }
+
+    /**
+     * Awaits executor termination timeToWait milliseconds and calls {@link ExecutorService#shutdownNow()} if executor
+     * still isn't completed
+     *
+     * @param timeToWait time to wait, in milliseconds. Could be 0 or less than 0, that means, that
+     *                   {@link ExecutorService#shutdownNow()} will be performed immediately
+     * @return time, which spend for termination await
+     */
+    private static long awaitAndTerminate(ExecutorService executorService, long timeToWait) throws
+            InterruptedException {
+        long startTime = System.currentTimeMillis();
+        if (timeToWait < 0) {
+            executorService.shutdownNow();
+        } else if (!executorService.awaitTermination(timeToWait, TimeUnit.MILLISECONDS)) {
+            log.error("Failed to wait worker thread pool termination. Force shutdownNow.");
+            executorService.shutdownNow();
+        }
+        return System.currentTimeMillis() - startTime;
+    }
+
+    private static long awaitAndTerminate(ReschedulableScheduler reschedulableScheduler, long timeToWait)
+            throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        if (timeToWait < 0) {
+            reschedulableScheduler.shutdownNow();
+        } else if (!reschedulableScheduler.awaitTermination(timeToWait, TimeUnit.MILLISECONDS)) {
+            log.error("Failed to wait worker thread pool termination. Force shutdownNow.");
+            reschedulableScheduler.shutdownNow();
+        }
+        return System.currentTimeMillis() - startTime;
     }
 
     private void attachProfilerIndicators() {
@@ -255,7 +288,6 @@ class Worker implements AutoCloseable {
         });
         workPooledCache.start();
     }
-
 
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
         try {
@@ -417,14 +449,6 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private static Map<DistributedJob, Integer> getThreadCounts(
-            Map<DistributedJob, Set<String>> assignedWorkPools) {
-        return assignedWorkPools.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        o -> o.getKey().getWorkPoolRunningStrategy().getThreadCount(o.getValue()))
-                );
-    }
-
     public void safelyTerminateJobs(Collection<ScheduledJobExecution> jobExecutions) {
         jobExecutions.forEach(ScheduledJobExecution::shutdown);
 
@@ -513,38 +537,6 @@ class Worker implements AutoCloseable {
 
         log.info("Distributed job manager closing completed. Closing took {} ms.",
                 System.currentTimeMillis() - closingStart);
-    }
-
-    /**
-     * Awaits executor termination timeToWait milliseconds and calls {@link ExecutorService#shutdownNow()} if executor
-     * still isn't completed
-     *
-     * @param timeToWait time to wait, in milliseconds. Could be 0 or less than 0, that means, that
-     *                   {@link ExecutorService#shutdownNow()} will be performed immediately
-     * @return time, which spend for termination await
-     */
-    private static long awaitAndTerminate(ExecutorService executorService, long timeToWait) throws
-            InterruptedException {
-        long startTime = System.currentTimeMillis();
-        if (timeToWait < 0) {
-            executorService.shutdownNow();
-        } else if (!executorService.awaitTermination(timeToWait, TimeUnit.MILLISECONDS)) {
-            log.error("Failed to wait worker thread pool termination. Force shutdownNow.");
-            executorService.shutdownNow();
-        }
-        return System.currentTimeMillis() - startTime;
-    }
-
-    private static long awaitAndTerminate(ReschedulableScheduler reschedulableScheduler, long timeToWait)
-            throws InterruptedException {
-        long startTime = System.currentTimeMillis();
-        if (timeToWait < 0) {
-            reschedulableScheduler.shutdownNow();
-        } else if (!reschedulableScheduler.awaitTermination(timeToWait, TimeUnit.MILLISECONDS)) {
-            log.error("Failed to wait worker thread pool termination. Force shutdownNow.");
-            reschedulableScheduler.shutdownNow();
-        }
-        return System.currentTimeMillis() - startTime;
     }
 
     private void shutdownAllJobExecutions() {

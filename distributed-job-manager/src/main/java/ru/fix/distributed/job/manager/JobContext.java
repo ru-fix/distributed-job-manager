@@ -14,16 +14,14 @@ import java.util.function.Supplier;
 public class JobContext implements DistributedJobContext {
 
     private static final Logger log = LoggerFactory.getLogger(JobContext.class);
-
-    private volatile boolean shutdownFlag;
     private final List<ShutdownListener> shutdownListeners = new CopyOnWriteArrayList<>();
-
     private final String jobId;
     private final Set<String> workShare;
     /**
      * Nullable
      */
     private final Supplier<Boolean> shutdownChecker;
+    private volatile boolean shutdownFlag;
 
     public JobContext(String jobId,
                       Set<String> workShare) {

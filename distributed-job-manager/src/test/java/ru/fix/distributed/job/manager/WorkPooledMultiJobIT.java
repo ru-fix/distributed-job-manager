@@ -49,7 +49,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldDistributeCommonJobs() throws Exception {
         final String[] nodeIds = {"distr-worker-1", "distr-worker-2", "distr-worker-3"};
         try (
-                CuratorFramework curator =  zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
                 DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator);
                 DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator);
                 DistributedJobManager jobManager3 = createNewJobManager(nodeIds[2], curator)
