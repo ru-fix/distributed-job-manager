@@ -17,7 +17,9 @@ import java.time.Duration
 
 internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
-    private val defaultJobRunTimeoutMs = 1_000L
+    companion object {
+        private val defaultJobRunTimeout = Duration.ofSeconds(2)
+    }
 
     @Test
     fun `WHEN disableAllJobsProperty changed THEN jobs running accordingly`() {
@@ -29,22 +31,22 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            await().pollDelay(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, never()).run(any())
             }
             settingsEditor.setDisableAllJobProperty(false)
-            await().atMost(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().atMost(defaultJobRunTimeout).untilAsserted {
                 verify(job1, times(1)).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.setDisableAllJobProperty(true)
-            await().pollDelay(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
                 verify(job1, times(1)).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.setDisableAllJobProperty(false)
-            await().atMost(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().atMost(defaultJobRunTimeout).untilAsserted {
                 verify(job1, times(2)).run(any())
                 verify(job2, times(2)).run(any())
             }
@@ -53,6 +55,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
+        val jobRunTimeout = Duration.ofSeconds(4)
         val job1 = spy(createStubbedJob(1))
         val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
@@ -61,22 +64,22 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            await().atMost(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.disableConcreteJob(job2)
-            await().pollDelay(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().pollDelay(jobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job1)
-            await().atMost(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, times(1)).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job2)
-            await().atMost(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().atMost(jobRunTimeout).untilAsserted {
                 verify(job1, times(2)).run(any())
                 verify(job2, times(2)).run(any())
             }
@@ -96,7 +99,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            await().pollDelay(Duration.ofMillis(defaultJobRunTimeoutMs)).untilAsserted {
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, never()).run(any())
             }
@@ -116,7 +119,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
     private fun createDjm(
             settingsEditor: JobManagerSettingsEditor = JobManagerSettingsEditor(),
             jobs: Collection<DistributedJob>,
-            curatorFramework: CuratorFramework = zkTestingServer.createClient(),
+            curatorFramework: CuratorFramework = zkTestingServer.createClient(60000, 15000),
             profiler: Profiler = NoopProfiler()
     ) = DistributedJobManager(
             curatorFramework,

@@ -93,7 +93,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 paths.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
-        val assignedState = readAssignedState(zkTestingServer.createClient())
+        val assignedState = readAssignedState(zkTestingServer.createClient(60000, 15000))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-0"), mutableSetOf(WorkerId("worker-0"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-1"), mutableSetOf(WorkerId("worker-1"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"), mutableSetOf(WorkerId("worker-2"))))
@@ -112,7 +112,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
         ))
 
-        val curatorFramework = zkTestingServer.createClient()
+        val curatorFramework = zkTestingServer.createClient(60000, 15000)
         val assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
     }
@@ -127,7 +127,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 paths.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
-        val curatorFramework = zkTestingServer.createClient()
+        val curatorFramework = zkTestingServer.createClient(60000, 15000)
         val assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-0"), mutableSetOf(WorkerId("worker-0"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-1"), mutableSetOf(WorkerId("worker-1"))))
@@ -158,7 +158,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
         )
 
-        val curator = zkTestingServer.createClient()
+        val curator = zkTestingServer.createClient(60000, 15000)
         for (node in nodes) {
             assertNotNull(curator.checkExists().forPath(node))
         }
@@ -176,7 +176,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 .pollDelay(Duration.ofMillis(200))
                 .until { workersAlive("worker-2", "worker-1", "worker-0") }
 
-        val curatorFramework = zkTestingServer.createClient()
+        val curatorFramework = zkTestingServer.createClient(60000, 15000)
         var assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
 
@@ -245,7 +245,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 paths.assignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
         ))
 
-        val curatorFramework = zkTestingServer.createClient()
+        val curatorFramework = zkTestingServer.createClient(60000, 15000)
         val assignedState = readAssignedState(curatorFramework)
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"),
                 mutableSetOf(WorkerId("worker-0"), WorkerId("worker-1"), WorkerId("worker-2"), WorkerId("worker-3")))
@@ -253,7 +253,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     private fun pathsExists(itemPaths: List<String>): Boolean {
-        val curator = zkTestingServer.createClient()
+        val curator = zkTestingServer.createClient(60000, 15000)
         itemPaths.forEach {
             if (curator.checkExists().forPath(it) == null) {
                 return false
@@ -263,7 +263,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     private fun workersAlive(vararg workers: String): Boolean {
-        val curator = zkTestingServer.createClient()
+        val curator = zkTestingServer.createClient(60000, 15000)
         workers.forEach {
             val path = ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH).aliveWorker(it)
             if (curator.checkExists().forPath(path) == null) {
@@ -293,7 +293,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             strategy: AssignmentStrategy
     ): DistributedJobManager {
         return DistributedJobManager(
-                zkTestingServer.createClient(),
+                zkTestingServer.createClient(60000, 15000),
                 jobs,
                 AggregatingProfiler(),
                 DistributedJobManagerSettings(
