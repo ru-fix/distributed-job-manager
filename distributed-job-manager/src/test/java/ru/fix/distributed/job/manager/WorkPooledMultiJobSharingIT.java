@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import ru.fix.aggregating.profiler.NoopProfiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.aggregating.profiler.NoopProfiler;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
