@@ -65,8 +65,8 @@ class StubbedMultiJob implements DistributedJob {
     }
 
     @Override
-    public long getInitialJobDelay() {
-        return 0;
+    public DynamicProperty<Long> getInitialJobDelay() {
+        return DynamicProperty.of(0L);
     }
 
     @Override

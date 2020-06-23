@@ -1,4 +1,5 @@
 import de.marcphilipp.gradle.nexus.NexusPublishExtension
+import org.asciidoctor.gradle.AsciidoctorTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.dokka.gradle.DokkaTask
@@ -7,7 +8,6 @@ import java.time.Duration
 import java.time.temporal.ChronoUnit
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
-import org.asciidoctor.gradle.AsciidoctorTask
 
 buildscript {
     repositories {
@@ -186,7 +186,10 @@ subprojects {
 
     tasks {
         withType<KotlinCompile> {
-            kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions {
+                jvmTarget = JavaVersion.VERSION_1_8.toString()
+                freeCompilerArgs = listOf("-Xjvm-default=enable")
+            }
         }
         withType<Test> {
             useJUnitPlatform()
@@ -197,11 +200,6 @@ subprojects {
                 events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
                 showStandardStreams = true
                 exceptionFormat = TestExceptionFormat.FULL
-            }
-        }
-        withType<KotlinCompile>{
-            kotlinOptions {
-                jvmTarget = "1.8"
             }
         }
     }
