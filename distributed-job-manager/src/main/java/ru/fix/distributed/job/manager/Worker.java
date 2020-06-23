@@ -359,11 +359,13 @@ class Worker implements AutoCloseable {
                 int groupsSize = newWorkPool.size() / threadCount;
 
                 for (List<String> workPoolToExecute : Lists.partition(newWorkPool, groupsSize)) {
+                    DynamicProperty<Long> initialJobDelay = newMultiJob.getInitialJobDelay();
+                    long initialJobDelayVal = initialJobDelay.get();
                     log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
                             workerId,
                             newMultiJob.getJobId(),
                             workPoolToExecute,
-                            newMultiJob.getInitialJobDelay());
+                            initialJobDelayVal);
                     ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
                             newMultiJob,
                             new HashSet<>(workPoolToExecute),
@@ -375,13 +377,13 @@ class Worker implements AutoCloseable {
                         ScheduledFuture<?> scheduledFuture =
                                 jobReschedulableScheduler.schedule(
                                         newMultiJob.getSchedule(),
-                                        newMultiJob.getInitialJobDelay(),
+                                        initialJobDelay,
                                         jobExecutionWrapper);
                         jobExecutionWrapper.setScheduledFuture(scheduledFuture);
                         scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
                     } else {
                         log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                                workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
+                                workerId, newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
                     }
                 }
             }

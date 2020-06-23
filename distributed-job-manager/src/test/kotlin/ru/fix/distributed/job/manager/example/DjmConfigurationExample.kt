@@ -19,8 +19,8 @@ class RebillJob : DistributedJob {
         return "rebill-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -28,12 +28,12 @@ class RebillJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
     //...
 }
@@ -43,8 +43,8 @@ class SmsJob : DistributedJob {
         return "sms-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -52,12 +52,12 @@ class SmsJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
     // ...
 }
@@ -67,8 +67,8 @@ class UssdJob : DistributedJob {
         return "ussd-job"
     }
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
+    override fun getSchedule(): DynamicProperty<Schedule> {
+        return Schedule.withDelay(DynamicProperty.of(0L))
     }
 
     @Throws(Exception::class)
@@ -76,12 +76,12 @@ class UssdJob : DistributedJob {
 
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.single()
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
+    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
+        return WorkPoolRunningStrategies.getSingleThreadStrategy()
     }
 }
 
