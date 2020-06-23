@@ -1,0 +1,923 @@
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 8792bc4..52eb7f5 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -1,4 +1,5 @@
+ import de.marcphilipp.gradle.nexus.NexusPublishExtension
++import org.asciidoctor.gradle.AsciidoctorTask
+ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+ import org.gradle.api.tasks.testing.logging.TestLogEvent
+ import org.jetbrains.dokka.gradle.DokkaTask
+@@ -7,7 +8,6 @@ import java.time.Duration
+ import java.time.temporal.ChronoUnit
+ import kotlin.properties.ReadOnlyProperty
+ import kotlin.reflect.KProperty
+-import org.asciidoctor.gradle.AsciidoctorTask
+ 
+ buildscript {
+     repositories {
+@@ -186,7 +186,10 @@ subprojects {
+ 
+     tasks {
+         withType<KotlinCompile> {
+-            kotlinOptions.jvmTarget = "1.8"
++            kotlinOptions {
++                jvmTarget = JavaVersion.VERSION_1_8.toString()
++                freeCompilerArgs = listOf("-Xjvm-default=enable")
++            }
+         }
+         withType<Test> {
+             useJUnitPlatform()
+@@ -199,11 +202,6 @@ subprojects {
+                 exceptionFormat = TestExceptionFormat.FULL
+             }
+         }
+-        withType<KotlinCompile>{
+-            kotlinOptions {
+-                jvmTarget = "1.8"
+-            }
+-        }
+     }
+ }
+ 
+diff --git a/buildSrc/src/main/kotlin/Dependencies.kt b/buildSrc/src/main/kotlin/Dependencies.kt
+index 132314e..f809425 100644
+--- a/buildSrc/src/main/kotlin/Dependencies.kt
++++ b/buildSrc/src/main/kotlin/Dependencies.kt
+@@ -12,8 +12,8 @@ object Vers {
+ 
+     const val aggregating_profiler = "1.5.16"
+     const val jfix_zookeeper = "1.0.12"
+-    const val jfix_stdlib = "3.0.0"
+-    const val jfix_dynamic_property = "2.0.3"
++    const val jfix_stdlib = "3.0.3"
++    const val jfix_dynamic_property = "2.0.7"
+ 
+     const val validation_api = "2.0.1.Final"
+     const val curator = "4.2.0"
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/JobContext.java b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/JobContext.java
+index eb9995c..248c1c8 100644
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/JobContext.java
++++ b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/JobContext.java
+@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.concurrent.CopyOnWriteArrayList;
+-import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Supplier;
+ 
+ /**
+@@ -16,7 +15,7 @@ public class JobContext implements DistributedJobContext {
+ 
+     private static final Logger log = LoggerFactory.getLogger(JobContext.class);
+ 
+-    private final AtomicBoolean shutdownFlag = new AtomicBoolean();
++    private volatile boolean shutdownFlag;
+     private final List<ShutdownListener> shutdownListeners = new CopyOnWriteArrayList<>();
+ 
+     private final String jobId;
+@@ -49,14 +48,14 @@ public class JobContext implements DistributedJobContext {
+ 
+     @Override
+     public boolean isNeedToShutdown() {
+-        return shutdownFlag.get()
++        return shutdownFlag
+                 || shutdownChecker != null && shutdownChecker.get();
+     }
+ 
+     @Override
+     public void addShutdownListener(ShutdownListener listener) {
+         shutdownListeners.add(listener);
+-        if (shutdownFlag.get()) {
++        if (shutdownFlag) {
+             listener.onShutdown();
+         }
+     }
+@@ -67,7 +66,7 @@ public class JobContext implements DistributedJobContext {
+     }
+ 
+     public void shutdown() {
+-        shutdownFlag.set(true);
++        shutdownFlag = true;
+         shutdownListeners.forEach(shutdownListener -> {
+             try {
+                 shutdownListener.onShutdown();
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/ScheduledJobExecution.java b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/ScheduledJobExecution.java
+index 7897ede..7fd4c3a 100644
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/ScheduledJobExecution.java
++++ b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/ScheduledJobExecution.java
+@@ -27,7 +27,7 @@ class ScheduledJobExecution implements Runnable {
+     private final Profiler profiler;
+ 
+     private volatile ScheduledFuture<?> scheduledFuture;
+-    private Lock lock = new ReentrantLock();
++    private final Lock lock = new ReentrantLock();
+ 
+     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
+ 
+@@ -155,7 +155,7 @@ class ScheduledJobExecution implements Runnable {
+                 scheduledFuture, System.identityHashCode(scheduledFuture), job.getJobId(), workShare);
+     }
+ 
+-    boolean isShutdowned(){
++    boolean isShutdowned() {
+         return shutdownFlag.get();
+     }
+ 
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/Worker.java b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/Worker.java
+index cd8663e..403dae6 100644
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/Worker.java
++++ b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/Worker.java
+@@ -191,16 +191,16 @@ class Worker implements AutoCloseable {
+     }
+ 
+     private void closeListenerToAssignedTree() {
+-        if (workPooledCache != null) {
++        TreeCache cache = workPooledCache;
++        if (cache != null) {
+             try {
+-                workPooledCache.close();
++                cache.close();
+             } catch (Exception e) {
+                 log.error("Failed to close pooled assignment listener", e);
+             }
+         }
+     }
+ 
+-
+     private void registerWorkerAsAlive(TransactionalClient transaction) throws Exception {
+         String nodeAlivePath = paths.aliveWorker(workerId);
+         if (curatorFramework.checkExists().forPath(nodeAlivePath) != null) {
+@@ -358,11 +358,13 @@ class Worker implements AutoCloseable {
+     }
+ 
+     private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
++        DynamicProperty<Long> initialJobDelay = newMultiJob.getInitialJobDelay();
++        long initialJobDelayVal = initialJobDelay.get();
+         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
+                 workerId,
+                 newMultiJob.getJobId(),
+                 workPoolToExecute,
+-                newMultiJob.getInitialJobDelay());
++                initialJobDelayVal);
+         ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
+                 newMultiJob,
+                 new HashSet<>(workPoolToExecute),
+@@ -374,17 +376,17 @@ class Worker implements AutoCloseable {
+             ScheduledFuture<?> scheduledFuture =
+                     jobReschedulableScheduler.schedule(
+                             newMultiJob.getSchedule(),
+-                            newMultiJob.getInitialJobDelay(),
++                            initialJobDelay,
+                             jobExecutionWrapper);
+             jobExecutionWrapper.setScheduledFuture(scheduledFuture);
+             scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
+ 
+             log.debug("Future {} with hash={} scheduled for jobId={} with {} and delay={}",
+                     scheduledFuture, System.identityHashCode(scheduledFuture),
+-                    newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
++                    newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
+         } else {
+             log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
+-                    workerId, newMultiJob.getJobId(), workPoolToExecute, newMultiJob.getInitialJobDelay());
++                    workerId, newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
+         }
+     }
+ 
+@@ -453,7 +455,10 @@ class Worker implements AutoCloseable {
+         long closingStart = System.currentTimeMillis();
+ 
+         // shutdown cache to stop updates
+-        workPooledCache.close();
++        TreeCache treeCache = workPooledCache;
++        if (treeCache != null) {
++            treeCache.close();
++        }
+ 
+         // shutdown work pool update executor
+         workPoolReschedulableScheduler.shutdown();
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/model/JobId.java b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/model/JobId.java
+deleted file mode 100644
+index 0535019..0000000
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/model/JobId.java
++++ /dev/null
+@@ -1,35 +0,0 @@
+-package ru.fix.distributed.job.manager.model;
+-
+-import java.util.Objects;
+-
+-public class JobId {
+-
+-    private String id;
+-
+-    public JobId(String id) {
+-        Objects.requireNonNull(id);
+-        this.id = id;
+-    }
+-
+-    public String getId() {
+-        return id;
+-    }
+-
+-    @Override
+-    public boolean equals(Object o) {
+-        if (this == o) return true;
+-        if (o == null || getClass() != o.getClass()) return false;
+-        JobId jobId = (JobId) o;
+-        return Objects.equals(id, jobId.id);
+-    }
+-
+-    @Override
+-    public int hashCode() {
+-        return Objects.hash(id);
+-    }
+-
+-    @Override
+-    public String toString() {
+-        return "Job[" + id + ']';
+-    }
+-}
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/util/ZkTreePrinter.java b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/util/ZkTreePrinter.java
+index 98a3cad..ee64c33 100644
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/util/ZkTreePrinter.java
++++ b/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/util/ZkTreePrinter.java
+@@ -31,7 +31,7 @@ public class ZkTreePrinter {
+     public String print(String path) {
+         try {
+             StringBuilder out = new StringBuilder();
+-            out.append("\n");
++            out.append('\n');
+ 
+             print(path, out, 0);
+             return out.toString();
+@@ -44,12 +44,11 @@ public class ZkTreePrinter {
+     private void print(String path, StringBuilder out, int level) {
+         for (String child : getChildren(path)) {
+             for (int i = 0; i < level; i++) {
+-                out.append(" ");
++                out.append(' ');
+             }
+-            out.append("└ ").append(child);
+-            out.append("\n");
++            out.append("└ ").append(child).append('\n');
+ 
+-            print(path + "/" + child, out, level + 1);
++            print(path + '/' + child, out, level + 1);
+         }
+     }
+ 
+diff --git a/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/AvailableWorkPoolSubTree.kt b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/AvailableWorkPoolSubTree.kt
+index 0612608..62bb909 100644
+--- a/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/AvailableWorkPoolSubTree.kt
++++ b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/AvailableWorkPoolSubTree.kt
+@@ -29,12 +29,12 @@ internal class AvailableWorkPoolSubTree(
+ 
+     fun updateAllJobs(transaction: TransactionalClient, newWorkPools: ConcurrentMap<DistributedJob, WorkPool>) {
+         for (job in newWorkPools.keys) {
+-            val workPoolsPath: String = paths.availableWorkPool(job.jobId)
++            val workPoolsPath: String = paths.availableWorkPool(job.getJobId())
+             if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {
+                 transaction.createPath(workPoolsPath)
+             }
+             val newWorkPool = newWorkPools[job]!!.items
+-            updateJob(transaction, job.jobId, newWorkPool)
++            updateJob(transaction, job.getJobId(), newWorkPool)
+         }
+     }
+ 
+diff --git a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/DistributedJob.java b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/DistributedJob.kt
+similarity index 60%
+rename from distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/DistributedJob.java
+rename to distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/DistributedJob.kt
+index 1684eeb..d668892 100644
+--- a/distributed-job-manager/src/main/java/ru/fix/distributed/job/manager/DistributedJob.java
++++ b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/DistributedJob.kt
+@@ -1,53 +1,51 @@
+-package ru.fix.distributed.job.manager;
++package ru.fix.distributed.job.manager
+ 
+-import ru.fix.dynamic.property.api.DynamicProperty;
+-import ru.fix.stdlib.concurrency.threads.Schedule;
+-
+-/**
+- * @author Ayrat Zulkarnyaev
+- */
+-public interface DistributedJob {
++import ru.fix.dynamic.property.api.DynamicProperty
++import ru.fix.stdlib.concurrency.threads.Schedule
+ 
++interface DistributedJob {
+     /**
+      * @return id of the job.
+      */
+-    String getJobId();
++    fun getJobId(): String
+ 
+     /**
+      * @return delay between job invocation
+      */
+-    DynamicProperty<Schedule> getSchedule();
++    fun getSchedule(): DynamicProperty<Schedule>
+ 
+     /**
+      * Method will be invoked on one of cluster machines
+      */
+-    void run(DistributedJobContext context) throws Exception;
++    @Throws(Exception::class)
++    fun run(context: DistributedJobContext)
+ 
+     /**
+      * @return delay of job launching after server startup
+      */
+-    default long getInitialJobDelay() {
+-        return getSchedule().get().getValue();
++    @JvmDefault
++    fun getInitialJobDelay(): DynamicProperty<Long> {
++        return getSchedule().map { it.value }
+     }
+ 
+     /**
+-     * See {@link ru.fix.distributed.job.manager.util.WorkPoolUtils#checkWorkPoolItemsRestrictions}
++     * See [ru.fix.distributed.job.manager.util.WorkPoolUtils.checkWorkPoolItemsRestrictions]
+      * for restrictions on WorkPool items
+      * Возвращает пулл обрабатываемых сейчас элементов, т.е. не только элементов которые необходимо обработать, но и тех, что сейчас в процессе обработки.
+      * Если элемент был в пуле, но сейчас его не передаем туда, то джоба обрабатывающая его, будет остановлена.
+      */
+-    WorkPool getWorkPool();
++    fun getWorkPool(): WorkPool
+ 
+     /**
+      * Определеяет возможность запуска каждой
+      */
+-    WorkPoolRunningStrategy getWorkPoolRunningStrategy();
++    fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy
+ 
+     /**
+      * Specifies period in which work pool expires and should be checked
+-     * with additional call on {@link #getWorkPool()} to get latest updates.
++     * with additional call on [.getWorkPool] to get latest updates.
+      *
+      * @return period of time in milliseconds, 0 means that work pool never expires and there is no need to check
+      */
+-    long getWorkPoolCheckPeriod();
+-}
++    fun getWorkPoolCheckPeriod(): Long
++}
+\ No newline at end of file
+diff --git a/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/model/JobId.kt b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/model/JobId.kt
+new file mode 100644
+index 0000000..00eb8ea
+--- /dev/null
++++ b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/model/JobId.kt
+@@ -0,0 +1,25 @@
++package ru.fix.distributed.job.manager.model
++
++import java.util.*
++
++class JobId(
++        val id: String
++) {
++
++    override fun equals(other: Any?): Boolean {
++        if (this === other) return true
++        if (javaClass != other?.javaClass) return false
++
++        other as JobId
++
++        return id == other.id
++    }
++
++    override fun hashCode(): Int {
++        return Objects.hash(id)
++    }
++
++    override fun toString(): String {
++        return "Job[$id]"
++    }
++}
+diff --git a/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/strategy/AbstractAssignmentStrategy.kt b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/strategy/AbstractAssignmentStrategy.kt
+index fa1f715..b28316e 100644
+--- a/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/strategy/AbstractAssignmentStrategy.kt
++++ b/distributed-job-manager/src/main/kotlin/ru/fix/distributed/job/manager/strategy/AbstractAssignmentStrategy.kt
+@@ -7,12 +7,16 @@ abstract class AbstractAssignmentStrategy : AssignmentStrategy {
+ 
+     protected fun getWorkItemsByJob(jobId: JobId, workItems: Set<WorkItem>): Set<WorkItem> {
+         return workItems
++                .asSequence()
+                 .filter { item -> item.jobId == jobId }
+-                .toCollection(mutableSetOf())
++                .toSet()
+     }
+ 
+     protected fun getWorkItemsByJobAsMap(workItems: Set<WorkItem>, jobs: Set<JobId>): Map<JobId, Set<WorkItem>> {
+-        return jobs.map { it to getWorkItemsByJob(it, workItems) }
+-                .sortedByDescending { (_, value) -> value.size }.toMap()
++        return jobs
++                .asSequence()
++                .map { it to getWorkItemsByJob(it, workItems) }
++                .sortedByDescending { (_, value) -> value.size }
++                .toMap()
+     }
+ }
+diff --git a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/PersistentExpiringDistributedLockIT.java b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/PersistentExpiringDistributedLockIT.java
+index b99796f..7b0282a 100644
+--- a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/PersistentExpiringDistributedLockIT.java
++++ b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/PersistentExpiringDistributedLockIT.java
+@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Timeout;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import ru.fix.aggregating.profiler.AggregatingProfiler;
++import ru.fix.aggregating.profiler.NoopProfiler;
+ import ru.fix.stdlib.concurrency.threads.NamedExecutors;
+ import ru.fix.zookeeper.lock.PersistentExpiringDistributedLock;
+ import ru.fix.zookeeper.testing.ZKTestingServer;
+@@ -41,7 +42,7 @@ public class PersistentExpiringDistributedLockIT {
+     public void test_lock_release() throws Exception {
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
+                 "PersistentExpiringDistributedLock-Notifications-",
+-                new AggregatingProfiler());
++                new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+@@ -66,7 +67,7 @@ public class PersistentExpiringDistributedLockIT {
+     public void deleting_node_if_lock_release() throws Exception {
+         ExecutorService notificationsExecutor =
+                 NamedExecutors.newSingleThreadPool("PersistentExpiringDistributedLock-Notifications-",
+-                        new AggregatingProfiler());
++                        new NoopProfiler());
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(
+                 zkTestingServer.getClient(), notificationsExecutor, "1", "/lockingNode",
+                 nodeId);
+@@ -84,7 +85,7 @@ public class PersistentExpiringDistributedLockIT {
+     @Timeout(20_000)
+     public void test_lock_prolong_after_timeout() throws Exception {
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+@@ -109,7 +110,7 @@ public class PersistentExpiringDistributedLockIT {
+         int renewCount = 10;
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+ 
+@@ -131,7 +132,7 @@ public class PersistentExpiringDistributedLockIT {
+         long lock0Timeout = 1000;
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool(
+-                "PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                "PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+ 
+@@ -164,7 +165,7 @@ public class PersistentExpiringDistributedLockIT {
+                     while (j < threadIncrementLoop) {
+                         PersistentExpiringDistributedLock lock = null;
+                         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+                         try {
+                             lock = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                                     notificationsExecutor, lockId, "/lockingNode", nodeId);
+@@ -217,7 +218,7 @@ public class PersistentExpiringDistributedLockIT {
+         long tryTimeout = 100;
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+@@ -244,7 +245,7 @@ public class PersistentExpiringDistributedLockIT {
+         long lock1Timeout = 10;
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+@@ -270,7 +271,7 @@ public class PersistentExpiringDistributedLockIT {
+         int renewCount = 15;
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+ 
+@@ -290,7 +291,7 @@ public class PersistentExpiringDistributedLockIT {
+     @Test
+     public void test_lock_prolong_if_expires_in_call_count() throws Exception {
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Notifications-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Notifications-", new NoopProfiler());
+         PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "0", "/lockingNode", nodeId);
+         PersistentExpiringDistributedLock lock1 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+@@ -323,7 +324,7 @@ public class PersistentExpiringDistributedLockIT {
+         ScheduledExecutorService backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
+ 
+         ExecutorService notificationsExecutor = NamedExecutors.newSingleThreadPool
+-                ("PersistentExpiringDistributedLock-Listeners-", new AggregatingProfiler());
++                ("PersistentExpiringDistributedLock-Listeners-", new NoopProfiler());
+ 
+         try (PersistentExpiringDistributedLock lock0 = new PersistentExpiringDistributedLock(zkTestingServer.getClient(),
+                 notificationsExecutor, "A", "/lockingNode", nodeId);
+diff --git a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/StubbedMultiJob.java b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/StubbedMultiJob.java
+index a8ef42f..21cb574 100644
+--- a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/StubbedMultiJob.java
++++ b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/StubbedMultiJob.java
+@@ -21,8 +21,8 @@ class StubbedMultiJob implements DistributedJob {
+     private final boolean singleThread;
+     private final long workPoolExpirationPeriod;
+ 
+-    private AtomicReference<Set<String>> localWorkPool = new AtomicReference<>();
+-    private Set<Set<String>> allWorkPools = Collections.synchronizedSet(new HashSet<>());
++    private final AtomicReference<Set<String>> localWorkPool = new AtomicReference<>();
++    private final Set<Set<String>> allWorkPools = Collections.synchronizedSet(new HashSet<>());
+ 
+     public StubbedMultiJob(int jobId, Set<String> workPool) {
+         this(jobId, workPool, 100);
+@@ -65,8 +65,8 @@ class StubbedMultiJob implements DistributedJob {
+     }
+ 
+     @Override
+-    public long getInitialJobDelay() {
+-        return 0;
++    public DynamicProperty<Long> getInitialJobDelay() {
++        return DynamicProperty.of(0L);
+     }
+ 
+     @Override
+diff --git a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobIT.java b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobIT.java
+index 4c63bb7..33f5c18 100644
+--- a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobIT.java
++++ b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobIT.java
+@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
+ import org.mockito.Mockito;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+-import ru.fix.aggregating.profiler.AggregatingProfiler;
++import ru.fix.aggregating.profiler.NoopProfiler;
+ import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
+ import ru.fix.dynamic.property.api.AtomicProperty;
+@@ -550,7 +550,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
+         return new DistributedJobManager(
+                 curatorFramework,
+                 jobs,
+-                new AggregatingProfiler(),
++                new NoopProfiler(),
+                 new DistributedJobManagerSettings(
+                         nodeId,
+                         JOB_MANAGER_ZK_ROOT_PATH,
+diff --git a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobSharingIT.java b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobSharingIT.java
+index 7d296f6..f80d965 100644
+--- a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobSharingIT.java
++++ b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkPooledMultiJobSharingIT.java
+@@ -2,9 +2,11 @@ package ru.fix.distributed.job.manager;
+ 
+ import org.apache.curator.framework.CuratorFramework;
+ import org.junit.jupiter.api.Test;
+-import ru.fix.aggregating.profiler.AggregatingProfiler;
++import org.junit.jupiter.api.Timeout;
++import ru.fix.aggregating.profiler.NoopProfiler;
+ import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
++import ru.fix.dynamic.property.api.AtomicProperty;
+ import ru.fix.dynamic.property.api.DynamicProperty;
+ import ru.fix.stdlib.concurrency.threads.Schedule;
+ 
+@@ -12,22 +14,26 @@ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.HashSet;
+ import java.util.Set;
++import java.util.concurrent.TimeUnit;
+ 
+ import static org.mockito.Mockito.*;
+ 
+ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
+ 
+-    private WorkItemMonitor monitor = mock(WorkItemMonitor.class);
++    private final WorkItemMonitor monitor = mock(WorkItemMonitor.class);
+ 
+     @Test
+     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
+         try (CuratorFramework curator = zkTestingServer.createClient();
+              DistributedJobManager ignored = new DistributedJobManager(
+                      curator,
+-                     new HashSet<>(Collections.singletonList(
++                     Collections.singleton(
+                              new SingleThreadMultiJob(
+-                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))))),
+-                     new AggregatingProfiler(),
++                                     Schedule.withDelay(DynamicProperty.of(100L)),
++                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
++                             )
++                     ),
++                     new NoopProfiler(),
+                      new DistributedJobManagerSettings(
+                              "work-name",
+                              JOB_MANAGER_ZK_ROOT_PATH,
+@@ -45,15 +51,88 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
+         return DynamicProperty.of(1_000L);
+     }
+ 
++    @Test
++    @Timeout(20)
++    void delayedJobShouldStartAccordingToNewScheduleSettings() throws Exception {
++        // initial setting - 1h delay, and implicit 1h initial delay
++        AtomicProperty<Long> delay = new AtomicProperty<>(TimeUnit.HOURS.toMillis(1));
++        try (CuratorFramework curator = zkTestingServer.createClient();
++             DistributedJobManager ignored = new DistributedJobManager(
++                     curator,
++                     Collections.singleton(
++                             new SingleThreadMultiJob(
++                                     Schedule.withDelay(delay),
++                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
++                             )
++                     ),
++                     new NoopProfiler(),
++                     new DistributedJobManagerSettings(
++                             "work-name",
++                             JOB_MANAGER_ZK_ROOT_PATH,
++                             AssignmentStrategies.Companion.getDEFAULT(),
++                             getTerminationWaitTime(),
++                             getWorkPoolCleanPeriod()
++                     )
++             )
++        ) {
++            // initial 1h delay continues still, job not started
++            verify(monitor, after(3000).never()).check(anySet());
++
++            // change schedule delay setting of the job with implicit start delay settings,
++            // so the job should start in moments
++            delay.set(TimeUnit.SECONDS.toMillis(1L));
++
++            verify(monitor, timeout(5_000)).check(anySet());
++        }
++    }
++
++    @Test
++    @Timeout(20)
++    void delayedJobShouldStartAccordingToNewInitialDelaySetting() throws Exception {
++        // initial setting - 1h delay, and explicit 1h initial delay
++        long delay1H = TimeUnit.HOURS.toMillis(1);
++        AtomicProperty<Long> startDelay = new AtomicProperty<>(delay1H);
++        try (CuratorFramework curator = zkTestingServer.createClient();
++             DistributedJobManager ignored = new DistributedJobManager(
++                     curator,
++                     Collections.singleton(
++                             new CustomInitialDelayImplJob(
++                                     Schedule.withDelay(DynamicProperty.of(delay1H)),
++                                     startDelay,
++                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
++                             )
++                     ),
++                     new NoopProfiler(),
++                     new DistributedJobManagerSettings(
++                             "work-name",
++                             JOB_MANAGER_ZK_ROOT_PATH,
++                             AssignmentStrategies.Companion.getDEFAULT(),
++                             getTerminationWaitTime(),
++                             getWorkPoolCleanPeriod()
++                     )
++             )
++        ) {
++            // initial 1h delay continues still, job not started
++            verify(monitor, after(3000).never()).check(anySet());
++
++            // change start delay setting, so the job should start immediately
++            startDelay.set(0L);
++
++            verify(monitor, timeout(5_000)).check(anySet());
++        }
++    }
++
+     private DynamicProperty<Long> getTerminationWaitTime() {
+         return DynamicProperty.of(180_000L);
+     }
+ 
+     private class SingleThreadMultiJob implements DistributedJob {
+ 
++        private final DynamicProperty<Schedule> schedule;
+         private final Set<String> workerPool;
+ 
+-        SingleThreadMultiJob(Set<String> workerPool) {
++        SingleThreadMultiJob(DynamicProperty<Schedule> schedule, Set<String> workerPool) {
++            this.schedule = schedule;
+             this.workerPool = workerPool;
+         }
+ 
+@@ -69,7 +148,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
+ 
+         @Override
+         public DynamicProperty<Schedule> getSchedule() {
+-            return Schedule.withDelay(DynamicProperty.of(100L));
++            return schedule;
+         }
+ 
+         @Override
+@@ -84,8 +163,58 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
+ 
+         @Override
+         public long getWorkPoolCheckPeriod() {
+-            return 0;
++            return 0L;
+         }
+ 
+     }
++
++    private class CustomInitialDelayImplJob implements DistributedJob {
++
++        private final DynamicProperty<Schedule> schedule;
++        private final DynamicProperty<Long> startDelay;
++        private final Set<String> workerPool;
++
++        CustomInitialDelayImplJob(DynamicProperty<Schedule> schedule,
++                                  DynamicProperty<Long> startDelay,
++                                  Set<String> workerPool) {
++            this.schedule = schedule;
++            this.startDelay = startDelay;
++            this.workerPool = workerPool;
++        }
++
++        @Override
++        public WorkPool getWorkPool() {
++            return WorkPool.of(workerPool);
++        }
++
++        @Override
++        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
++            return WorkPoolRunningStrategies.getSingleThreadStrategy();
++        }
++
++        @Override
++        public DynamicProperty<Schedule> getSchedule() {
++            return schedule;
++        }
++
++        @Override
++        public DynamicProperty<Long> getInitialJobDelay() {
++            return startDelay;
++        }
++
++        @Override
++        public String getJobId() {
++            return "job-id";
++        }
++
++        @Override
++        public void run(DistributedJobContext context) {
++            monitor.check(context.getWorkShare());
++        }
++
++        @Override
++        public long getWorkPoolCheckPeriod() {
++            return 0L;
++        }
++    }
+ }
+diff --git a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkShareLockServiceTest.java b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkShareLockServiceTest.java
+index 1127042..25a3cf9 100644
+--- a/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkShareLockServiceTest.java
++++ b/distributed-job-manager/src/test/java/ru/fix/distributed/job/manager/WorkShareLockServiceTest.java
+@@ -4,7 +4,7 @@ import org.apache.curator.framework.CuratorFramework;
+ import org.apache.curator.framework.listen.ListenerManager;
+ import org.apache.curator.framework.state.ConnectionStateListener;
+ import org.junit.jupiter.api.Test;
+-import ru.fix.aggregating.profiler.AggregatingProfiler;
++import ru.fix.aggregating.profiler.NoopProfiler;
+ import ru.fix.dynamic.property.api.DynamicProperty;
+ import ru.fix.stdlib.concurrency.threads.Schedule;
+ 
+@@ -28,8 +28,8 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
+         final String rootPath = "/test";
+         try (
+                 CuratorFramework curator = zkTestingServer.createClient();
+-                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator, new ZkPathsManager
+-                        (rootPath), nodeId, new AggregatingProfiler())
++                WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
++                        new ZkPathsManager(rootPath), nodeId, new NoopProfiler())
+         ) {
+             ListenerManager<ConnectionStateListener, ConnectionStateListener> listenableBefore =
+                     (ListenerManager<ConnectionStateListener, ConnectionStateListener>) curator.getConnectionStateListenable();
+@@ -55,7 +55,7 @@ public class WorkShareLockServiceTest extends AbstractJobManagerTest {
+         try (
+                 CuratorFramework curator = zkTestingServer.createClient();
+                 WorkShareLockServiceImpl workShareLockService = new WorkShareLockServiceImpl(curator,
+-                        new ZkPathsManager(rootPath), nodeId, new AggregatingProfiler())
++                        new ZkPathsManager(rootPath), nodeId, new NoopProfiler())
+         ) {
+             boolean beforeAcquire = workShareLockService.existsLock(new SimpleJob(), "item");
+             assertThat(beforeAcquire, is(false));
+diff --git a/distributed-job-manager/src/test/kotlin/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt b/distributed-job-manager/src/test/kotlin/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt
+index 9571a68..7733a6e 100644
+--- a/distributed-job-manager/src/test/kotlin/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt
++++ b/distributed-job-manager/src/test/kotlin/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt
+@@ -16,8 +16,8 @@ class RebillJob : DistributedJob {
+         return "rebill-job"
+     }
+ 
+-    override fun getSchedule(): DynamicProperty<Schedule>? {
+-        return null
++    override fun getSchedule(): DynamicProperty<Schedule> {
++        return Schedule.withDelay(DynamicProperty.of(0L))
+     }
+ 
+     @Throws(Exception::class)
+@@ -25,16 +25,16 @@ class RebillJob : DistributedJob {
+ 
+     }
+ 
+-    override fun getWorkPool(): WorkPool? {
+-        return null
++    override fun getWorkPool(): WorkPool {
++        return WorkPool.single()
+     }
+ 
+-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
+-        return null
++    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
++        return WorkPoolRunningStrategies.getSingleThreadStrategy()
+     }
+ 
+     override fun getWorkPoolCheckPeriod(): Long {
+-        return 0
++        return 0L
+     }
+     //...
+ }
+@@ -44,8 +44,8 @@ class SmsJob : DistributedJob {
+         return "sms-job"
+     }
+ 
+-    override fun getSchedule(): DynamicProperty<Schedule>? {
+-        return null
++    override fun getSchedule(): DynamicProperty<Schedule> {
++        return Schedule.withDelay(DynamicProperty.of(0L))
+     }
+ 
+     @Throws(Exception::class)
+@@ -53,16 +53,16 @@ class SmsJob : DistributedJob {
+ 
+     }
+ 
+-    override fun getWorkPool(): WorkPool? {
+-        return null
++    override fun getWorkPool(): WorkPool {
++        return WorkPool.single()
+     }
+ 
+-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
+-        return null
++    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
++        return WorkPoolRunningStrategies.getSingleThreadStrategy()
+     }
+ 
+     override fun getWorkPoolCheckPeriod(): Long {
+-        return 0
++        return 0L
+     }
+     // ...
+ }
+@@ -72,8 +72,8 @@ class UssdJob : DistributedJob {
+         return "ussd-job"
+     }
+ 
+-    override fun getSchedule(): DynamicProperty<Schedule>? {
+-        return null
++    override fun getSchedule(): DynamicProperty<Schedule> {
++        return Schedule.withDelay(DynamicProperty.of(0L))
+     }
+ 
+     @Throws(Exception::class)
+@@ -81,16 +81,16 @@ class UssdJob : DistributedJob {
+ 
+     }
+ 
+-    override fun getWorkPool(): WorkPool? {
+-        return null
++    override fun getWorkPool(): WorkPool {
++        return WorkPool.single()
+     }
+ 
+-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
+-        return null
++    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
++        return WorkPoolRunningStrategies.getSingleThreadStrategy()
+     }
+ 
+     override fun getWorkPoolCheckPeriod(): Long {
+-        return 0
++        return 0L
+     }
+ }
+ 
