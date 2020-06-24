@@ -4,6 +4,7 @@ import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
+import java.util.function.Consumer
 
 class WorkerScope(private val state: AssignmentState) {
     operator fun String.invoke(builder: JobScope.() -> Unit) {
@@ -58,6 +59,37 @@ fun calculateReassignments(stateBefore: AssignmentState, stateAfter: AssignmentS
         }
     }
     return reassignments
+}
+
+fun AssignmentState.getLocalWorkPoolSizeInfo(availability: Map<JobId, Set<WorkerId>>): String {
+    val info = StringBuilder("Work pool size per job:\n")
+    availability.forEach { (jobId: JobId?, availableWorkers: Set<WorkerId?>) ->
+        info.append(jobId)
+                .append(" - work pool size: ")
+                .append(localPoolSize(jobId))
+                .append("\n")
+        availableWorkers.forEach { workerId: WorkerId? ->
+            info.append("\t")
+                    .append(workerId)
+                    .append(": ")
+                    .append(this.getWorkItems(workerId, jobId).size)
+                    .append("\n")
+        }
+
+    }
+    return info.toString()
+}
+
+fun AssignmentState.getGlobalWorkPoolSizeInfo(): String? {
+    val info = StringBuilder("Global load per worker:\n")
+    this.forEach { workerId: WorkerId?, items: HashSet<WorkItem?> ->
+        info.append("\t")
+                .append(workerId)
+                .append(": ")
+                .append(items.size)
+                .append("\n")
+    }
+    return info.toString()
 }
 
 class Report(
