@@ -12,86 +12,53 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 class RebillJob : DistributedJob {
-    override fun getJobId(): String {
-        return "rebill-job"
-    }
+    override fun getJobId() = "rebill-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule> {
-        return Schedule.withDelay(DynamicProperty.of(0L))
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(1000L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
     override fun getWorkPool(): WorkPool {
-        return WorkPool.single()
+        return WorkPool.of((1..15).map { "task-$it" }.toSet())
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
-        return WorkPoolRunningStrategies.getSingleThreadStrategy()
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0L
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
+
     //...
 }
 
 class SmsJob : DistributedJob {
-    override fun getJobId(): String {
-        return "sms-job"
-    }
+    override fun getJobId(): String = "sms-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule> {
-        return Schedule.withDelay(DynamicProperty.of(0L))
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(100L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
-    override fun getWorkPool(): WorkPool {
-        return WorkPool.single()
-    }
+    override fun getWorkPool() = WorkPool.single()
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
-        return WorkPoolRunningStrategies.getSingleThreadStrategy()
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0L
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
     // ...
 }
 
 class UssdJob : DistributedJob {
-    override fun getJobId(): String {
-        return "ussd-job"
-    }
+    override fun getJobId(): String = "ussd-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule> {
-        return Schedule.withDelay(DynamicProperty.of(0L))
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(0L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
-    override fun getWorkPool(): WorkPool {
-        return WorkPool.single()
-    }
+    override fun getWorkPool() = WorkPool.single()
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy {
-        return WorkPoolRunningStrategies.getSingleThreadStrategy()
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0L
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
 }
 
 private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
@@ -117,7 +84,6 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                 }
             }
-
         }
     }
 }
@@ -181,8 +147,8 @@ class CustomAssignmentStrategy : AssignmentStrategy {
         )
         availability.remove(JobId("sms-job"))
 
-        // reassign items of other jobs using evenly spread strategy
-        AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
+        // reassign items of other jobs using evenly rendezvous strategy
+        AssignmentStrategies.EVENLY_RENDEZVOUS.reassignAndBalance(
                 availability,
                 prevAssignment,
                 currentAssignment,
