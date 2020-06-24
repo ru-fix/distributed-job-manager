@@ -101,7 +101,7 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
 
@@ -119,7 +119,6 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
             }
 
         }
-        return currentAssignment
     }
 }
 
@@ -131,7 +130,7 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
             val availableWorkers = HashSet(value)
@@ -156,7 +155,6 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
                 itemsToAssign.remove(item)
             }
         }
-        return currentAssignment
     }
 }
 
@@ -166,8 +164,8 @@ class CustomAssignmentStrategy : AssignmentStrategy {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
-        var newState = ussdAssignmentStrategy.reassignAndBalance(
+    ) {
+        ussdAssignmentStrategy.reassignAndBalance(
                 mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!),
                 prevAssignment,
                 currentAssignment,
@@ -175,19 +173,19 @@ class CustomAssignmentStrategy : AssignmentStrategy {
         )
         availability.remove(JobId("ussd-job"))
 
-        newState = smsAssignmentStrategy.reassignAndBalance(
+        smsAssignmentStrategy.reassignAndBalance(
                 mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!),
                 prevAssignment,
-                newState,
+                currentAssignment,
                 itemsToAssign
         )
         availability.remove(JobId("sms-job"))
 
         // reassign items of other jobs using evenly spread strategy
-        return AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
+        AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
                 availability,
                 prevAssignment,
-                newState,
+                currentAssignment,
                 itemsToAssign
         )
     }

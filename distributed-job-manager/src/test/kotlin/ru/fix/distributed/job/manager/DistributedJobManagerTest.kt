@@ -24,7 +24,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
-        ): AssignmentState {
+        ) {
             for ((key, value) in availability) {
                 val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
 
@@ -42,7 +42,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 }
 
             }
-            return currentAssignment
         }
     }
 
@@ -54,7 +53,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
-        ): AssignmentState {
+        ) {
             for ((key, value) in availability) {
                 val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
                 val availableWorkers = HashSet(value)
@@ -79,7 +78,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                     itemsToAssign.remove(item)
                 }
             }
-            return currentAssignment
         }
     }
 
@@ -209,8 +207,8 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                     prevAssignment: AssignmentState,
                     currentAssignment: AssignmentState,
                     itemsToAssign: MutableSet<WorkItem>
-            ): AssignmentState {
-                var newState = ussdAssignmentStrategy.reassignAndBalance(
+            ) {
+                ussdAssignmentStrategy.reassignAndBalance(
                         mutableMapOf(JobId("distr-job-id-1") to availability[JobId("distr-job-id-1")]!!),
                         prevAssignment,
                         currentAssignment,
@@ -218,10 +216,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 )
                 availability.remove(JobId("distr-job-id-1"))
 
-                newState = smsAssignmentStrategy.reassignAndBalance(
+                smsAssignmentStrategy.reassignAndBalance(
                         mutableMapOf(JobId("distr-job-id-0") to availability[JobId("distr-job-id-0")]!!),
                         prevAssignment,
-                        newState,
+                        currentAssignment,
                         itemsToAssign
                 )
                 availability.remove(JobId("distr-job-id-0"))
@@ -230,10 +228,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
                         availability,
                         prevAssignment,
-                        newState,
+                        currentAssignment,
                         itemsToAssign
                 )
-                return newState
             }
         }
 

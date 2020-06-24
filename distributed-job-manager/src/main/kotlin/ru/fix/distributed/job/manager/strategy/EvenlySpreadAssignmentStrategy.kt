@@ -13,7 +13,7 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         for ((jobId, availableWorkers) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign)
             availableWorkers.forEach { currentAssignment.putIfAbsent(it, HashSet<WorkItem>()) }
@@ -41,6 +41,5 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
                 currentAssignment.moveWorkItem(itemToMove, mostBusyWorker, lessBusyWorker)
             }
         }
-        return currentAssignment
     }
 }

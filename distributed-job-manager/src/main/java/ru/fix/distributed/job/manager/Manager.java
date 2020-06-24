@@ -218,7 +218,7 @@ class Manager implements AutoCloseable {
     }
 
     private void assignWorkPools(GlobalAssignmentState globalState, ZkTransaction transaction) throws Exception {
-        AssignmentState currentState = new AssignmentState();
+        AssignmentState newState = new AssignmentState();
         AssignmentState previousState = globalState.getAssignedState();
         AssignmentState availableState = globalState.getAvailableState();
         Map<JobId, Set<WorkerId>> availability = generateAvailability(availableState);
@@ -228,19 +228,19 @@ class Manager implements AutoCloseable {
                     "\nAvailable state before rebalance: " + availableState);
         }
 
-        AssignmentState newAssignmentState = assignmentStrategy.reassignAndBalance(
+        assignmentStrategy.reassignAndBalance(
                 availability,
                 previousState,
-                currentState,
+                newState,
                 generateItemsToAssign(availableState)
         );
 
         if (log.isTraceEnabled()) {
             log.trace("Previous state before rebalance: " + previousState +
-                    "\nNew assignment after rebalance: " + newAssignmentState);
+                    "\nNew assignment after rebalance: " + newState);
         }
 
-        rewriteZookeeperNodes(previousState, newAssignmentState, transaction);
+        rewriteZookeeperNodes(previousState, newState, transaction);
     }
 
     /**

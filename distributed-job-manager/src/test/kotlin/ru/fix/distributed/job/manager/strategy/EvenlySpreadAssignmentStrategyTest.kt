@@ -366,10 +366,11 @@ internal class EvenlySpreadAssignmentStrategyTest {
                 itemsToAssign,
                 previous).toString()
         )
-        val newState = evenlySpread.reassignAndBalance(
+        val newState = AssignmentState()
+        evenlySpread.reassignAndBalance(
                 availability,
                 previous,
-                AssignmentState(),
+                newState,
                 itemsToAssign
         )
         logger.info(Report(newAssignment = newState).toString())

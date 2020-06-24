@@ -881,10 +881,11 @@ internal class ReassignmentNumberComparisonTest {
             )
         }
 
-        val newAssignment = strategy.reassignAndBalance(
+        val newAssignment = AssignmentState()
+        strategy.reassignAndBalance(
                 availability,
                 previous,
-                AssignmentState(),
+                newAssignment,
                 itemsToAssign
         )
         if (logEnabled) {
