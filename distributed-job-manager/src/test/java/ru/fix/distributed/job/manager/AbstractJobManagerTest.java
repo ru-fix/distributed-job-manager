@@ -15,7 +15,7 @@ import java.util.Set;
 @SuppressWarnings("ALL")
 public class AbstractJobManagerTest {
 
-    static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
+    public static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
     private static final Logger log = LoggerFactory.getLogger(AbstractJobManagerTest.class);
 
     public ZKTestingServer zkTestingServer;
