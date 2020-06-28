@@ -54,6 +54,7 @@ internal class EvenlyRendezvousAssignmentStrategyTest {
         }
         val newAssignment = calculateNewAssignment(available, previous)
         assertEquals(6, newAssignment.globalPoolSize())
+        assertTrue(newAssignment.isBalanced)
     }
 
     @Test
@@ -84,57 +85,12 @@ internal class EvenlyRendezvousAssignmentStrategyTest {
         val workPoolSizeJob1OnWorker1 = newAssignment.getWorkItems(WorkerId("worker-1"), JobId("job-1")).size
         assertEquals(workPoolSizeJob1, newAssignment.localPoolSize(JobId("job-1")))
         assertEquals(workPoolSizeJob1, workPoolSizeJob1OnWorker1)
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
     }
 
     @Test
-    fun reassignAndBalanceIfWorkerNotAvailable() {
-        var available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool1)
-        }
-        var previous = assignmentState {
-            "worker-0"{}
-            "worker-1"{}
-        }
-        previous = calculateNewAssignment(available, previous)
-        available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool1)
-            "worker-2"(workPool)
-        }
-
-        val newAssignment = calculateNewAssignment(available, previous)
-        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
-    }
-
-    @Test
-    fun reassignAndBalanceIfNewWorkersAdded() {
-        var available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool)
-            "worker-2"(workPool)
-        }
-        var previous = assignmentState {
-            "worker-0"{}
-            "worker-1"{}
-            "worker-2"{}
-        }
-
-        previous = calculateNewAssignment(available, previous)
-        available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool)
-            "worker-2"(workPool)
-            "worker-3"(workPool)
-        }
-        println(previous)
-
-        val newAssignment = calculateNewAssignment(available, previous)
-        assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
-    }
-
-    @Test
-    fun reassignAndBalanceIfWorkerNotAvailableAndNewWorkerAdded() {
+    fun `items balanced, when worker-2 died and worker-3 started`() {
         var available = assignmentState {
             "worker-0"(workPool)
             "worker-1"(workPool)
@@ -154,38 +110,16 @@ internal class EvenlyRendezvousAssignmentStrategyTest {
         }
         val newAssignment = calculateNewAssignment(available, previous)
         assertEquals(previous.globalPoolSize(), newAssignment.globalPoolSize())
-    }
-
-    private fun calculateNewAssignment(
-            available: AssignmentState,
-            previous: AssignmentState
-    ): AssignmentState {
-        val availability = generateAvailability(available)
-        val itemsToAssign = generateItemsToAssign(available)
-
-        logger.info(Report(
-                availability,
-                itemsToAssign,
-                previous).toString()
-        )
-
-        val newState = AssignmentState()
-        evenlyRendezvous.reassignAndBalance(
-                availability,
-                previous,
-                newState,
-                itemsToAssign
-        )
-        logger.info(Report(newAssignment = newState).toString())
-        return newState
+        assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
+        assertTrue(newAssignment.isBalanced)
     }
 
     @Test
-    fun reassignAndBalanceWhenOnlyOneWorkerHasJobs() {
+    fun `balance items, when only worker-0 has work items`() {
         val available = assignmentState {
             "worker-0"(workPool)
-            "worker-1"(workPool)
-            "worker-2"(workPool)
+            "worker-1"{}
+            "worker-2"{}
         }
         val previous = assignmentState {
             "worker-0"{}
@@ -195,23 +129,6 @@ internal class EvenlyRendezvousAssignmentStrategyTest {
 
         val newAssignment = calculateNewAssignment(available, previous)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
-        assertTrue(newAssignment.isBalanced)
-    }
-
-    @Test
-    fun reassignAndBalanceWhenSomeWorkersHasJobs() {
-        val available = assignmentState {
-            "worker-0"(workPool)
-            "worker-1"(workPool1)
-            "worker-2"(workPool)
-        }
-        val previous = assignmentState {
-            "worker-0"{}
-            "worker-1"{}
-            "worker-2"{}
-        }
-
-        val newAssignment = calculateNewAssignment(available, previous)
         assertTrue(newAssignment.isBalanced)
     }
 
@@ -450,5 +367,29 @@ internal class EvenlyRendezvousAssignmentStrategyTest {
         }
         newAssignment = calculateNewAssignment(available, newAssignment)
         assertTrue(newAssignment.isBalancedForEachJob(generateAvailability(available)))
+    }
+
+    private fun calculateNewAssignment(
+            available: AssignmentState,
+            previous: AssignmentState
+    ): AssignmentState {
+        val availability = generateAvailability(available)
+        val itemsToAssign = generateItemsToAssign(available)
+
+        logger.info(Report(
+                availability,
+                itemsToAssign,
+                previous).toString()
+        )
+
+        val newState = AssignmentState()
+        evenlyRendezvous.reassignAndBalance(
+                availability,
+                previous,
+                newState,
+                itemsToAssign
+        )
+        logger.info(Report(newAssignment = newState).toString())
+        return newState
     }
 }
