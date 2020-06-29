@@ -2,7 +2,9 @@ package ru.fix.distributed.job.manager;
 
 import com.google.common.collect.Lists;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
+import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -21,10 +23,7 @@ import ru.fix.zookeeper.transactional.ZkTransaction;
 import ru.fix.zookeeper.utils.ZkTreePrinter;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -268,25 +267,36 @@ class Worker implements AutoCloseable {
 
     private void addListenerToAssignedTree() throws Exception {
         workPooledCache = CuratorCache.build(curatorFramework, paths.assignedJobs(workerId));
-        workPooledCache.listenable().addListener((type, oldData, data) -> {
-            log.info("wid={} registerWorkerAsAliveAndRegisterJobs eventType={}", workerId, type);
-            switch (type) {
-                case NODE_CHANGED:
-                case NODE_CREATED:
-                case NODE_DELETED:
-                    if (!isWorkerShutdown) {
-                        assignmentUpdatesExecutor.submit(() -> {
-                            try {
-                                onWorkPooledJobReassigned();
-                            } catch (Exception e) {
-                                log.error("Failed to perform work pool reassignment", e);
-                            }
-                        });
-                    }
-                    break;
+        Semaphore cacheInitLocker = new Semaphore(0);
+        CuratorCacheListener curatorCacheListener = new CuratorCacheListener() {
+            @Override
+            public void event(Type type, ChildData oldData, ChildData data) {
+                log.info("wid={} registerWorkerAsAliveAndRegisterJobs eventType={}", workerId, type);
+                switch (type) {
+                    case NODE_CHANGED:
+                    case NODE_CREATED:
+                    case NODE_DELETED:
+                        if (!isWorkerShutdown) {
+                            assignmentUpdatesExecutor.submit(() -> {
+                                try {
+                                    onWorkPooledJobReassigned();
+                                } catch (Exception e) {
+                                    log.error("Failed to perform work pool reassignment", e);
+                                }
+                            });
+                        }
+                        break;
+                }
             }
-        });
+
+            @Override
+            public void initialized() {
+                cacheInitLocker.release();
+            }
+        };
+        workPooledCache.listenable().addListener(curatorCacheListener);
         workPooledCache.start();
+        cacheInitLocker.acquire();
     }
 
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
