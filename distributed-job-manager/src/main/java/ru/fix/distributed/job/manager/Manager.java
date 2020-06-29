@@ -221,7 +221,7 @@ class Manager implements AutoCloseable {
         AssignmentState newState = new AssignmentState();
         AssignmentState previousState = globalState.getAssignedState();
         AssignmentState availableState = globalState.getAvailableState();
-        Map<JobId, Set<WorkerId>> availability = generateAvailability(availableState);
+        Availability availability = generateAvailability(availableState);
 
         if (log.isTraceEnabled()) {
             log.trace("Availability before rebalance: " + availability +
@@ -376,8 +376,8 @@ class Manager implements AutoCloseable {
         return new GlobalAssignmentState(availableState, assignedState);
     }
 
-    private Map<JobId, Set<WorkerId>> generateAvailability(AssignmentState assignmentState) {
-        Map<JobId, Set<WorkerId>> availability = new HashMap<>();
+    private Availability generateAvailability(AssignmentState assignmentState) {
+        Availability availability = new Availability();
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> workerEntry : assignmentState.entrySet()) {
             for (WorkItem workItem : workerEntry.getValue()) {

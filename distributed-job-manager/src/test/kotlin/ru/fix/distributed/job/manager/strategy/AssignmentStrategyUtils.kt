@@ -1,9 +1,6 @@
 package ru.fix.distributed.job.manager.strategy
 
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import java.util.function.Consumer
 
 class WorkerScope(private val state: AssignmentState) {
@@ -28,12 +25,34 @@ fun assignmentState(builder: WorkerScope.() -> Unit) =
             builder(WorkerScope(this))
         }
 
-fun generateAvailability(assignmentState: AssignmentState): MutableMap<JobId, MutableSet<WorkerId>> {
-    val availability = mutableMapOf<JobId, MutableSet<WorkerId>>()
+class AvailabilityScope(private val availability: Availability){
+    operator fun String.invoke(vararg items: String) {
+        availability[JobId(this)] = items.map { WorkerId(it) }.toHashSet()
+    }
+}
+fun availability(builder: AvailabilityScope.() -> Unit) =
+        Availability().apply {
+            builder(AvailabilityScope(this))
+        }
+
+class WorkItemScope(private val workItems: HashSet<WorkItem>){
+    operator fun String.invoke(vararg items: String) {
+        for(item in items){
+            workItems.add(WorkItem(item, JobId(this)))
+        }
+    }
+}
+fun workItems(builder: WorkItemScope.() -> Unit) =
+        HashSet<WorkItem>().apply {
+            WorkItemScope(this).builder()
+        }
+
+fun generateAvailability(assignmentState: AssignmentState): Availability {
+    val availability = Availability()
 
     for ((key, value) in assignmentState) {
         for (workItem in value) {
-            availability.getOrPut(workItem.jobId) { mutableSetOf() }.add(key)
+            availability.getOrPut(workItem.jobId) { hashSetOf<WorkerId>() }.add(key)
         }
     }
     return availability

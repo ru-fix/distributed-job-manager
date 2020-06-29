@@ -64,7 +64,7 @@ class UssdJob : DistributedJob {
 private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: MutableMap<JobId, MutableSet<WorkerId>>,
+            availability: Availability,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
@@ -92,7 +92,7 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: MutableMap<JobId, MutableSet<WorkerId>>,
+            availability: Availability,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
@@ -126,13 +126,13 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
 class CustomAssignmentStrategy : AssignmentStrategy {
     override fun reassignAndBalance(
-            availability: MutableMap<JobId, MutableSet<WorkerId>>,
+            availability: Availability,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
     ) {
         ussdAssignmentStrategy.reassignAndBalance(
-                mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!),
+                Availability.of(mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!)),
                 prevAssignment,
                 currentAssignment,
                 itemsToAssign
@@ -140,7 +140,7 @@ class CustomAssignmentStrategy : AssignmentStrategy {
         availability.remove(JobId("ussd-job"))
 
         smsAssignmentStrategy.reassignAndBalance(
-                mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!),
+                Availability.of(mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!)),
                 prevAssignment,
                 currentAssignment,
                 itemsToAssign

@@ -291,8 +291,8 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @param availability shows on which workers job can be launched
      * @return true, if each job of assignment state is balanced
      */
-    public boolean isBalancedForEachJob(Map<JobId, Set<WorkerId>> availability) {
-        for (Map.Entry<JobId, Set<WorkerId>> availabilityEntry : availability.entrySet()) {
+    public boolean isBalancedForEachJob(Availability availability) {
+        for (Map.Entry<JobId, HashSet<WorkerId>> availabilityEntry : availability.entrySet()) {
             JobId jobId = availabilityEntry.getKey();
             Set<WorkerId> availableWorkers = availabilityEntry.getValue();
 
@@ -334,7 +334,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("assignment state:\n");
+        StringBuilder result = new StringBuilder("AssignmentState\n");
         List<Entry<WorkerId, HashSet<WorkItem>>> sortedAssignment = new ArrayList<>(entrySet());
         sortedAssignment.sort(Comparator.comparing(Entry::getKey));
 
@@ -343,14 +343,16 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             List<WorkItem> sortedWorkItems = new ArrayList<>(worker.getValue());
             sortedWorkItems.sort(Comparator.comparing(o -> (o.getJobId().getId() + "" + o.getId())));
 
-            result.append("\t└ ").append(workerId).append("\n");
+            result.append("  └ ").append(workerId).append("\n");
 
             for (WorkItem workItem : sortedWorkItems) {
-                result.append("\t\t└ ").append(workItem.getJobId()).append(" - ")
+                result.append("    └ ").append(workItem.getJobId()).append(" - ")
                         .append(workItem.getId()).append("\n");
             }
         }
         return result.toString();
     }
+
+
 
 }
