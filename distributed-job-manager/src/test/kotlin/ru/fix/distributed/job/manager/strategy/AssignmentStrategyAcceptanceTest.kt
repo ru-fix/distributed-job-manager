@@ -1,15 +1,11 @@
 package ru.fix.distributed.job.manager.strategy
 
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
+import io.kotest.assertions.withClue
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
 import java.util.stream.Stream
 
 class AssignmentStrategyAcceptanceTest {
@@ -61,7 +57,10 @@ class AssignmentStrategyAcceptanceTest {
 
         val current = AssignmentState()
         strategy.reassignAndBalance(available, previous, current, workItems)
-        Assertions.assertEquals(expected, current, "strategy: ${strategy.javaClass}")
+        withClue("strategy: ${strategy.javaClass}") {
+            current.shouldBe(expected)
+        }
+
     }
 
     @ParameterizedTest
@@ -85,10 +84,9 @@ class AssignmentStrategyAcceptanceTest {
         strategy.reassignAndBalance(available, previous, current, workItems)
 
         for (workItem in workItems) {
-            Assertions.assertEquals(1, current.values.flatMap { it }.count(),
-                    "WorkItem $workItem assignment once")
-
-            current[WorkerId("worker-0")]
+            withClue("WorkItem $workItem assigned once") {
+                current.values.flatMap { it }.count().shouldBe(1)
+            }
         }
     }
 }

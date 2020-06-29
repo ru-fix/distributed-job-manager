@@ -64,4 +64,5 @@ object Libs {
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
+    const val kotest_assertions = "io.kotest:kotest-assertions-core:4.1.1"
 }
