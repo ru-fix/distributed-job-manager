@@ -387,7 +387,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         jobManager2.close();
         curator2.close();
 
-        awaitCleaningJob(6_000L, workPoolCleanPeriod.get() + 1_000, job3.getJobId(), curator3);
+        awaitCleaningJob(5_000L, workPoolCleanPeriod.get() + 1_000, job3.getJobId(), curator3);
 
         jobManager3.close();
         curator3.close();
