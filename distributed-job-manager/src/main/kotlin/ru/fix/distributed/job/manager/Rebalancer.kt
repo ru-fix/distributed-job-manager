@@ -9,8 +9,8 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.distributed.job.manager.util.ZkTreePrinter
-import ru.fix.zookeeper.transactional.TransactionalClient
+import ru.fix.zookeeper.transactional.ZkTransaction
+import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
@@ -52,7 +52,7 @@ internal class Rebalancer(
             log.trace("nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}")
         }
         try {
-            TransactionalClient.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
+            ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())
                 transaction.assignWorkPools(getZookeeperGlobalState())
             }
@@ -65,8 +65,8 @@ internal class Rebalancer(
     }
 
 
-    private fun TransactionalClient.assignWorkPools(globalState: GlobalAssignmentState) {
-        val currentState = AssignmentState()
+    private fun ZkTransaction.assignWorkPools(globalState: GlobalAssignmentState) {
+        val newState = AssignmentState()
         val previousState = globalState.assignedState
         val availableState = globalState.availableState
         val availability = generateAvailability(availableState)
@@ -77,22 +77,22 @@ internal class Rebalancer(
             Available state before rebalance: $availableState
             """.trimIndent())
         }
-        val newAssignmentState: AssignmentState = assignmentStrategy.reassignAndBalance(
+        assignmentStrategy.reassignAndBalance(
                 availability,
                 previousState,
-                currentState,
+                newState,
                 generateItemsToAssign(availableState)
         )
         if (log.isTraceEnabled) {
             log.trace("""
             Previous state before rebalance: $previousState
-            New assignment after rebalance: $newAssignmentState
+            New assignment after rebalance: $newState
             """.trimIndent())
         }
-        rewriteZookeeperNodes(previousState, newAssignmentState)
+        rewriteZookeeperNodes(previousState, newState)
     }
 
-    private fun TransactionalClient.rewriteZookeeperNodes(
+    private fun ZkTransaction.rewriteZookeeperNodes(
             previousState: AssignmentState,
             newAssignmentState: AssignmentState
     ) {
@@ -101,7 +101,7 @@ internal class Rebalancer(
         deleteNodesContainedInFirstStateButNotInSecond(previousState, newAssignmentState)
     }
 
-    private fun TransactionalClient.createNodesContainedInFirstStateButNotInSecond(
+    private fun ZkTransaction.createNodesContainedInFirstStateButNotInSecond(
             newAssignmentState: AssignmentState,
             previousState: AssignmentState
     ) {
@@ -122,7 +122,7 @@ internal class Rebalancer(
         }
     }
 
-    private fun TransactionalClient.deleteNodesContainedInFirstStateButNotInSecond(
+    private fun ZkTransaction.deleteNodesContainedInFirstStateButNotInSecond(
             previousState: AssignmentState,
             newAssignmentState: AssignmentState
     ) {
@@ -138,13 +138,13 @@ internal class Rebalancer(
         }
     }
 
-    private fun TransactionalClient.createIfNotExist(path: String) {
+    private fun ZkTransaction.createIfNotExist(path: String) {
         if (curatorFramework.checkExists().forPath(path) == null) {
             createPath(path)
         }
     }
 
-    private fun TransactionalClient.removeAssignmentsOnDeadNodes() {
+    private fun ZkTransaction.removeAssignmentsOnDeadNodes() {
         val workersRoots = getChildren(paths.allWorkers())
         for (worker in workersRoots) {
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {

@@ -1,53 +1,51 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager
 
-import ru.fix.dynamic.property.api.DynamicProperty;
-import ru.fix.stdlib.concurrency.threads.Schedule;
+import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.stdlib.concurrency.threads.Schedule
 
-/**
- * @author Ayrat Zulkarnyaev
- */
-public interface DistributedJob {
-
+interface DistributedJob {
     /**
      * @return id of the job.
      */
-    String getJobId();
+    fun getJobId(): String
 
     /**
      * @return delay between job invocation
      */
-    DynamicProperty<Schedule> getSchedule();
+    fun getSchedule(): DynamicProperty<Schedule>
 
     /**
      * Method will be invoked on one of cluster machines
      */
-    void run(DistributedJobContext context) throws Exception;
+    @Throws(Exception::class)
+    fun run(context: DistributedJobContext)
 
     /**
      * @return delay of job launching after server startup
      */
-    default long getInitialJobDelay() {
-        return getSchedule().get().getValue();
+    @JvmDefault
+    fun getInitialJobDelay(): DynamicProperty<Long> {
+        return getSchedule().map { it.value }
     }
 
     /**
-     * See {@link ru.fix.distributed.job.manager.util.WorkPoolUtils#checkWorkPoolItemsRestrictions}
+     * See [ru.fix.distributed.job.manager.util.WorkPoolUtils.checkWorkPoolItemsRestrictions]
      * for restrictions on WorkPool items
      * Возвращает пулл обрабатываемых сейчас элементов, т.е. не только элементов которые необходимо обработать, но и тех, что сейчас в процессе обработки.
      * Если элемент был в пуле, но сейчас его не передаем туда, то джоба обрабатывающая его, будет остановлена.
      */
-    WorkPool getWorkPool();
+    fun getWorkPool(): WorkPool
 
     /**
      * Определеяет возможность запуска каждой
      */
-    WorkPoolRunningStrategy getWorkPoolRunningStrategy();
+    fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy
 
     /**
      * Specifies period in which work pool expires and should be checked
-     * with additional call on {@link #getWorkPool()} to get latest updates.
+     * with additional call on [.getWorkPool] to get latest updates.
      *
      * @return period of time in milliseconds, 0 means that work pool never expires and there is no need to check
      */
-    long getWorkPoolCheckPeriod();
+    fun getWorkPoolCheckPeriod(): Long
 }

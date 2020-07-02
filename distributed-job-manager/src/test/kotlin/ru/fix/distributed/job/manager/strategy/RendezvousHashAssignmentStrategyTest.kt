@@ -168,10 +168,11 @@ internal class RendezvousHashAssignmentStrategyTest {
                 previous).toString()
         )
 
-        val newState = rendezvous.reassignAndBalance(
+        val newState = AssignmentState()
+        rendezvous.reassignAndBalance(
                 availability,
                 previous,
-                AssignmentState(),
+                newState,
                 itemsToAssign
         )
         logger.info(Report(newAssignment = newState).toString())

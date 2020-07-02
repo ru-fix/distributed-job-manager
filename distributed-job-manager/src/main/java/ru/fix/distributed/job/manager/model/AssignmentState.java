@@ -21,7 +21,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * If worker exists, add new workItems to existed work pool,
      * else create worker and put workItems
      */
-    @SuppressWarnings("unused")
     public void addWorkItems(WorkerId worker, Set<WorkItem> workItems) {
         this.computeIfAbsent(worker, key -> new HashSet<>()).addAll(workItems);
     }
@@ -57,7 +56,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @return worker which has less work pool size (doesn't depends on job)
      * or return null, if assignment state doesn't contain any worker
      */
-    @SuppressWarnings("unused")
     public WorkerId getLessBusyWorker() {
         WorkerId lessBusyWorker = null;
         int minWorkPool = Integer.MAX_VALUE;
@@ -80,7 +78,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * minimal work pool size of jobId and minimal work pool size on worker
      * or return null, if assignment state or availableWorkers are empty
      */
-    @SuppressWarnings("unused")
     public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
         WorkerId localLessBusyWorker = null;
         int minLocalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
@@ -333,35 +330,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
                 .count();
     }
 
-    public String getLocalWorkPoolSizeInfo(Map<JobId, Set<WorkerId>> availability) {
-        StringBuilder info = new StringBuilder("Work pool size per job:\n");
-        availability.forEach((jobId, availableWorkers) -> {
-            info.append(jobId)
-                    .append(" - work pool size: ")
-                    .append(localPoolSize(jobId))
-                    .append("\n");
-            availableWorkers.forEach(workerId ->
-                    info.append("\t")
-                            .append(workerId)
-                            .append(": ")
-                            .append(this.getWorkItems(workerId, jobId).size())
-                            .append("\n")
-            );
-        });
-        return info.toString();
-    }
 
-    public String getGlobalWorkPoolSizeInfo() {
-        StringBuilder info = new StringBuilder("Global load per worker:\n");
-        this.forEach((workerId, items) ->
-                info.append("\t")
-                        .append(workerId)
-                        .append(": ")
-                        .append(items.size())
-                        .append("\n")
-        );
-        return info.toString();
-    }
 
     @Override
     public String toString() {

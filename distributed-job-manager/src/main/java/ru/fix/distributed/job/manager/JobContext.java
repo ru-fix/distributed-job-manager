@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -15,16 +14,14 @@ import java.util.function.Supplier;
 public class JobContext implements DistributedJobContext {
 
     private static final Logger log = LoggerFactory.getLogger(JobContext.class);
-
-    private final AtomicBoolean shutdownFlag = new AtomicBoolean();
     private final List<ShutdownListener> shutdownListeners = new CopyOnWriteArrayList<>();
-
     private final String jobId;
     private final Set<String> workShare;
     /**
      * Nullable
      */
     private final Supplier<Boolean> shutdownChecker;
+    private volatile boolean shutdownFlag;
 
     public JobContext(String jobId,
                       Set<String> workShare) {
@@ -49,14 +46,14 @@ public class JobContext implements DistributedJobContext {
 
     @Override
     public boolean isNeedToShutdown() {
-        return shutdownFlag.get()
+        return shutdownFlag
                 || shutdownChecker != null && shutdownChecker.get();
     }
 
     @Override
     public void addShutdownListener(ShutdownListener listener) {
         shutdownListeners.add(listener);
-        if (shutdownFlag.get()) {
+        if (shutdownFlag) {
             listener.onShutdown();
         }
     }
@@ -67,7 +64,7 @@ public class JobContext implements DistributedJobContext {
     }
 
     public void shutdown() {
-        shutdownFlag.set(true);
+        shutdownFlag = true;
         shutdownListeners.forEach(shutdownListener -> {
             try {
                 shutdownListener.onShutdown();

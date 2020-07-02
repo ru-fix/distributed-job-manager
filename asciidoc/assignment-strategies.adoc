@@ -1,22 +1,20 @@
 === Assignment Strategies
-Number of active worker changes over time due to server reboot or crash. Jobs change number
-and composition of their work items. This events trigger DJM reassignment process.
-During reassignment DJM Manager uses an Assignment Strategy to decide to which worker
-particular work item will be assigned. +
+
+Number of active worker changes over time due to server reboot or crash.
+Jobs change number and composition of their work items.
+This events trigger DJM reassignment process.
+During reassignment DJM Manager uses an Assignment Strategy to decide to which worker particular work item will be assigned. +
 DJM provides several implementations for the most common cases of work item distribution among workers.
 You can implement custom AssigmentStrategy for your case and register it within DJM.
 
 * EvenlySpreadAssignmentStrategy +
 Intended for evenly distribution work items for each available job on all available workers.
-It sets up all the work item from the previous distribution
-and then makes balancing by moving the work item from the more loaded to the less loaded
+It sets up all the work item from the previous distribution and then makes balancing by moving the work item from the more loaded to the less loaded
 
 * RendezvousHashAssignmentStrategy +
-It minimize job reassignment within
-living workers when new worker added or one of workers removed using
+It minimize job reassignment within living workers when new worker added or one of workers removed using
 link:https://github.com/clohfink/RendezvousHash[Rendezvous hash]
 
 * EvenlyRendezvousAssignmentStrategy +
-Modification of  RendezvousHashAssignmentStrategy.
-It gets the worker with the maximum hash
-from the list of workers who are not yet filled
+Modification of RendezvousHashAssignmentStrategy.
+It gets the worker with the maximum hash from the list of workers who are not yet filled

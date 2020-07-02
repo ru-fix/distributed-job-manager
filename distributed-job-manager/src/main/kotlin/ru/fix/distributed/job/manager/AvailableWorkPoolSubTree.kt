@@ -2,7 +2,7 @@ package ru.fix.distributed.job.manager
 
 import mu.KotlinLogging
 import org.apache.curator.framework.CuratorFramework
-import ru.fix.zookeeper.transactional.TransactionalClient
+import ru.fix.zookeeper.transactional.ZkTransaction
 import java.util.concurrent.ConcurrentMap
 
 internal class AvailableWorkPoolSubTree(
@@ -13,10 +13,10 @@ internal class AvailableWorkPoolSubTree(
         private val log = KotlinLogging.logger {}
     }
 
-    fun checkAndUpdateVersion(transaction: TransactionalClient): Int =
+    fun checkAndUpdateVersion(transaction: ZkTransaction): Int =
             transaction.checkAndUpdateVersion(paths.availableWorkPoolVersion())
 
-    fun pruneOutDatedJobs(transaction: TransactionalClient, actualJobs: Set<String>) {
+    fun pruneOutDatedJobs(transaction: ZkTransaction, actualJobs: Set<String>) {
         for (jobIdFromZk in currentJobsFromZk()) {
             if (!actualJobs.contains(jobIdFromZk)) {
                 log.debug("cleanWorkPool removing {}", jobIdFromZk)
@@ -27,18 +27,18 @@ internal class AvailableWorkPoolSubTree(
 
     private fun currentJobsFromZk(): MutableList<String> = curatorFramework.children.forPath(paths.availableWorkPool())
 
-    fun updateAllJobs(transaction: TransactionalClient, newWorkPools: ConcurrentMap<DistributedJob, WorkPool>) {
+    fun updateAllJobs(transaction: ZkTransaction, newWorkPools: ConcurrentMap<DistributedJob, WorkPool>) {
         for (job in newWorkPools.keys) {
-            val workPoolsPath: String = paths.availableWorkPool(job.jobId)
+            val workPoolsPath: String = paths.availableWorkPool(job.getJobId())
             if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {
                 transaction.createPath(workPoolsPath)
             }
             val newWorkPool = newWorkPools[job]!!.items
-            updateJob(transaction, job.jobId, newWorkPool)
+            updateJob(transaction, job.getJobId(), newWorkPool)
         }
     }
 
-    fun updateJob(transaction: TransactionalClient, jobId: String, newWorkPool: Set<String>): Boolean {
+    fun updateJob(transaction: ZkTransaction, jobId: String, newWorkPool: Set<String>): Boolean {
         val workPoolFromZk: Set<String> = currentJobWorkPoolFromZk(jobId)
         if (workPoolFromZk != newWorkPool) {
             createItemsContainedInFirstSetButNotInSecond(newWorkPool, workPoolFromZk, transaction, jobId)
@@ -58,7 +58,7 @@ internal class AvailableWorkPoolSubTree(
     }
 
     private fun createItemsContainedInFirstSetButNotInSecond(
-            newWorkPool: Set<String>, currentWorkPool: Set<String>, transaction: TransactionalClient, jobId: String
+            newWorkPool: Set<String>, currentWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
     ) {
         val workPoolsToAdd: MutableSet<String> = java.util.HashSet(newWorkPool)
         workPoolsToAdd.removeAll(currentWorkPool)
@@ -68,7 +68,7 @@ internal class AvailableWorkPoolSubTree(
     }
 
     private fun removeItemsContainedInFirstSetButNotInSecond(
-            currentWorkPool: Set<String>, newWorkPool: Set<String>, transaction: TransactionalClient, jobId: String
+            currentWorkPool: Set<String>, newWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
     ) {
         val workPoolsToDelete: MutableSet<String> = java.util.HashSet(currentWorkPool)
         workPoolsToDelete.removeAll(newWorkPool)

@@ -18,7 +18,7 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         val stringFunnel = Funnel<String> { from, into ->
             into.putBytes(from.toByteArray(StandardCharsets.UTF_8))
         }
@@ -43,6 +43,5 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
                 itemsToAssign.remove(item)
             }
         }
-        return currentAssignment
     }
 }

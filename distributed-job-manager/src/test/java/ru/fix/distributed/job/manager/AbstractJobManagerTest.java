@@ -4,8 +4,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.util.ZkTreePrinter;
 import ru.fix.zookeeper.testing.ZKTestingServer;
+import ru.fix.zookeeper.utils.ZkTreePrinter;
 
 import java.util.Set;
 
@@ -15,10 +15,11 @@ import java.util.Set;
 @SuppressWarnings("ALL")
 public class AbstractJobManagerTest {
 
-    static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
+    public static final String JOB_MANAGER_ZK_ROOT_PATH = "/djm/job-manager-test";
     private static final Logger log = LoggerFactory.getLogger(AbstractJobManagerTest.class);
 
     public ZKTestingServer zkTestingServer;
+    ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -30,8 +31,6 @@ public class AbstractJobManagerTest {
     void tearDown() {
         zkTestingServer.close();
     }
-
-    ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
 
     String printDjmZkTree() {
         return printZkTree(JOB_MANAGER_ZK_ROOT_PATH);

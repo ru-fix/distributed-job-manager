@@ -1,18 +1,25 @@
 == Source guidebook
+
 [abstract]
 Implementation details
 
 === Generate documentation
+
 Documentation source located at
+
 ----
 asciidoc/*
 ----
+
 Compiled documentation stored at
+
 ----
 docs/*
 ----
+
 Compiled documentation stored in git and served as a static content.
 To compile documentation run
+
 ----
 gradle asciidoctor
 ----
