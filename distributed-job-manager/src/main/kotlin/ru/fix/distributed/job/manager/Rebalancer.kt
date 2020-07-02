@@ -1,8 +1,8 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
+import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
@@ -41,27 +41,23 @@ internal class Rebalancer(
      */
     private fun reassignAndBalanceTasks() {
         if (curatorFramework.state != CuratorFrameworkState.STARTED) {
-            log.error("Ignore reassignAndBalanceTasks: curatorFramework is not started")
+            logger.error("Ignore reassignAndBalanceTasks: curatorFramework is not started")
             return
         }
         if (!curatorFramework.zookeeperClient.isConnected) {
-            log.error("Ignore reassignAndBalanceTasks: lost connection to zookeeper")
+            logger.error("Ignore reassignAndBalanceTasks: lost connection to zookeeper")
             return
         }
-        if (log.isTraceEnabled) {
-            log.trace("nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}")
-        }
+        logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())
                 transaction.assignWorkPools(getZookeeperGlobalState())
             }
         } catch (e: Exception) {
-            log.warn("Can't reassign and balance tasks: ", e)
+            logger.warn("Can't reassign and balance tasks: ", e)
         }
-        if (log.isTraceEnabled) {
-            log.trace("nodeId=$nodeId tree after rebalance: \n ${zkPrinter.print(paths.rootPath)}")
-        }
+        logger.trace { "nodeId=$nodeId tree after rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
     }
 
 
@@ -71,24 +67,27 @@ internal class Rebalancer(
         val availableState = globalState.availableState
         val availability = generateAvailability(availableState)
 
-        if (log.isTraceEnabled) {
-            log.trace("""
+        logger.trace {
+            """
             Availability before rebalance: $availability
             Available state before rebalance: $availableState
-            """.trimIndent())
+            """.trimIndent()
         }
+
         assignmentStrategy.reassignAndBalance(
                 availability,
                 previousState,
                 newState,
                 generateItemsToAssign(availableState)
         )
-        if (log.isTraceEnabled) {
-            log.trace("""
+
+        logger.trace {
+            """
             Previous state before rebalance: $previousState
             New assignment after rebalance: $newState
-            """.trimIndent())
+            """.trimIndent()
         }
+
         rewriteZookeeperNodes(previousState, newState)
     }
 
@@ -150,11 +149,11 @@ internal class Rebalancer(
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) != null) {
                 continue
             }
-            log.info("nodeId=$nodeId Remove dead worker $worker")
+            logger.info { "nodeId=$nodeId Remove dead worker $worker" }
             try {
                 deletePathWithChildrenIfNeeded(paths.worker(worker))
             } catch (e: NoNodeException) {
-                log.info("Node was already deleted", e)
+                logger.info("Node was already deleted", e)
             }
         }
     }
@@ -239,7 +238,5 @@ internal class Rebalancer(
             val assignedState: AssignmentState
     )
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 }

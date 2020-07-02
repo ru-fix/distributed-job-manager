@@ -1,7 +1,7 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
 import org.apache.curator.framework.CuratorFramework
+import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.zookeeper.transactional.ZkTransaction
 import java.util.concurrent.ConcurrentMap
 
@@ -9,9 +9,7 @@ internal class AvailableWorkPoolSubTree(
         private val curatorFramework: CuratorFramework,
         private val paths: ZkPathsManager
 ) {
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 
     fun checkAndUpdateVersion(transaction: ZkTransaction): Int =
             transaction.checkAndUpdateVersion(paths.availableWorkPoolVersion())
@@ -19,7 +17,7 @@ internal class AvailableWorkPoolSubTree(
     fun pruneOutDatedJobs(transaction: ZkTransaction, actualJobs: Set<String>) {
         for (jobIdFromZk in currentJobsFromZk()) {
             if (!actualJobs.contains(jobIdFromZk)) {
-                log.debug("cleanWorkPool removing {}", jobIdFromZk)
+                logger.debug { "cleanWorkPool removing $jobIdFromZk" }
                 transaction.deletePathWithChildrenIfNeeded(paths.availableWorkPool(jobIdFromZk))
             }
         }

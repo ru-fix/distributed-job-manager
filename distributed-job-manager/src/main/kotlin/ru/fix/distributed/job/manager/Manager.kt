@@ -1,11 +1,11 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.PathChildrenCache
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener
 import org.apache.curator.framework.recipes.leader.LeaderLatch
+import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 
@@ -44,7 +44,7 @@ class Manager(
 
     fun start() {
         workersAliveChildrenCache.listenable.addListener(PathChildrenCacheListener { _: CuratorFramework, event: PathChildrenCacheEvent ->
-            log.trace("nodeId=$nodeId handleRebalanceEvent event=$event")
+            logger.trace { "nodeId=$nodeId handleRebalanceEvent event=$event" }
             when (event.type) {
                 PathChildrenCacheEvent.Type.CONNECTION_RECONNECTED,
                 PathChildrenCacheEvent.Type.CHILD_UPDATED,
@@ -57,13 +57,13 @@ class Manager(
                         workersAliveChildrenCache,
                         workPoolCleanPeriod
                 )
-                else -> log.warn("nodeId=$nodeId Invalid event type ${event.type}")
+                else -> logger.warn { "nodeId=$nodeId Invalid event type ${event.type}" }
             }
         })
         workersAliveChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT)
 
         leaderLatchExecutor.addLeadershipListener {
-            log.info("nodeId=$nodeId became a leader")
+            logger.info { "nodeId=$nodeId became a leader" }
             rebalancer.handleRebalanceEvent()
         }
         leaderLatchExecutor.start()
@@ -73,17 +73,15 @@ class Manager(
 
     override fun close() {
         val managerStopTime = System.currentTimeMillis()
-        log.info("Closing DJM manager entity...")
+        logger.info("Closing DJM manager entity...")
 
         workersAliveChildrenCache.close()
         leaderLatchExecutor.close()
         rebalancer.close()
         cleaner.close()
 
-        log.info("DJM manager was closed. Took ${System.currentTimeMillis() - managerStopTime} ms")
+        logger.info { "DJM manager was closed. Took ${System.currentTimeMillis() - managerStopTime} ms" }
     }
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 }

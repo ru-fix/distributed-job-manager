@@ -1,8 +1,8 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.recipes.cache.PathChildrenCache
+import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
@@ -43,16 +43,14 @@ internal class Cleaner(
                     }
                 }
             } catch (e: Exception) {
-                log.debug("Failed to clean work-pool", e)
+                logger.debug("Failed to clean work-pool", e)
             }
         }
     }
 
     private fun cleanWorkPool(transaction: ZkTransaction, initializedAliveWorkersCache: PathChildrenCache) {
         workPoolSubTree.checkAndUpdateVersion(transaction)
-        if (log.isTraceEnabled) {
-            log.trace("cleanWorkPool zk tree before cleaning: ${zkPrinter.print(paths.rootPath)}")
-        }
+        logger.trace { "cleanWorkPool zk tree before cleaning: ${zkPrinter.print(paths.rootPath)}" }
         val actualJobs: MutableSet<String> = HashSet()
         val aliveWorkersPath: String = paths.aliveWorkers()
         for (aliveWorkerNodeData in initializedAliveWorkersCache.currentData) {
@@ -67,12 +65,10 @@ internal class Cleaner(
     override fun close() {
         scheduler.shutdown()
         if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
-            log.warn("Failed to wait cleaner's scheduler termination")
+            logger.warn("Failed to wait cleaner's scheduler termination")
             scheduler.shutdownNow()
         }
     }
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 }

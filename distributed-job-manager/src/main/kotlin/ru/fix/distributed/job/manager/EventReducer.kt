@@ -1,6 +1,6 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
+import org.apache.logging.log4j.kotlin.Logging
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -55,7 +55,7 @@ class EventReducer(
                 }
             }
         } catch (e: Exception) {
-            log.error("waiting event was interrupted", e)
+            logger.error("waiting event was interrupted", e)
             return AwaitingResult.ERROR
         } finally {
             synchronized(awaitingEventQueue) {
@@ -68,12 +68,10 @@ class EventReducer(
     override fun close() {
         eventReceivingExecutor.shutdown()
         if (!eventReceivingExecutor.awaitTermination(awaitTerminationPeriodMs, TimeUnit.MILLISECONDS)) {
-            log.warn("Failed to wait eventReceivingExecutor termination")
+            logger.warn("Failed to wait eventReceivingExecutor termination")
             eventReceivingExecutor.shutdownNow()
         }
     }
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 }

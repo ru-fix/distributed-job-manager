@@ -1,8 +1,8 @@
 package ru.fix.distributed.job.manager
 
-import mu.KotlinLogging
 import org.apache.curator.framework.recipes.leader.LeaderLatch
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener
+import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import java.util.concurrent.TimeUnit
@@ -50,13 +50,11 @@ internal class LeaderLatchExecutor(
             executor.shutdown()
         }
         if (!executor.awaitTermination(3, TimeUnit.MINUTES)) {
-            log.error("Failed to wait LeaderLatchExecutor executor termination")
+            logger.error("Failed to wait LeaderLatchExecutor executor termination")
             executor.shutdownNow()
         }
     }
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
+    companion object : Logging
 
 }
