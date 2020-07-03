@@ -9,11 +9,15 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
+import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
+import java.util.concurrent.Executors
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
+
+private val REBALANCE_EVENT = Any()
 
 internal class Rebalancer(
         private val paths: ZkPathsManager,
@@ -23,18 +27,24 @@ internal class Rebalancer(
         private val nodeId: String
 ) : AutoCloseable {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
+    private val rebalancerExecutor = Executors.newSingleThreadExecutor()
 
-    private val rebalanceEventReducer = EventReducer(handler = {
-        leaderLatchExecutor.tryExecute(Runnable(this::reassignAndBalanceTasks))
-    })
+    private val rebalanceEventAccumulator = ReducingEventAccumulator.lastEventWinAccumulator<Any>()
 
     fun handleRebalanceEvent() {
-        rebalanceEventReducer.handle()
+        rebalanceEventAccumulator.publishEvent(REBALANCE_EVENT)
     }
 
-    fun start() = rebalanceEventReducer.start()
+    fun start() = rebalancerExecutor.execute {
+        rebalanceEventAccumulator.receiveReducedEventsUntilClosed {
+            leaderLatchExecutor.tryExecute(Runnable(this::reassignAndBalanceTasks))
+        }
+    }
 
-    override fun close() = rebalanceEventReducer.close()
+    override fun close() {
+        rebalanceEventAccumulator.close()
+        rebalancerExecutor.shutdown()
+    }
 
     /**
      * Rebalance tasks in tasks tree for all available workers after any failure or workers count change
