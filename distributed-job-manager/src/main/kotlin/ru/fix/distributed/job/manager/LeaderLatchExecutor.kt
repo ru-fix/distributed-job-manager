@@ -5,6 +5,7 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 internal class LeaderLatchExecutor(
@@ -18,10 +19,11 @@ internal class LeaderLatchExecutor(
 
     fun start() = leaderLatch.start()
 
-    fun tryExecute(task: Runnable) = synchronized(executor) {
+    fun submitIfNeeded(task: Runnable): Future<*>? = synchronized(executor) {
         if (!executor.isShutdown && leaderLatch.hasLeadership()) {
-            executor.execute(task)
+            return executor.submit(task)
         }
+        return null
     }
 
     fun hasLeadershipAndNotShutdown(): Boolean = synchronized(executor) {

@@ -4,22 +4,25 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
 import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
+import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
+import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
-import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
 private val REBALANCE_EVENT = Any()
 
 internal class Rebalancer(
+        profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
         private val leaderLatchExecutor: LeaderLatchExecutor,
@@ -27,7 +30,9 @@ internal class Rebalancer(
         private val nodeId: String
 ) : AutoCloseable {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
-    private val rebalancerExecutor = Executors.newSingleThreadExecutor()
+
+    private val rebalanceEventReceiverExecutor = NamedExecutors.newSingleThreadPool(
+            "rebalance-event-receiver", profiler)
 
     private val rebalanceEventAccumulator = ReducingEventAccumulator.lastEventWinAccumulator<Any>()
 
@@ -35,15 +40,19 @@ internal class Rebalancer(
         rebalanceEventAccumulator.publishEvent(REBALANCE_EVENT)
     }
 
-    fun start() = rebalancerExecutor.execute {
+    fun start() = rebalanceEventReceiverExecutor.execute {
         rebalanceEventAccumulator.receiveReducedEventsUntilClosed {
-            leaderLatchExecutor.tryExecute(Runnable(this::reassignAndBalanceTasks))
+            leaderLatchExecutor.submitIfNeeded(Runnable(this::reassignAndBalanceTasks))?.get()
         }
     }
 
     override fun close() {
         rebalanceEventAccumulator.close()
-        rebalancerExecutor.shutdown()
+        rebalanceEventReceiverExecutor.shutdown()
+        if (!rebalanceEventReceiverExecutor.awaitTermination(3, TimeUnit.MINUTES)) {
+            logger.error("Failed to wait Rebalancer executor termination")
+            rebalanceEventReceiverExecutor.shutdownNow()
+        }
     }
 
     /**

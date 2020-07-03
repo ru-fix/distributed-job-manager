@@ -32,7 +32,7 @@ class Manager(
             profiler, paths, curatorFramework, leaderLatchExecutor
     )
     private val rebalancer = Rebalancer(
-            paths, curatorFramework, leaderLatchExecutor, settings.assignmentStrategy, nodeId
+            profiler, paths, curatorFramework, leaderLatchExecutor, settings.assignmentStrategy, nodeId
     )
 
     private val workersAliveChildrenCache = PathChildrenCache(
