@@ -64,7 +64,7 @@ internal class Cleaner(
 
     override fun close() {
         scheduler.shutdown()
-        if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+        if (!scheduler.awaitTermination(1, TimeUnit.MINUTES)) {
             logger.warn("Failed to wait cleaner's scheduler termination")
             scheduler.shutdownNow()
         }
