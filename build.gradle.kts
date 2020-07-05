@@ -198,7 +198,7 @@ subprojects {
 
             testLogging {
                 events(TestLogEvent.FAILED)
-                showStandardStreams = true
+                showStandardStreams = false
                 showExceptions = true
                 showCauses = true
                 showStackTraces = true
