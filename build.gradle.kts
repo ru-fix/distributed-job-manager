@@ -197,8 +197,11 @@ subprojects {
             maxParallelForks = 10
 
             testLogging {
-                events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
+                events(TestLogEvent.FAILED)
                 showStandardStreams = true
+                showExceptions = true
+                showCauses = true
+                showStackTraces = true
                 exceptionFormat = TestExceptionFormat.FULL
             }
         }
