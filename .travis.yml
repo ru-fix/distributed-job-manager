@@ -10,7 +10,7 @@ jobs:
       if: tag IS blank
       install: skip
       before_script: if [[ $encrypted_47596ca1f42f_key ]]; then openssl aes-256-cbc -K $encrypted_47596ca1f42f_key -iv $encrypted_47596ca1f42f_iv -in secring.gpg.enc -out secring.gpg -d; fi
-      script: ./gradlew clean build --warn
+      script: ./gradlew clean build
 
     - stage: deploy
       if: tag =~ ^\d+\.\d+\.\d+$
