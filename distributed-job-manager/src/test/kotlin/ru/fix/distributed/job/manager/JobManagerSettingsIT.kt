@@ -47,15 +47,14 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
             }
             settingsEditor.setDisableAllJobProperty(false)
             await().atMost(defaultJobRunTimeout).untilAsserted {
-                verify(job1, times(2)).run(any())
-                verify(job2, times(2)).run(any())
+                verify(job1, atLeast(2)).run(any())
+                verify(job2, atLeast(2)).run(any())
             }
         }
     }
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
-        val jobRunTimeout = Duration.ofSeconds(4)
         val job1 = spy(createStubbedJob(1))
         val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
@@ -64,24 +63,24 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            await().atMost(jobRunTimeout).untilAsserted {
+            await().atMost(defaultJobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.disableConcreteJob(job2)
-            await().pollDelay(jobRunTimeout).untilAsserted {
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
                 verify(job1, never()).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job1)
-            await().atMost(jobRunTimeout).untilAsserted {
+            await().atMost(defaultJobRunTimeout).untilAsserted {
                 verify(job1, times(1)).run(any())
                 verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job2)
-            await().atMost(jobRunTimeout).untilAsserted {
-                verify(job1, times(2)).run(any())
-                verify(job2, times(2)).run(any())
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, atLeast(2)).run(any())
+                verify(job2, atLeast(2)).run(any())
             }
         }
     }
@@ -109,7 +108,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
     private fun createStubbedJob(
             jobId: Int = 1,
             workItems: Set<String> = setOf("1", "2"),
-            delay: Long = 100,
+            delay: Long = 500,
             workPoolCheckPeriod: Long = 0
     ): StubbedMultiJob = StubbedMultiJob(
             jobId, workItems, delay, workPoolCheckPeriod
