@@ -1,7 +1,7 @@
 package ru.fix.distributed.job.manager
 
 import org.apache.curator.framework.CuratorFramework
-import org.apache.curator.framework.recipes.cache.PathChildrenCache
+import org.apache.curator.framework.recipes.cache.CuratorCache
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.dynamic.property.api.DynamicProperty
@@ -19,7 +19,9 @@ internal class Cleaner(
         profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val leaderLatchExecutor: LeaderLatchExecutor
+        private val leaderLatchExecutor: LeaderLatchExecutor,
+        private val workPoolCleanPeriod: DynamicProperty<Long>,
+        private val aliveWorkersCache: CuratorCache
 ) : AutoCloseable {
     private val scheduler = NamedExecutors.newSingleThreadScheduler(
             "work-pool cleaning task",
@@ -28,10 +30,8 @@ internal class Cleaner(
     private val workPoolSubTree = AvailableWorkPoolSubTree(curatorFramework, paths)
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
-    fun startWorkPoolCleaningTask(
-            initializedAliveWorkersCache: PathChildrenCache,
-            workPoolCleanPeriod: DynamicProperty<Long>
-    ): ScheduledFuture<*>? {
+
+    fun start(): ScheduledFuture<*>? {
         return scheduler.schedule(Schedule.withDelay(workPoolCleanPeriod), workPoolCleanPeriod) {
             try {
                 if (leaderLatchExecutor.hasLeadershipAndNotShutdown()) {
@@ -39,7 +39,7 @@ internal class Cleaner(
                             curatorFramework,
                             CLEAN_WORK_POOL_RETRIES_COUNT
                     ) { transaction ->
-                        cleanWorkPool(transaction, initializedAliveWorkersCache)
+                        cleanWorkPool(transaction)
                     }
                 }
             } catch (e: Exception) {
@@ -48,13 +48,16 @@ internal class Cleaner(
         }
     }
 
-    private fun cleanWorkPool(transaction: ZkTransaction, initializedAliveWorkersCache: PathChildrenCache) {
+    private fun cleanWorkPool(transaction: ZkTransaction) {
         workPoolSubTree.checkAndUpdateVersion(transaction)
         logger.trace { "cleanWorkPool zk tree before cleaning: ${zkPrinter.print(paths.rootPath)}" }
         val actualJobs: MutableSet<String> = HashSet()
         val aliveWorkersPath: String = paths.aliveWorkers()
-        for (aliveWorkerNodeData in initializedAliveWorkersCache.currentData) {
+        for (aliveWorkerNodeData in aliveWorkersCache.stream()) {
             val aliveWorkerPath = aliveWorkerNodeData.path
+            if (aliveWorkerPath == aliveWorkersPath) {
+                continue // skip parent node (workers/)
+            }
             // getting "worker-id" from "workers/worker-id"
             val workerId = aliveWorkerPath.substring(aliveWorkersPath.length + 1)
             actualJobs.addAll(curatorFramework.children.forPath(paths.availableJobs(workerId)))

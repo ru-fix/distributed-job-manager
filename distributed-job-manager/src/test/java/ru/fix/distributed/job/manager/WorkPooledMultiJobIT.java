@@ -349,7 +349,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void cleaning_WHEN_last_djm_with_available_job_closed_THEN_removing_job_from_workPool() throws Exception {
         AtomicProperty<Long> workPoolCleanPeriod = new AtomicProperty<>(500L);
         long cleaningPerformTimeoutMs = 1_000;
-        long closingDjmTimeoutMs = 1_000;
+        long closingDjmTimeoutMs = 1_500;
         DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(4));
         DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(4));
         DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(4));
