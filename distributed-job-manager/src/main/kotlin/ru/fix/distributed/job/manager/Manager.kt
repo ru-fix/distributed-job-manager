@@ -39,8 +39,8 @@ class Manager(
     )
 
     fun start() {
-        aliveWorkersCache.listenable().addListener(CuratorCacheListener { type, oldData, data ->
-            logger.trace { "nodeId=$nodeId handleRebalanceEvent type=$type, oldData=$oldData, data=$data" }
+        leaderLatchExecutor.addCuratorCacheListener(aliveWorkersCache, CuratorCacheListener { type, oldData, data ->
+            logger.trace { "nodeId=$nodeId aliveWorkersCache rebalance event: type=$type, oldData=$oldData, data=$data" }
             rebalancer.handleRebalanceEvent()
         })
         aliveWorkersCache.start()

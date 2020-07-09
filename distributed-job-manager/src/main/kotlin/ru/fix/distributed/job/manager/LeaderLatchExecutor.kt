@@ -1,5 +1,7 @@
 package ru.fix.distributed.job.manager
 
+import org.apache.curator.framework.recipes.cache.CuratorCache
+import org.apache.curator.framework.recipes.cache.CuratorCacheListener
 import org.apache.curator.framework.recipes.leader.LeaderLatch
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import org.apache.logging.log4j.kotlin.Logging
@@ -49,6 +51,10 @@ internal class LeaderLatchExecutor(
                 // Do nothing when leadership is lost
             }
         }, executor)
+    }
+
+    fun addCuratorCacheListener(cache: CuratorCache, listener: CuratorCacheListener) {
+        cache.listenable().addListener(listener, executor)
     }
 
     override fun close() {
