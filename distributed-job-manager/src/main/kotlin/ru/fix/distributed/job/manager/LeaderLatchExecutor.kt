@@ -48,7 +48,7 @@ internal class LeaderLatchExecutor(
             override fun notLeader() {
                 // Do nothing when leadership is lost
             }
-        })
+        }, executor)
     }
 
     override fun close() {
