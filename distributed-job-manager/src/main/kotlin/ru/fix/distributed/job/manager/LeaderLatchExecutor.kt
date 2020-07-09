@@ -19,9 +19,16 @@ internal class LeaderLatchExecutor(
 
     fun start() = leaderLatch.start()
 
-    fun submitIfNeeded(task: Runnable): Future<*>? = synchronized(executor) {
-        if (!executor.isShutdown && leaderLatch.hasLeadership()) {
-            return executor.submit(task)
+    fun submitIfNeeded(task: () -> Unit): Future<*>? = synchronized(executor) {
+        if (hasLeadershipAndNotShutdown()) {
+            return executor.submit {
+                synchronized(executor) {
+                    if (!hasLeadershipAndNotShutdown()) {
+                        return@submit
+                    }
+                }
+                task.invoke()
+            }
         }
         return null
     }
