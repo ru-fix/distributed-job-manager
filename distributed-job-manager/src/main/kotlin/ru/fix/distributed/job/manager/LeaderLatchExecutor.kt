@@ -19,7 +19,7 @@ internal class LeaderLatchExecutor(
 
     fun start() = leaderLatch.start()
 
-    fun submitIfNeeded(task: () -> Unit): Future<*>? = synchronized(executor) {
+    fun submitIfHasLeadership(task: () -> Unit): Future<*>? = synchronized(executor) {
         if (hasLeadershipAndNotShutdown()) {
             return executor.submit {
                 synchronized(executor) {

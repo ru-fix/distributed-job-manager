@@ -42,7 +42,7 @@ internal class Rebalancer(
 
     fun start() = rebalanceEventReceiverExecutor.execute {
         rebalanceEventAccumulator.receiveReducedEventsUntilClosed {
-            leaderLatchExecutor.submitIfNeeded(this::reassignAndBalanceTasks)?.get()
+            leaderLatchExecutor.submitIfHasLeadership(this::reassignAndBalanceTasks)?.get()
         }
     }
 
