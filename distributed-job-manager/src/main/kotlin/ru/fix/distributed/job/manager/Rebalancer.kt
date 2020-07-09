@@ -70,6 +70,10 @@ internal class Rebalancer(
         logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
+                if (!leaderLatchExecutor.hasLeadershipAndNotShutdown()) {
+                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to losing leadership or shutdown" }
+                    return@tryCommit
+                }
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())
                 transaction.assignWorkPools(getZookeeperGlobalState())
             }
