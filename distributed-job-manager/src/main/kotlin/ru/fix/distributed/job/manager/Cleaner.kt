@@ -32,7 +32,7 @@ internal class Cleaner(
             initializedAliveWorkersCache: PathChildrenCache,
             workPoolCleanPeriod: DynamicProperty<Long>
     ): ScheduledFuture<*>? {
-        return scheduler.schedule(Schedule.withDelay(workPoolCleanPeriod), workPoolCleanPeriod.get()) {
+        return scheduler.schedule(Schedule.withDelay(workPoolCleanPeriod), workPoolCleanPeriod) {
             try {
                 if (leaderLatchExecutor.hasLeadershipAndNotShutdown()) {
                     ZkTransaction.tryCommit(
