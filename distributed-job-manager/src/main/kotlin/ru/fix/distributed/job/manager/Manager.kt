@@ -1,12 +1,14 @@
 package ru.fix.distributed.job.manager
 
 import org.apache.curator.framework.CuratorFramework
+import org.apache.curator.framework.recipes.cache.ChildData
 import org.apache.curator.framework.recipes.cache.CuratorCache
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener
 import org.apache.curator.framework.recipes.leader.LeaderLatch
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import java.util.concurrent.Semaphore
 
 /**
  * Only single manager is active on the cluster.
@@ -39,9 +41,16 @@ class Manager(
     )
 
     fun start() {
-        leaderLatchExecutor.addCuratorCacheListener(aliveWorkersCache, CuratorCacheListener { type, oldData, data ->
-            logger.trace { "nodeId=$nodeId aliveWorkersCache rebalance event: type=$type, oldData=$oldData, data=$data" }
-            rebalancer.handleRebalanceEvent()
+        val aliveWorkersCacheInitLocker = Semaphore(0)
+        leaderLatchExecutor.addCuratorCacheListener(aliveWorkersCache, object : CuratorCacheListener {
+            override fun event(type: CuratorCacheListener.Type?, oldData: ChildData?, data: ChildData?) {
+                logger.trace { "nodeId=$nodeId aliveWorkersCache rebalance event: type=$type, oldData=$oldData, data=$data" }
+                rebalancer.handleRebalanceEvent()
+            }
+
+            override fun initialized() {
+                aliveWorkersCacheInitLocker.release()
+            }
         })
         aliveWorkersCache.start()
 
@@ -51,8 +60,9 @@ class Manager(
         }
         leaderLatchExecutor.start()
 
-        cleaner.start()
+        aliveWorkersCacheInitLocker.acquire()
 
+        cleaner.start()
         rebalancer.start()
     }
 
