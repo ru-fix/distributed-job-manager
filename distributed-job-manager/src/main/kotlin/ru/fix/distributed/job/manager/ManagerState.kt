@@ -11,7 +11,7 @@ class ManagerState {
 
     companion object : Logging
 
-    private var currentState = AtomicReference(State.IS_NOT_LEADER)
+    private val currentState = AtomicReference(State.IS_NOT_LEADER)
 
     private val newRebalanceNeededAccumulator = ReducingEventAccumulator<ManagerEvent, Boolean> { _, newEvent ->
         when (currentState.get()!!) {
