@@ -19,7 +19,7 @@ internal class Cleaner(
         profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val leaderLatchExecutor: LeaderLatchExecutor,
+        private val managerState: ManagerState,
         private val workPoolCleanPeriod: DynamicProperty<Long>,
         private val aliveWorkersCache: CuratorCache
 ) : AutoCloseable {
@@ -30,11 +30,10 @@ internal class Cleaner(
     private val workPoolSubTree = AvailableWorkPoolSubTree(curatorFramework, paths)
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
-
     fun start(): ScheduledFuture<*>? {
         return scheduler.schedule(Schedule.withDelay(workPoolCleanPeriod), workPoolCleanPeriod) {
             try {
-                if (leaderLatchExecutor.hasLeadershipAndNotShutdown()) {
+                if (managerState.isActiveLeader()) {
                     ZkTransaction.tryCommit(
                             curatorFramework,
                             CLEAN_WORK_POOL_RETRIES_COUNT
@@ -56,7 +55,7 @@ internal class Cleaner(
         for (aliveWorkerNodeData in aliveWorkersCache.stream()) {
             val aliveWorkerPath = aliveWorkerNodeData.path
             if (aliveWorkerPath == aliveWorkersPath) {
-                continue // skip parent node (workers/)
+                continue // skip parent node "workers"
             }
             // getting "worker-id" from "workers/worker-id"
             val workerId = aliveWorkerPath.substring(aliveWorkersPath.length + 1)

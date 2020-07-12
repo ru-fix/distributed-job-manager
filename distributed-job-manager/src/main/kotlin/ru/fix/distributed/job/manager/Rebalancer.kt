@@ -10,7 +10,6 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
@@ -19,39 +18,32 @@ import java.util.concurrent.TimeUnit
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
-private val REBALANCE_EVENT = Any()
-
 internal class Rebalancer(
         profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val leaderLatchExecutor: LeaderLatchExecutor,
+        private val state: ManagerState,
         private val assignmentStrategy: AssignmentStrategy,
         private val nodeId: String
 ) : AutoCloseable {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
-    private val rebalanceEventReceiverExecutor = NamedExecutors.newSingleThreadPool(
-            "rebalance-event-receiver", profiler)
+    private val rebalanceExecutor = NamedExecutors.newSingleThreadPool(
+            "rebalance-executor", profiler)
 
-    private val rebalanceEventAccumulator = ReducingEventAccumulator.lastEventWinAccumulator<Any>()
-
-    fun handleRebalanceEvent() {
-        rebalanceEventAccumulator.publishEvent(REBALANCE_EVENT)
-    }
-
-    fun start() = rebalanceEventReceiverExecutor.execute {
-        rebalanceEventAccumulator.receiveReducedEventsUntilClosed {
-            leaderLatchExecutor.submitIfHasLeadership(this::reassignAndBalanceTasks)?.get()
+    fun start() = rebalanceExecutor.execute {
+        while (!state.isClosed()) {
+            if (state.newRebalanceNeeded()) {
+                reassignAndBalanceTasks()
+            }
         }
     }
 
     override fun close() {
-        rebalanceEventAccumulator.close()
-        rebalanceEventReceiverExecutor.shutdown()
-        if (!rebalanceEventReceiverExecutor.awaitTermination(3, TimeUnit.MINUTES)) {
+        rebalanceExecutor.shutdown()
+        if (!rebalanceExecutor.awaitTermination(3, TimeUnit.MINUTES)) {
             logger.error("Failed to wait Rebalancer executor termination")
-            rebalanceEventReceiverExecutor.shutdownNow()
+            rebalanceExecutor.shutdownNow()
         }
     }
 
@@ -70,8 +62,8 @@ internal class Rebalancer(
         logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
-                if (!leaderLatchExecutor.hasLeadershipAndNotShutdown()) {
-                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to losing leadership or shutdown" }
+                if (!state.isActiveLeader()) {
+                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to $state state" }
                     return@tryCommit
                 }
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())

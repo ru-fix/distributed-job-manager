@@ -5,6 +5,7 @@ import org.apache.curator.framework.recipes.cache.ChildData
 import org.apache.curator.framework.recipes.cache.CuratorCache
 import org.apache.curator.framework.recipes.cache.CuratorCacheListener
 import org.apache.curator.framework.recipes.leader.LeaderLatch
+import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
@@ -30,48 +31,64 @@ class Manager(
             .withDataNotCached()
             .build()
 
-    private val leaderLatchExecutor = LeaderLatchExecutor(
-            profiler, LeaderLatch(curatorFramework, paths.leaderLatch())
-    )
+    private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
+
+    private val managerState = ManagerState()
+
     private val cleaner = Cleaner(
-            profiler, paths, curatorFramework, leaderLatchExecutor, settings.workPoolCleanPeriod, aliveWorkersCache
+            profiler, paths, curatorFramework, managerState, settings.workPoolCleanPeriod, aliveWorkersCache
     )
     private val rebalancer = Rebalancer(
-            profiler, paths, curatorFramework, leaderLatchExecutor, settings.assignmentStrategy, nodeId
+            profiler, paths, curatorFramework, managerState, settings.assignmentStrategy, nodeId
     )
 
     fun start() {
-        val aliveWorkersCacheInitLocker = Semaphore(0)
-        leaderLatchExecutor.addCuratorCacheListener(aliveWorkersCache, object : CuratorCacheListener {
-            override fun event(type: CuratorCacheListener.Type?, oldData: ChildData?, data: ChildData?) {
-                logger.trace { "nodeId=$nodeId aliveWorkersCache rebalance event: type=$type, oldData=$oldData, data=$data" }
-                rebalancer.handleRebalanceEvent()
-            }
-
-            override fun initialized() {
-                aliveWorkersCacheInitLocker.release()
-            }
-        })
-        aliveWorkersCache.start()
-
-        leaderLatchExecutor.addLeadershipListener {
-            logger.info { "nodeId=$nodeId became a leader" }
-            rebalancer.handleRebalanceEvent()
-        }
-        leaderLatchExecutor.start()
-
-        aliveWorkersCacheInitLocker.acquire()
+        initCuratorCacheForManagerEvents(aliveWorkersCache, paths.aliveWorkers())
+        initLeaderLatchForManagerEvents()
 
         cleaner.start()
         rebalancer.start()
+    }
+
+    private fun initLeaderLatchForManagerEvents() {
+        leaderLatch.addListener(object : LeaderLatchListener {
+            override fun notLeader() {
+                logger.info { "nodeId=$nodeId lost a leadership" }
+                managerState.publishEvent(ManagerEvent.LEADERSHIP_LOST)
+            }
+
+            override fun isLeader() {
+                logger.info { "nodeId=$nodeId became a leader" }
+                managerState.publishEvent(ManagerEvent.LEADERSHIP_ACQUIRED)
+            }
+        })
+        leaderLatch.start()
+    }
+
+    private fun initCuratorCacheForManagerEvents(cache: CuratorCache, treeName: String) {
+        val cacheInitLocker = Semaphore(0)
+        cache.listenable().addListener(object : CuratorCacheListener {
+            override fun event(type: CuratorCacheListener.Type?, oldData: ChildData?, data: ChildData?) {
+                logger.trace { "nodeId=$nodeId $treeName event: type=$type, oldData=$oldData, data=$data" }
+                managerState.publishEvent(ManagerEvent.COMMON_REBALANCE_EVENT)
+            }
+
+            override fun initialized() {
+                cacheInitLocker.release()
+            }
+        })
+        cache.start()
+        cacheInitLocker.acquire()
     }
 
     override fun close() {
         val managerStopTime = System.currentTimeMillis()
         logger.info("Closing DJM manager entity...")
 
+        managerState.publishEvent(ManagerEvent.SHUTDOWN)
+
         aliveWorkersCache.close()
-        leaderLatchExecutor.close()
+        leaderLatch.close()
         rebalancer.close()
         cleaner.close()
 
