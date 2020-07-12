@@ -4,6 +4,9 @@ import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
 import java.util.concurrent.atomic.AtomicReference
 
+/**
+ * Gives information about Manager state (leadership, shutdown status, necessity for rebalance)
+ * */
 class ManagerState {
 
     companion object : Logging

@@ -18,6 +18,9 @@ import java.util.concurrent.TimeUnit
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
+/**
+ * Performs rebalance, if [ManagerState] allows
+ * */
 internal class Rebalancer(
         profiler: Profiler,
         private val paths: ZkPathsManager,
