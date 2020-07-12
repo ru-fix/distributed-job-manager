@@ -20,7 +20,7 @@ class ManagerState {
 
     fun publishEvent(event: ManagerEvent) = newRebalanceNeededAccumulator.publishEvent(event)
 
-    fun newRebalanceNeeded() = newRebalanceNeededAccumulator.extractAccumulatedValueOrNull() ?: false
+    fun awaitRebalanceNecessity() = newRebalanceNeededAccumulator.extractAccumulatedValueOrNull() ?: false
 
     fun isActiveLeader() = currentState.get() == State.IS_LEADER
 

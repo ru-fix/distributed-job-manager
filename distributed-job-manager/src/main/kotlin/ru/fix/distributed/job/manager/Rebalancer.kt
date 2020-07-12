@@ -33,7 +33,7 @@ internal class Rebalancer(
 
     fun start() = rebalanceExecutor.execute {
         while (!state.isClosed()) {
-            if (state.newRebalanceNeeded()) {
+            if (state.awaitRebalanceNecessity()) {
                 reassignAndBalanceTasks()
             }
         }
