@@ -45,8 +45,8 @@ class ManagerState {
             currentState.set(State.SHUTDOWN)
             false
         }
-        else -> {
-            logger.warn("received incorrect event for leader: $event")
+        ManagerEvent.LEADERSHIP_ACQUIRED -> {
+            logger.warn { "received ${ManagerEvent.LEADERSHIP_ACQUIRED} event, but manager is already a the leader" }
             false
         }
     }
@@ -66,8 +66,8 @@ class ManagerState {
             currentState.set(State.SHUTDOWN)
             false
         }
-        else -> {
-            logger.warn("received incorrect event for non-leader: $event")
+        ManagerEvent.LEADERSHIP_LOST -> {
+            logger.warn { "received ${ManagerEvent.LEADERSHIP_LOST} event, but manager has already lost leadership" }
             false
         }
     }
