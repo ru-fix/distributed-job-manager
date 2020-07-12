@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 private const val CLEAN_WORK_POOL_RETRIES_COUNT = 1
 
 /**
- * [Cleaner] removes in background irrelevant jobs from /work-pool/ subtree.
+ * Removes in background irrelevant jobs from /work-pool/ subtree, if [ManagerState] allows.
  * Job is irrelevant if there are no worker that could run this job.
  * */
 internal class Cleaner(
