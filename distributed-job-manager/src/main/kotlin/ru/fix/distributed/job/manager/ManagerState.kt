@@ -46,7 +46,7 @@ class ManagerState {
             false
         }
         ManagerEvent.LEADERSHIP_ACQUIRED -> {
-            logger.warn { "received ${ManagerEvent.LEADERSHIP_ACQUIRED} event, but manager is already a the leader" }
+            logger.warn { "received ${ManagerEvent.LEADERSHIP_ACQUIRED} event, but manager is already the leader" }
             false
         }
     }
