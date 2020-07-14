@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.AbstractJobManagerTest
 import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class CuratorCacheTest : AbstractJobManagerTest() {
@@ -25,10 +26,13 @@ class CuratorCacheTest : AbstractJobManagerTest() {
             zkTestingServer.client.create().forPath(ZKPaths.makePath(path, it.toString()))
         }
         val workPooledCache = CuratorCache.build(zkTestingServer.client, path)
+        val allChangedEventsReachedSemaphore = Semaphore(0)
         val curatorCacheListener = CuratorCacheListener { type, _, _ ->
             when (type) {
                 CuratorCacheListener.Type.NODE_CHANGED -> {
-                    changeEventsTriggered.incrementAndGet()
+                    if (changeEventsTriggered.incrementAndGet() == eventsCount) {
+                        allChangedEventsReachedSemaphore.release()
+                    }
                 }
                 CuratorCacheListener.Type.NODE_CREATED -> {
                     createEventsTriggered.incrementAndGet()
@@ -45,6 +49,7 @@ class CuratorCacheTest : AbstractJobManagerTest() {
             zkTestingServer.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
         }
         assertEquals(eventsCount + 1, createEventsTriggered.get())
+        allChangedEventsReachedSemaphore.tryAcquire(2, TimeUnit.SECONDS)
         assertNotEquals(eventsCount, changeEventsTriggered.get())
     }
 
@@ -61,12 +66,15 @@ class CuratorCacheTest : AbstractJobManagerTest() {
         }
         val workPooledCache = CuratorCache.build(zkTestingServer.client, path)
         val initSemaphore = Semaphore(0)
+        val allChangedEventsReachedSemaphore = Semaphore(0)
 
         val curatorCacheListener = object : CuratorCacheListener {
             override fun event(type: CuratorCacheListener.Type?, oldData: ChildData?, data: ChildData?) {
                 when (type) {
                     CuratorCacheListener.Type.NODE_CHANGED -> {
-                        changeEventsTriggered.incrementAndGet()
+                        if (changeEventsTriggered.incrementAndGet() == eventsCount) {
+                            allChangedEventsReachedSemaphore.release()
+                        }
                     }
                     CuratorCacheListener.Type.NODE_CREATED -> {
                         createEventsTriggered.incrementAndGet()
@@ -89,6 +97,7 @@ class CuratorCacheTest : AbstractJobManagerTest() {
             zkTestingServer.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
         }
         assertEquals(eventsCount + 1, createEventsTriggered.get())
+        allChangedEventsReachedSemaphore.tryAcquire(2, TimeUnit.SECONDS)
         assertEquals(eventsCount, changeEventsTriggered.get())
     }
 
