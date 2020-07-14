@@ -16,14 +16,14 @@ import java.util.concurrent.TimeUnit
 private const val CLEAN_WORK_POOL_RETRIES_COUNT = 1
 
 /**
- * Removes in background irrelevant jobs from /work-pool/ subtree, if [ManagerState] allows.
+ * Removes in background irrelevant jobs from /work-pool/ subtree, if [managerState] allows.
  * Job is irrelevant if there are no worker that could run this job.
  * */
 internal class Cleaner(
         profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val managerState: ManagerState,
+        private val managerState: DynamicProperty<Manager.State>,
         private val workPoolCleanPeriod: DynamicProperty<Long>,
         private val aliveWorkersCache: CuratorCache
 ) : AutoCloseable {
@@ -37,7 +37,7 @@ internal class Cleaner(
     fun start(): ScheduledFuture<*>? {
         return scheduler.schedule(Schedule.withDelay(workPoolCleanPeriod), workPoolCleanPeriod) {
             try {
-                if (managerState.isActiveLeader()) {
+                if (managerState.get() == Manager.State.IS_LEADER) {
                     ZkTransaction.tryCommit(
                             curatorFramework,
                             CLEAN_WORK_POOL_RETRIES_COUNT

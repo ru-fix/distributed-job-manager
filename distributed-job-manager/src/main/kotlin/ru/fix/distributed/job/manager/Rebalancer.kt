@@ -4,56 +4,34 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
 import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
-import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.stdlib.concurrency.threads.NamedExecutors
+import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
 /**
- * Performs rebalance, if [ManagerState] allows
+ * Performs rebalance, if [managerState] allows
  * */
 internal class Rebalancer(
-        profiler: Profiler,
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val state: ManagerState,
+        private val managerState: DynamicProperty<Manager.State>,
         private val assignmentStrategy: AssignmentStrategy,
         private val nodeId: String
-) : AutoCloseable {
+) {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
-
-    private val rebalanceExecutor = NamedExecutors.newSingleThreadPool(
-            "rebalance-executor", profiler)
-
-    fun start() = rebalanceExecutor.execute {
-        while (!state.isClosed()) {
-            if (state.awaitRebalanceNecessity()) {
-                reassignAndBalanceTasks()
-            }
-        }
-    }
-
-    override fun close() {
-        rebalanceExecutor.shutdown()
-        if (!rebalanceExecutor.awaitTermination(3, TimeUnit.MINUTES)) {
-            logger.error("Failed to wait Rebalancer executor termination")
-            rebalanceExecutor.shutdownNow()
-        }
-    }
 
     /**
      * Rebalance tasks in tasks tree for all available workers after any failure or workers count change
      */
-    private fun reassignAndBalanceTasks() {
+    fun reassignAndBalanceTasks() {
         if (curatorFramework.state != CuratorFrameworkState.STARTED) {
             logger.error("Ignore reassignAndBalanceTasks: curatorFramework is not started")
             return
@@ -65,8 +43,8 @@ internal class Rebalancer(
         logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
-                if (!state.isActiveLeader()) {
-                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to $state state" }
+                if (managerState.get() != Manager.State.IS_LEADER) {
+                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to shutdown or losing leadership" }
                     return@tryCommit
                 }
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())

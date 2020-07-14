@@ -9,6 +9,9 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.dynamic.property.api.AtomicProperty
+import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
+import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import java.util.concurrent.Semaphore
 
 /**
@@ -33,33 +36,47 @@ class Manager(
 
     private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
-    private val managerState = ManagerState()
+    private val currentState = AtomicProperty(State.IS_NOT_LEADER)
 
     private val cleaner = Cleaner(
-            profiler, paths, curatorFramework, managerState, settings.workPoolCleanPeriod, aliveWorkersCache
+            profiler, paths, curatorFramework, currentState, settings.workPoolCleanPeriod, aliveWorkersCache
     )
     private val rebalancer = Rebalancer(
-            profiler, paths, curatorFramework, managerState, settings.assignmentStrategy, nodeId
+            paths, curatorFramework, currentState, settings.assignmentStrategy, nodeId
     )
+
+    private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance_thread", profiler)
+    private val rebalanceAccumulator =
+            ReducingEventAccumulator.lastEventWinAccumulator<RebalanceTrigger>()
 
     fun start() {
         initCuratorCacheForManagerEvents(aliveWorkersCache, paths.aliveWorkers())
         initLeaderLatchForManagerEvents()
 
         cleaner.start()
-        rebalancer.start()
+        startRebalancingTask()
+    }
+
+    private fun startRebalancingTask() {
+        rebalanceExecutor.execute {
+            while (currentState.get() != State.SHUTDOWN) {
+                if (rebalanceAccumulator.extractAccumulatedValueOrNull() != null) {
+                    rebalancer.reassignAndBalanceTasks()
+                }
+            }
+        }
     }
 
     private fun initLeaderLatchForManagerEvents() {
         leaderLatch.addListener(object : LeaderLatchListener {
             override fun notLeader() {
                 logger.info { "nodeId=$nodeId lost a leadership" }
-                managerState.publishEvent(ManagerEvent.LEADERSHIP_LOST)
+                handleManagerEvent(ManagerEvent.LEADERSHIP_LOST)
             }
 
             override fun isLeader() {
                 logger.info { "nodeId=$nodeId became a leader" }
-                managerState.publishEvent(ManagerEvent.LEADERSHIP_ACQUIRED)
+                handleManagerEvent(ManagerEvent.LEADERSHIP_ACQUIRED)
             }
         })
         leaderLatch.start()
@@ -70,7 +87,7 @@ class Manager(
         cache.listenable().addListener(object : CuratorCacheListener {
             override fun event(type: CuratorCacheListener.Type?, oldData: ChildData?, data: ChildData?) {
                 logger.trace { "nodeId=$nodeId $treeName event: type=$type, oldData=$oldData, data=$data" }
-                managerState.publishEvent(ManagerEvent.COMMON_REBALANCE_EVENT)
+                handleManagerEvent(ManagerEvent.ZK_WORKERS_CONFIG_CHANGED)
             }
 
             override fun initialized() {
@@ -81,18 +98,72 @@ class Manager(
         cacheInitLocker.acquire()
     }
 
+    private fun handleManagerEvent(newEvent: ManagerEvent) {
+        when (currentState.get()!!) {
+            State.IS_NOT_LEADER -> handleManagerEventAsNonLeader(newEvent)
+            State.IS_LEADER -> handleManagerEventAsLeader(newEvent)
+            State.SHUTDOWN -> {
+            }
+        }
+    }
+
+    private fun handleManagerEventAsLeader(event: ManagerEvent) {
+        when (event) {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+                rebalanceAccumulator.publishEvent(RebalanceTrigger.DO_REBALANCE)
+            }
+            ManagerEvent.LEADERSHIP_LOST -> {
+                currentState.set(State.IS_NOT_LEADER)
+            }
+            ManagerEvent.SHUTDOWN -> {
+                currentState.set(State.SHUTDOWN)
+            }
+            ManagerEvent.LEADERSHIP_ACQUIRED -> {
+                logger.warn { "received ${ManagerEvent.LEADERSHIP_ACQUIRED} event, but manager is already the leader" }
+            }
+        }
+    }
+
+    private fun handleManagerEventAsNonLeader(event: ManagerEvent) {
+        when (event) {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+            }
+            ManagerEvent.LEADERSHIP_ACQUIRED -> {
+                currentState.set(State.IS_LEADER)
+                rebalanceAccumulator.publishEvent(RebalanceTrigger.DO_REBALANCE)
+            }
+            ManagerEvent.SHUTDOWN -> {
+                currentState.set(State.SHUTDOWN)
+            }
+            ManagerEvent.LEADERSHIP_LOST -> {
+                logger.warn { "received ${ManagerEvent.LEADERSHIP_LOST} event, but manager has already lost leadership" }
+            }
+        }
+    }
+
     override fun close() {
         val managerStopTime = System.currentTimeMillis()
         logger.info("Closing DJM manager entity...")
 
-        managerState.publishEvent(ManagerEvent.SHUTDOWN)
+        handleManagerEvent(ManagerEvent.SHUTDOWN)
 
         aliveWorkersCache.close()
         leaderLatch.close()
-        rebalancer.close()
         cleaner.close()
 
         logger.info { "DJM manager was closed. Took ${System.currentTimeMillis() - managerStopTime} ms" }
+    }
+
+    private enum class ManagerEvent {
+        ZK_WORKERS_CONFIG_CHANGED, LEADERSHIP_LOST, LEADERSHIP_ACQUIRED, SHUTDOWN
+    }
+
+    private enum class RebalanceTrigger {
+        DO_REBALANCE
+    }
+
+    enum class State {
+        IS_LEADER, IS_NOT_LEADER, SHUTDOWN
     }
 
     companion object : Logging
