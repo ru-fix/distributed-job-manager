@@ -100,10 +100,10 @@ class Manager(
         cacheInitLocker.acquire()
     }
 
-    private fun handleManagerEvent(newEvent: ManagerEvent) {
+    private fun handleManagerEvent(event: ManagerEvent) {
         when (currentState.get()!!) {
-            State.IS_NOT_LEADER -> handleManagerEventAsNonLeader(newEvent)
-            State.IS_LEADER -> handleManagerEventAsLeader(newEvent)
+            State.IS_NOT_LEADER -> handleManagerEventAsNonLeader(event)
+            State.IS_LEADER -> handleManagerEventAsLeader(event)
             State.SHUTDOWN -> {
             }
         }
