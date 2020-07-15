@@ -42,7 +42,7 @@ class Manager(
             profiler, paths, curatorFramework, currentState, settings.workPoolCleanPeriod, aliveWorkersCache
     )
     private val rebalancer = Rebalancer(
-            paths, curatorFramework, currentState, settings.assignmentStrategy, nodeId
+            paths, curatorFramework, settings.assignmentStrategy, nodeId
     )
 
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance_thread", profiler)
@@ -59,8 +59,10 @@ class Manager(
 
     private fun startRebalancingTask() {
         rebalanceExecutor.execute {
-            while (currentState.get() != State.SHUTDOWN) {
-                if (rebalanceAccumulator.extractAccumulatedValueOrNull() != null) {
+            rebalanceAccumulator.receiveReducedEvents(
+                    stopCondition = { currentState.get() == State.SHUTDOWN }
+            ) {
+                if (currentState.get() == State.IS_LEADER) {
                     rebalancer.reassignAndBalanceTasks()
                 }
             }

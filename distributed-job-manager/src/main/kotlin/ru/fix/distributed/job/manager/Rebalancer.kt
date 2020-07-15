@@ -9,7 +9,6 @@ import ru.fix.distributed.job.manager.model.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
@@ -17,12 +16,11 @@ import java.util.*
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
 /**
- *  If [managerState] allows, performs rebalance according to ZK tree state, using given [assignmentStrategy]
+ *  Performs rebalance according to ZK tree state, using given [assignmentStrategy]
  * */
 internal class Rebalancer(
         private val paths: ZkPathsManager,
         private val curatorFramework: CuratorFramework,
-        private val managerState: DynamicProperty<Manager.State>,
         private val assignmentStrategy: AssignmentStrategy,
         private val nodeId: String
 ) {
@@ -43,10 +41,6 @@ internal class Rebalancer(
         logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
-                if (managerState.get() != Manager.State.IS_LEADER) {
-                    logger.debug { "nodeId=$nodeId stop retrying to commit rebalance due to shutdown or losing leadership" }
-                    return@tryCommit
-                }
                 transaction.checkAndUpdateVersion(paths.assignmentVersion())
                 transaction.assignWorkPools(getZookeeperGlobalState())
             }
