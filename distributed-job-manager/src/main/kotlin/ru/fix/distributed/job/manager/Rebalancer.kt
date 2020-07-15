@@ -17,7 +17,7 @@ import java.util.*
 private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
 
 /**
- * Performs rebalance, if [managerState] allows
+ *  If [managerState] allows, performs rebalance according to ZK tree state, using given [assignmentStrategy]
  * */
 internal class Rebalancer(
         private val paths: ZkPathsManager,
@@ -29,7 +29,7 @@ internal class Rebalancer(
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
     /**
-     * Rebalance tasks in tasks tree for all available workers after any failure or workers count change
+     * rebalance current available work-items between current alive workers using given [assignmentStrategy]
      */
     fun reassignAndBalanceTasks() {
         if (curatorFramework.state != CuratorFrameworkState.STARTED) {
