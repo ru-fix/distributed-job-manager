@@ -4,10 +4,7 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
 import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
@@ -204,8 +201,8 @@ internal class Rebalancer(
         }
     }
 
-    private fun generateAvailability(assignmentState: AssignmentState): MutableMap<JobId, MutableSet<WorkerId>> {
-        val availability: MutableMap<JobId, MutableSet<WorkerId>> = HashMap()
+    private fun generateAvailability(assignmentState: AssignmentState): Availability {
+        val availability = Availability()
         for ((workerId, workItems) in assignmentState) {
             for (workItem in workItems) {
                 val workersOnJob = availability.computeIfAbsent(workItem.jobId) { HashSet() }
