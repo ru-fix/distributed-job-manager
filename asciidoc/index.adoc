@@ -144,7 +144,7 @@ job-manager
   └ worker-version
 ```
 
-Worker life-cycle: +
+=== StateWorker life-cycle:
 
 Every time worker (re)connected to cluster, it process few step in single transaction, using `work-pool-version` and `worker-version` locks: +
 
@@ -180,16 +180,12 @@ Every time worker (re)connected to cluster, it process few step in single transa
 Worker listens for updates in `workers/worker/assigned` subtree and stops/launches jobs accordingly. +
 Worker also periodically updates its jobs in `work-pool` subtree using `work-pool-version` lock +
 
-Manager life-cycle:
+=== Manager life-cycle:
 
-Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed.
+Manager listens for updates in `alive` and `work-pool` subtrees and invokes rebalance accordingly.
 During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock  +
 
-Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree using `work-pool-version` lock (clearing process) +
-
-In future releases:
-
-* Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
+Manager also periodically removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree using `work-pool-version` lock (clearing process) +
 
 Full ZK tree you can see below:
 

@@ -34,6 +34,11 @@ class Manager(
             .withDataNotCached()
             .build()
 
+    private val workPoolCache = CuratorCache
+            .bridgeBuilder(curatorFramework, paths.availableWorkPool())
+            .withDataNotCached()
+            .build()
+
     private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
     private val currentState = AtomicProperty(State.IS_NOT_LEADER)
@@ -51,6 +56,7 @@ class Manager(
 
     fun start() {
         initCuratorCacheForManagerEvents(aliveWorkersCache, paths.aliveWorkers())
+        initCuratorCacheForManagerEvents(workPoolCache, paths.availableWorkPool())
         initLeaderLatchForManagerEvents()
 
         cleaner.start()
@@ -150,6 +156,7 @@ class Manager(
         handleManagerEvent(ManagerEvent.SHUTDOWN)
 
         aliveWorkersCache.close()
+        workPoolCache.close()
         leaderLatch.close()
         cleaner.close()
 
