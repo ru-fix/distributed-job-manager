@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 
 /**
  * Manage jobs that currently scheduled. Some of them are running and some will be launched any time.
- *
+ * <p>
  * Implementation remark: DJM is not designed for frequent rebalance and scheduling.
  * We can work with {@code scheduledJobs} under common lock.
  *

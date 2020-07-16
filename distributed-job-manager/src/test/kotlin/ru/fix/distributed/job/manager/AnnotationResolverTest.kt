@@ -6,7 +6,6 @@ import ru.fix.distributed.job.manager.annotation.JobIdField
 import ru.fix.distributed.job.manager.model.JobDescriptor
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
-import java.util.*
 
 internal class AnnotationResolverTest {
 
@@ -27,7 +26,7 @@ internal class AnnotationResolverTest {
     fun `JobDescriptor WHEN jobId specified by method THEN getJobId delegated to that method` () {
         val job = JobDescribingIdByMethod()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.jobId.get(), descriptor.getJobId())
+        assertEquals(job.getJobId(), descriptor.getJobId())
     }
 
     class JobDescribingIdByAnnotation : DistributedJob {
@@ -39,7 +38,7 @@ internal class AnnotationResolverTest {
             throw UnsupportedOperationException()
         }
 
-        override fun run(context: DistributedJobContext?) {
+        override fun run(context: DistributedJobContext) {
             throw UnsupportedOperationException()
         }
 
@@ -58,15 +57,13 @@ internal class AnnotationResolverTest {
 
     class JobDescribingIdByMethod : DistributedJob {
 
-        override fun getJobId(): Optional<String> {
-            return Optional.of("JobDescribingIdByMethod")
-        }
+        override fun getJobId() = "JobDescribingIdByMethod"
 
         override fun getSchedule(): DynamicProperty<Schedule> {
             throw UnsupportedOperationException()
         }
 
-        override fun run(context: DistributedJobContext?) {
+        override fun run(context: DistributedJobContext) {
             throw UnsupportedOperationException()
         }
 
@@ -89,7 +86,7 @@ internal class AnnotationResolverTest {
             throw UnsupportedOperationException()
         }
 
-        override fun run(context: DistributedJobContext?) {
+        override fun run(context: DistributedJobContext) {
             throw UnsupportedOperationException()
         }
 

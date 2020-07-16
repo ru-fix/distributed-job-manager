@@ -13,10 +13,6 @@ public final class WorkPool {
         this.items = new HashSet<>(items);
     }
 
-    public Set<String> getItems() {
-        return items;
-    }
-
     public static WorkPool of(Set<String> items) {
         return new WorkPool(items);
     }
@@ -24,6 +20,10 @@ public final class WorkPool {
     @NotNull
     public static WorkPool single() {
         return new WorkPool(Collections.singleton("singleton"));
+    }
+
+    public Set<String> getItems() {
+        return items;
     }
 
 }

@@ -1,16 +1,19 @@
 import de.marcphilipp.gradle.nexus.NexusPublishExtension
+import org.asciidoctor.gradle.AsciidoctorTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
-import org.asciidoctor.gradle.AsciidoctorTask
 
 buildscript {
     repositories {
         jcenter()
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
         classpath(Libs.gradle_release_plugin)
@@ -26,8 +29,8 @@ plugins {
     kotlin("jvm") version Vers.kotlin apply false
     signing
     `maven-publish`
-    id(Libs.nexus_publish_plugin) version "0.3.0" apply false
-    id(Libs.nexus_staging_plugin) version "0.21.0"
+    id(Libs.nexus_publish_plugin) version "0.4.0" apply false
+    id(Libs.nexus_staging_plugin) version "0.21.2"
     id("org.asciidoctor.convert") version Vers.asciidoctor
 }
 
@@ -77,6 +80,7 @@ subprojects {
     repositories {
         jcenter()
         mavenCentral()
+        mavenLocal()
     }
 
     val sourcesJar by tasks.creating(Jar::class) {
@@ -110,7 +114,10 @@ subprojects {
                 stagingProfileId.set("1f0730098fd259")
             }
         }
+        clientTimeout.set(Duration.of(4, ChronoUnit.MINUTES))
+        connectTimeout.set(Duration.of(4, ChronoUnit.MINUTES))
     }
+
 
     project.afterEvaluate {
         publishing {
@@ -179,7 +186,10 @@ subprojects {
 
     tasks {
         withType<KotlinCompile> {
-            kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions {
+                jvmTarget = JavaVersion.VERSION_1_8.toString()
+                freeCompilerArgs = listOf("-Xjvm-default=enable")
+            }
         }
         withType<Test> {
             useJUnitPlatform()
@@ -187,14 +197,9 @@ subprojects {
             maxParallelForks = 10
 
             testLogging {
-                events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
-                showStandardStreams = true
+                events(TestLogEvent.FAILED)
+                showStandardStreams = false
                 exceptionFormat = TestExceptionFormat.FULL
-            }
-        }
-        withType<KotlinCompile>{
-            kotlinOptions {
-                jvmTarget = "1.8"
             }
         }
     }

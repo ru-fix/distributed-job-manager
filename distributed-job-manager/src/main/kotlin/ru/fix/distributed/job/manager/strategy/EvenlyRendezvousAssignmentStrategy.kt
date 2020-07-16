@@ -17,7 +17,7 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         val stringFunnel = Funnel<String> { from, into ->
             into.putBytes(from.toByteArray(StandardCharsets.UTF_8))
         }
@@ -63,7 +63,6 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
                 }
             }
         }
-        return currentAssignment
     }
 
     private fun limitWorkItemsOnWorker(workItemsCount: Int, workersCount: Int): Int {

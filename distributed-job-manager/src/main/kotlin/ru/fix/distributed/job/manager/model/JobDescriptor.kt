@@ -6,20 +6,19 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 
 class JobDescriptor(private val job: DistributedJob) {
 
-    private val jobId: String = job.jobId
-            .orElse(AnnotationResolver.resolveJobId(job))
+    private val jobId: String = job.getJobId() ?: AnnotationResolver.resolveJobId(job)
 
     fun getJobId(): String = jobId
 
-    fun run(context: DistributedJobContext?) = job.run(context)
+    fun run(context: DistributedJobContext) = job.run(context)
 
-    fun getInitialJobDelay(): Long = job.initialJobDelay
+    fun getInitialJobDelay(): DynamicProperty<Long> = job.getInitialJobDelay()
 
-    fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy = job.workPoolRunningStrategy
+    fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy = job.getWorkPoolRunningStrategy()
 
-    fun getSchedule(): DynamicProperty<Schedule> = job.schedule
+    fun getSchedule(): DynamicProperty<Schedule> = job.getSchedule()
 
-    fun getWorkPool(): WorkPool = job.workPool
+    fun getWorkPool(): WorkPool = job.getWorkPool()
 
-    fun getWorkPoolCheckPeriod(): Long = job.workPoolCheckPeriod
+    fun getWorkPoolCheckPeriod(): Long = job.getWorkPoolCheckPeriod()
 }

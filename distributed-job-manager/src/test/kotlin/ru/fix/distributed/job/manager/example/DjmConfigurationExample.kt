@@ -4,7 +4,6 @@ import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry.ExponentialBackoffRetry
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.*
-import ru.fix.distributed.job.manager.annotation.JobIdField
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
@@ -13,83 +12,53 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 class RebillJob : DistributedJob {
-    @JobIdField
-    private val id = "rebill-job"
+    override fun getJobId() = "rebill-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(1000L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
+    override fun getWorkPool(): WorkPool {
+        return WorkPool.of((1..15).map { "task-$it" }.toSet())
     }
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
+
     //...
 }
 
 class SmsJob : DistributedJob {
-    @JobIdField
-    private val id = "sms-job"
+    override fun getJobId(): String = "sms-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(100L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
-    }
+    override fun getWorkPool() = WorkPool.single()
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
     // ...
 }
 
 class UssdJob : DistributedJob {
-    @JobIdField
-    private val id = "ussd-job"
+    override fun getJobId(): String = "ussd-job"
 
-    override fun getSchedule(): DynamicProperty<Schedule>? {
-        return null
-    }
+    override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(0L))
 
-    @Throws(Exception::class)
     override fun run(context: DistributedJobContext) {
-
     }
 
-    override fun getWorkPool(): WorkPool? {
-        return null
-    }
+    override fun getWorkPool() = WorkPool.single()
 
-    override fun getWorkPoolRunningStrategy(): WorkPoolRunningStrategy? {
-        return null
-    }
+    override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
-    override fun getWorkPoolCheckPeriod(): Long {
-        return 0
-    }
+    override fun getWorkPoolCheckPeriod() = 0L
 }
 
 private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
@@ -99,7 +68,7 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
 
@@ -115,9 +84,7 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                 }
             }
-
         }
-        return currentAssignment
     }
 }
 
@@ -129,7 +96,7 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
+    ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
             val availableWorkers = HashSet(value)
@@ -154,7 +121,6 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
                 itemsToAssign.remove(item)
             }
         }
-        return currentAssignment
     }
 }
 
@@ -164,8 +130,8 @@ class CustomAssignmentStrategy : AssignmentStrategy {
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>
-    ): AssignmentState {
-        var newState = ussdAssignmentStrategy.reassignAndBalance(
+    ) {
+        ussdAssignmentStrategy.reassignAndBalance(
                 mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!),
                 prevAssignment,
                 currentAssignment,
@@ -173,19 +139,19 @@ class CustomAssignmentStrategy : AssignmentStrategy {
         )
         availability.remove(JobId("ussd-job"))
 
-        newState = smsAssignmentStrategy.reassignAndBalance(
+        smsAssignmentStrategy.reassignAndBalance(
                 mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!),
                 prevAssignment,
-                newState,
+                currentAssignment,
                 itemsToAssign
         )
         availability.remove(JobId("sms-job"))
 
-        // reassign items of other jobs using evenly spread strategy
-        return AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
+        // reassign items of other jobs using evenly rendezvous strategy
+        AssignmentStrategies.EVENLY_RENDEZVOUS.reassignAndBalance(
                 availability,
                 prevAssignment,
-                newState,
+                currentAssignment,
                 itemsToAssign
         )
     }
@@ -200,7 +166,9 @@ fun main() {
                     nodeId = "my-app-instance-1",
                     rootPath = "zk/root/path",
                     assignmentStrategy = CustomAssignmentStrategy(),
-                    timeToWaitTermination = DynamicProperty.of(180_000L))
+                    timeToWaitTermination = DynamicProperty.of(180_000L),
+                    workPoolCleanPeriod = DynamicProperty.of(1_000L)
+            )
     )
 }
 

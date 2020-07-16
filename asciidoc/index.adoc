@@ -6,27 +6,31 @@
 [abstract]
 DistributedJobManager will schedule tasks and balance workload in the cluster.
 [link=https://search.maven.org/search?q=g:ru.fix%20and%20a:distributed-job-manager]
+
 image::https://img.shields.io/maven-central/v/ru.fix/distributed-job-manager.svg[]
 image:https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png[32,32]
 link:https://github.com/ru-fix/distributed-job-manager[]
 
 == Concept
 
-DistributedJobManager (DJM) stores it's state in link:https://zookeeper.apache.org/[ZooKeeper] +
-DJM lives withing JVM application and maintain it's own thread pool. +
+DistributedJobManager (DJM) stores its state in link:https://zookeeper.apache.org/[ZooKeeper] +
+DJM lives within JVM application and maintain its own thread pool. +
 DJM regularly launches user defined jobs in separate threads based on schedule. +
-User defined Job is any class that implements `DistributedJob` interface. +
-DJM will restart Job in case of any failure. +
+User defined Job is a class that implements `DistributedJob` interface. +
+DJM will restart Job in case of any Job failure. +
 DJM balance workload between Jobs +
-DJM consists of two parts: Manager and Worker. Each DJM instance has active Worker.
-  But only one DJM instance has active Manager. +
-Manager orchestrate Job between Workers in the cluster.
+
+DJM consists of two parts: Manager and Worker.
+Each DJM instance has active Worker.
+But only one DJM instance has active Manager. +
+Manager orchestrate Job assignment between Workers in the cluster.
 
 image::djm-zk.png[]
 
 User defined Job should implement `DistributedJob` interface and provide information about work-items. +
 Work-item is a smallest indivisible peace of work. +
 Job WorkPool is a list of work-items that DJM will split between active Workers.
+
 [code]
 ----
 class MyJob implements DistributedJob{
@@ -39,10 +43,10 @@ class MyJob implements DistributedJob{
 
 Job informs DJM about WorkPool. +
 DJM split work-items from WorkPool among all Workers according to assignment strategy. +
-If Job define WorkPool with single work-item then it means that such job will be launched by DJM
-only within single application in the cluster.
+If Job define WorkPool with single work-item then it means that such job will be launched by DJM only within single application in the cluster.
 
 When DJM launches Job it passes information about work-items that Job should process.
+
 [code]
 ----
 class MyJob implements DistributedJob{
@@ -68,7 +72,6 @@ include::{sourcedir}/ru/fix/distributed/job/manager/example/DjmConfigurationExam
 
 image::djm.png[]
 
-
 == Getting started
 
 === Add dependency into your project.
@@ -77,6 +80,7 @@ image::djm.png[]
 * distributed-job-manager image:https://img.shields.io/maven-central/v/ru.fix/distributed-job-manager.svg[link=https://search.maven.org/search?q=g:ru.fix%20and%20a:distributed-job-manager]
 
 === Launch DJM
+
 DJM requires list of ZooKeeper hosts and path within ZooKeeper that will be used to store DJM state. +
 DJM will use provided nodeId to identify application instance within cluster. +
 
@@ -94,14 +98,15 @@ djm.close();
 ----
 
 === Monitoring and metrics
+
 DJM expose Jobs state through profiler metrics. +
 * What tasks are currently running.
 * How long it took for task to complete.
 * How many work items processed.
 * etc.
 
-
 == Reassignment
+
 Reassignment is a process when Master change Job and work-items assigment between application instances in the cluster. +
 Reassignment is triggered by
 
@@ -123,8 +128,10 @@ image::djm-reassignment.png[]
 Main goal of rebalance process is to minimize unnecessary job restarts and reassignments.
 
 == State
+
 DJM keeps cluster state as a tree of zookeeper nodes. +
 Once created, DJM initializes zookeeper paths, if needed:
+
 ```
 job-manager
   └ alive
@@ -136,17 +143,20 @@ job-manager
   └ worker-assignment-version
   └ worker-version
 ```
+
 Worker life-cycle: +
 
-Every time worker (re)connected to cluster, it process few step in single transaction,
-using `work-pool-version` and `worker-version` locks: +
+Every time worker (re)connected to cluster, it process few step in single transaction, using `work-pool-version` and `worker-version` locks: +
 
 * (re)creates ephemeral node in `alive` subtree, to inform manager about (re)connecting
+
 ```
   └ alive
     └ worker_1
 ```
+
 * (re)creates its subtree with empty `assigned` subtree (this needs `worker-version` lock)
+
 ```
   └ workers
     └ worker_1
@@ -155,7 +165,9 @@ using `work-pool-version` and `worker-version` locks: +
         └ elasticsearch.upload.job
       └ assigned
 ```
+
 * registers (or updates) its jobs in common `work-pool` subtree (this needs  `work-pool-version` lock)
+
 ```
   └ work-pool
     └ async.report.building.job
@@ -170,17 +182,17 @@ Worker also periodically updates its jobs in `work-pool` subtree using `work-poo
 
 Manager life-cycle:
 
-Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed: +
+Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was changed.
+During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock  +
 
-* Updates workers `assigned` subtree using `worker-assignment-version` lock
+Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree using `work-pool-version` lock (clearing process) +
 
 In future releases:
 
 * Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
-* Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from `work-pool` subtree
-using `work-pool-version` lock (clearing process)
 
 Full ZK tree you can see below:
+
 ```
 job-manager
   └ alive //alive workers that can run jobs
@@ -225,8 +237,7 @@ job-manager
 == Guarantees
 
 In case of network failure one one can be temporary detached from other part of the cluster. +
-In order to improve stability of the cluster and tolerate short connectivity problems
-DJM allows detached Worker to continue it's work for configured amount of time. +
+In order to improve stability of the cluster and tolerate short connectivity problems DJM allows detached Worker to continue it's work for configured amount of time. +
 To enable that DJM uses persistent locks and keep information when which worker started to process particular job in ZooKeeper. +
 Other Workers will not be able to process same work-items during this lock timeout even if owner of lock gone offline.
 
