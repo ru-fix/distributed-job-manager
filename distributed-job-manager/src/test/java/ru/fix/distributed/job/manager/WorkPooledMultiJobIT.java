@@ -350,9 +350,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         AtomicProperty<Long> workPoolCleanPeriod = new AtomicProperty<>(500L);
         long cleaningPerformTimeoutMs = 1_000;
         long closingDjmTimeoutMs = 1_500;
-        DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(4));
-        DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(4));
-        DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(4));
+        DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(1));
+        DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(2));
+        DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(3));
 
         CuratorFramework curator1 = defaultZkClient();
         DistributedJobManager jobManager1 = createNewJobManager(

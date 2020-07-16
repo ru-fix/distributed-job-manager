@@ -36,14 +36,12 @@ internal class AvailableWorkPoolSubTree(
         }
     }
 
-    fun updateJob(transaction: ZkTransaction, jobId: String, newWorkPool: Set<String>): Boolean {
+    fun updateJob(transaction: ZkTransaction, jobId: String, newWorkPool: Set<String>) {
         val workPoolFromZk: Set<String> = currentJobWorkPoolFromZk(jobId)
         if (workPoolFromZk != newWorkPool) {
             createItemsContainedInFirstSetButNotInSecond(newWorkPool, workPoolFromZk, transaction, jobId)
             removeItemsContainedInFirstSetButNotInSecond(workPoolFromZk, newWorkPool, transaction, jobId)
-            return true
         }
-        return false
     }
 
     private fun currentJobWorkPoolFromZk(jobId: String): Set<String> {
