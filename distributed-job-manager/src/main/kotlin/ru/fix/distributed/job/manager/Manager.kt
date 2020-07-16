@@ -156,6 +156,7 @@ class Manager(
         handleManagerEvent(ManagerEvent.SHUTDOWN)
 
         aliveWorkersCache.close()
+        workPoolCache.close()
         leaderLatch.close()
         cleaner.close()
 
