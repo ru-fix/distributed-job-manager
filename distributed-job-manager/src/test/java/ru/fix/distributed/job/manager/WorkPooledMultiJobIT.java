@@ -11,6 +11,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +37,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldAddNewAvailableWorkPool() throws Exception {
         final String nodeId = "common-worker-1";
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager1 = createNewJobManager(nodeId, curator)
         ) {
             await().atMost(30, TimeUnit.SECONDS).untilAsserted(() ->
@@ -49,7 +50,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldDistributeCommonJobs() throws Exception {
         final String[] nodeIds = {"distr-worker-1", "distr-worker-2", "distr-worker-3"};
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator);
                 DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator);
                 DistributedJobManager jobManager3 = createNewJobManager(nodeIds[2], curator)
@@ -75,7 +76,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldUnevenDistribute() throws Exception {
         final String[] nodeIds = {"uneven-worker-1", "uneven-worker-2"};
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator);
                 DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator)
         ) {
@@ -110,7 +111,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         final String nodeId = "worker";
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(
                         nodeId,
                         curator,
@@ -127,7 +128,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
         doThrow(new IllegalStateException("Exception in job :#)))")).when(testJob).run(any());
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(
                         nodeId,
                         curator,
@@ -144,7 +145,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10)));
 
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(
                         nodeId,
                         curator,
@@ -155,7 +156,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             StubbedMultiJob testJob2 = new StubbedMultiJob(10, getWorkItems(10));
             try (
-                    CuratorFramework curator2 = zkTestingServer.createClient(60000, 15000);
+                    CuratorFramework curator2 = defaultZkClient();
                     DistributedJobManager jobManager2 = createNewJobManager(
                             "worker-2",
                             curator2,
@@ -178,7 +179,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         zkTestingServer.getClient().create().creatingParentsIfNeeded().forPath(availableWorkpoolPath);
 
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
 
                 DistributedJobManager jobManager = createNewJobManager(
                         nodeId,
@@ -194,7 +195,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldMinimizeWorkerSingleThreadFactoryJobExecution() throws Exception {
         StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10), Long.MAX_VALUE));
         try (
-                CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
+                CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(
                         "app-1",
                         curator,
@@ -224,7 +225,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             try (
                     DistributedJobManager jobManager2 = createNewJobManager(
                             "app-2",
-                            zkTestingServer.createClient(60000, 15000),
+                            defaultZkClient(),
                             Collections.singletonList(testJob2)
                     )
             ) {
@@ -242,7 +243,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         try (
                 DistributedJobManager jobManager = createNewJobManager(
                         "app-1",
-                        zkTestingServer.createClient(60000, 15000),
+                        defaultZkClient(),
                         Collections.singletonList(testJob)
                 )
         ) {
@@ -268,12 +269,12 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         try (
                 DistributedJobManager jobManager1 = createNewJobManager(
                         "app-1",
-                        zkTestingServer.createClient(60000, 15000),
+                        defaultZkClient(),
                         Collections.singletonList(testJobOnWorker1)
                 );
                 DistributedJobManager jobManager2 = createNewJobManager(
                         "app-2",
-                        zkTestingServer.createClient(60000, 15000),
+                        defaultZkClient(),
                         Collections.singletonList(testJobOnWorker2)
                 )
         ) {
@@ -302,12 +303,12 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         try (
                 DistributedJobManager jobManager = createNewJobManager(
                         "app-1",
-                        zkTestingServer.createClient(60000, 15000),
+                        defaultZkClient(),
                         Collections.singletonList(testJobOnWorker1)
                 );
                 DistributedJobManager jobManager2 = createNewJobManager(
                         "app-2",
-                        zkTestingServer.createClient(60000, 15000),
+                        defaultZkClient(),
                         Collections.singletonList(testJobOnWorker2)
                 )
         ) {
@@ -347,20 +348,20 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     @Test
     public void cleaning_WHEN_last_djm_with_available_job_closed_THEN_removing_job_from_workPool() throws Exception {
         AtomicProperty<Long> workPoolCleanPeriod = new AtomicProperty<>(500L);
+        long cleaningPerformTimeoutMs = 1_000;
+        long closingDjmTimeoutMs = 1_500;
         DistributedJob job1 = new StubbedMultiJob(1, getWorkItems(4));
         DistributedJob job2 = new StubbedMultiJob(2, getWorkItems(4));
         DistributedJob job3 = new StubbedMultiJob(3, getWorkItems(4));
 
-        CuratorFramework curator1 = zkTestingServer.createClient(60000, 15000);
+        CuratorFramework curator1 = defaultZkClient();
         DistributedJobManager jobManager1 = createNewJobManager(
-                "djm-1",
                 curator1,
                 List.of(job1, job2),
                 workPoolCleanPeriod
         );
-        CuratorFramework curator2 = zkTestingServer.createClient(60000, 15000);
+        CuratorFramework curator2 = defaultZkClient();
         DistributedJobManager jobManager2 = createNewJobManager(
-                "djm-2",
                 curator2,
                 List.of(job2, job3),
                 workPoolCleanPeriod
@@ -370,13 +371,13 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         jobManager1.close();
         curator1.close();
 
-        awaitCleaningJob(0, workPoolCleanPeriod.get() + 1_000, job1.getJobId(), curator2);
+        awaitCleaningJob(
+                0,
+                workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
+                job1.getJobId(), curator2);
 
-        workPoolCleanPeriod.set(7_000L);
-
-        CuratorFramework curator3 = zkTestingServer.createClient(60000, 15000);
+        CuratorFramework curator3 = defaultZkClient();
         DistributedJobManager jobManager3 = createNewJobManager(
-                "djm-3",
                 curator3,
                 List.of(job1, job2),
                 workPoolCleanPeriod
@@ -384,10 +385,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
 
+        Long oldCleanPeriodMs = workPoolCleanPeriod.set(7_000L);
+
+        await().pollDelay(Duration.ofMillis(oldCleanPeriodMs)).untilAsserted(() -> {
+            //await until cleaning will performed and new workPoolCleanPeriod will be applied
+        });
+
         jobManager2.close();
         curator2.close();
 
-        awaitCleaningJob(6_000L, workPoolCleanPeriod.get() + 1_000, job3.getJobId(), curator3);
+        awaitCleaningJob(
+                workPoolCleanPeriod.get() - closingDjmTimeoutMs - oldCleanPeriodMs,
+                workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
+                job3.getJobId(), curator3);
 
         jobManager3.close();
         curator3.close();
@@ -410,9 +420,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     public void shouldAddAndRemoveDistributedJob() throws Exception {
         final String[] nodeIds = {"added-worker-1", "added-worker-2"};
 
-        CuratorFramework curator1 = zkTestingServer.createClient(60000, 15000);
+        CuratorFramework curator1 = defaultZkClient();
         DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator1);
-        CuratorFramework curator2 = zkTestingServer.createClient(60000, 15000);
+        CuratorFramework curator2 = defaultZkClient();
         DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator2);
 
         jobManager1.close();
@@ -538,6 +548,19 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 curatorFramework,
                 jobs,
                 getWorkPoolCleanPeriod()
+        );
+    }
+
+    private DistributedJobManager createNewJobManager(
+            CuratorFramework curatorFramework,
+            Collection<DistributedJob> jobs,
+            DynamicProperty<Long> workPoolCleanPeriod
+    ) throws Exception {
+        return createNewJobManager(
+                UUID.randomUUID().toString(),
+                curatorFramework,
+                jobs,
+                workPoolCleanPeriod
         );
     }
 

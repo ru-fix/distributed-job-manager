@@ -17,6 +17,7 @@ dependencies {
 
     // Common
     implementation(Libs.slf4j)
+    implementation(Libs.log4j_kotlin)
     implementation(Libs.validation_api)
     implementation(Libs.curator) {
         exclude("org.slf4j", "slf4j-api")
