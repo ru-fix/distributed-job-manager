@@ -2,10 +2,7 @@ package ru.fix.distributed.job.manager.strategy
 
 import com.google.common.hash.Funnel
 import com.google.common.hash.Hashing
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.util.RendezvousHash
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -14,7 +11,7 @@ import kotlin.collections.ArrayList
 class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: MutableMap<JobId, MutableSet<WorkerId>>,
+            availability: Availability,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>

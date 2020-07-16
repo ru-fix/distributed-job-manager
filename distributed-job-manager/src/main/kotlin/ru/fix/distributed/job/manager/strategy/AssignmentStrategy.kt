@@ -1,9 +1,6 @@
 package ru.fix.distributed.job.manager.strategy
 
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 
 /**
  * Job assignment strategy which could manage work pools distribution on workers
@@ -23,7 +20,7 @@ interface AssignmentStrategy {
      * @param itemsToAssign set of work items, which should fill currentAssignment by this strategy
      */
     fun reassignAndBalance(
-            availability: MutableMap<JobId, MutableSet<WorkerId>>,
+            availability: Availability,
             prevAssignment: AssignmentState,
             currentAssignment: AssignmentState,
             itemsToAssign: MutableSet<WorkItem>)

@@ -20,7 +20,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: MutableMap<JobId, MutableSet<WorkerId>>,
+                availability: Availability,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
@@ -49,7 +49,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: MutableMap<JobId, MutableSet<WorkerId>>,
+                availability: Availability,
                 prevAssignment: AssignmentState,
                 currentAssignment: AssignmentState,
                 itemsToAssign: MutableSet<WorkItem>
@@ -203,13 +203,13 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
         val customStrategy = object : AbstractAssignmentStrategy() {
             override fun reassignAndBalance(
-                    availability: MutableMap<JobId, MutableSet<WorkerId>>,
+                    availability: Availability,
                     prevAssignment: AssignmentState,
                     currentAssignment: AssignmentState,
                     itemsToAssign: MutableSet<WorkItem>
             ) {
                 ussdAssignmentStrategy.reassignAndBalance(
-                        mutableMapOf(JobId("distr-job-id-1") to availability[JobId("distr-job-id-1")]!!),
+                        Availability.of(mutableMapOf(JobId("distr-job-id-1") to availability[JobId("distr-job-id-1")]!!)),
                         prevAssignment,
                         currentAssignment,
                         itemsToAssign
@@ -217,7 +217,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 availability.remove(JobId("distr-job-id-1"))
 
                 smsAssignmentStrategy.reassignAndBalance(
-                        mutableMapOf(JobId("distr-job-id-0") to availability[JobId("distr-job-id-0")]!!),
+                        Availability.of(mutableMapOf(JobId("distr-job-id-0") to availability[JobId("distr-job-id-0")]!!)),
                         prevAssignment,
                         currentAssignment,
                         itemsToAssign
