@@ -2717,9 +2717,11 @@ job-manager
 </code></pre>
                     </div>
                 </div>
-                <p>Worker life-cycle:<br>
+
+                <h3>Worker life-cycle:</h3>
+                <p>
                     Every time worker (re)connected to cluster, it process few step in single transaction,
-                    using `work-pool-version` and `worker-version` locks: <br>
+                    using `work-pool-version` and `worker-version` locks:
                 <ul>
                     <li>
                         (re)creates ephemeral node in `alive` subtree, to inform manager about (re)connecting
@@ -2764,29 +2766,21 @@ job-manager
                         </div>
                     </li>
                 </ul>
-                Worker listens for updates in `workers/worker/assigned` subtree and stops/launches jobs accordingly.<br>
-                Worker also periodically updates its jobs in `work-pool` subtree using `work-pool-version` lock <br>
-                </p>
                 <p>
-                    Manager life-cycle: <br>
-                    Manager listens for updates in `alive` subtree and invokes rebalance if set of alive workers was
-                    changed.
-                    During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock
-                    <br>
-
-                    Manager also removes not relevant (which isn't in any `workers/*/available` subtree) jobs from
-                    `work-pool` subtree
-                    using `work-pool-version` lock (clearing process) <br>
-
-                    In future releases:<br>
-                <ul>
-                    <li>
-                        Manager also listens for updates in `work-pool` subtree (dynamic work-pool)
-                    </li>
-                </p>
+                    Worker listens for updates in `workers/worker/assigned` subtree and stops/launches jobs accordingly.
                 <p>
-                    Full ZK tree you can see below:<br>
-                    </ul>
+                    Worker also periodically updates its jobs in `work-pool` subtree using `work-pool-version` lock.
+
+                <h3> Manager life-cycle: </h3>
+                <p>
+                    Manager listens for updates in `alive` and `work-pool` subtrees and invokes rebalance accordingly.
+                    During rebalance manager updates workers `assigned` subtree using `worker-assignment-version` lock.
+                <p>
+                    Manager also periodically removes not relevant (which isn't in any `workers/*/available` subtree)
+                    jobs from
+                    `work-pool` subtree using `work-pool-version` lock (clearing process) <br>
+                <p>
+                    Full ZK tree you can see below:
                 <div class="listingblock">
                     <div class="content">
 <pre class="CodeRay highlight"><code>
@@ -2831,7 +2825,6 @@ job-manager
 </code></pre>
                     </div>
                 </div>
-                </p>
             </div>
         </div>
     </div>
