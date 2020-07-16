@@ -11,7 +11,7 @@ object Vers {
 
     const val aggregating_profiler = "1.6.5"
     const val jfix_zookeeper = "1.1.1"
-    const val jfix_stdlib = "3.0.3"
+    const val jfix_stdlib = "3.0.5"
     const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
@@ -52,6 +52,7 @@ object Libs {
     const val curator = "org.apache.curator:curator-recipes:${Vers.curator}"
 
     const val log4j_core = "org.apache.logging.log4j:log4j-core:${Vers.log4j}"
+    const val log4j_kotlin = "org.apache.logging.log4j:log4j-api-kotlin:1.0.0"
     const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test

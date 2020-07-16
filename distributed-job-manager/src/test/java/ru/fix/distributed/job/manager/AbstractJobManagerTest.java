@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
@@ -38,6 +39,10 @@ public class AbstractJobManagerTest {
 
     String printZkTree(String path) {
         return new ZkTreePrinter(zkTestingServer.getClient()).print(path);
+    }
+
+    CuratorFramework defaultZkClient() {
+        return zkTestingServer.createClient(60000, 15000);
     }
 
     public static class WorkItemMonitor {

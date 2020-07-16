@@ -13,16 +13,17 @@ link:https://github.com/ru-fix/distributed-job-manager[]
 
 == Concept
 
-DistributedJobManager (DJM) stores it's state in link:https://zookeeper.apache.org/[ZooKeeper] +
-DJM lives withing JVM application and maintain it's own thread pool. +
+DistributedJobManager (DJM) stores its state in link:https://zookeeper.apache.org/[ZooKeeper] +
+DJM lives within JVM application and maintain its own thread pool. +
 DJM regularly launches user defined jobs in separate threads based on schedule. +
-User defined Job is any class that implements `DistributedJob` interface. +
-DJM will restart Job in case of any failure. +
+User defined Job is a class that implements `DistributedJob` interface. +
+DJM will restart Job in case of any Job failure. +
 DJM balance workload between Jobs +
+
 DJM consists of two parts: Manager and Worker.
 Each DJM instance has active Worker.
 But only one DJM instance has active Manager. +
-Manager orchestrate Job between Workers in the cluster.
+Manager orchestrate Job assignment between Workers in the cluster.
 
 image::djm-zk.png[]
 
