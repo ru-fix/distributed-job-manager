@@ -47,28 +47,59 @@ class DistributedJobLaunchingTest {
 
     @Test
     @Disabled("TODO")
-    fun `when DJM3 disconnects, WorkItems rebalance between DJM1 and DJM2`(){
+    fun `when DJM3 disconnects, WorkItems rebalanced between DJM1 and DJM2`(){
     }
 
     @Test
     @Disabled("TODO")
-    fun `when DJM3 shutdowns, WorkItems rebalance between DJM1 and DJM2`(){
+    fun `when DJM3 shutdowns, WorkItems rebalanced between DJM1 and DJM2`(){
     }
 
     @Test
     @Disabled("TODO")
-    fun `series of random DJMs disconnects and shutdowns does not affect correct WorkItem launching and schedulling`(){
-    }
-
-    @Test
-    @Disabled("TODO")
-    fun `WorkPool change triggers rebalance`(){
+    fun `series of random DJMs disconnects, shutdowns, launches, WorkPool changes and restarts does not affect correct WorkItem launching and schedulling`(){
+        TODO("same workItem running only by single thread within the cluster")
+        TODO("all workItem runs by schedule as expected with small disturbances")
 
     }
 
     @Test
     @Disabled("TODO")
-    fun `If WorkPool does not change, no rebalance is triggered `(){
+    fun `series of DJMs restarts one by one does not affect correct WorkItem launching and schedulling`(){
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `series of DJMs restarts two by two does not affect correct WorkItem launching and schedulling`(){
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `series of DJMs restarts three by three does not affect correct WorkItem launching and schedulling`(){
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `Change in Job WorkPool triggers rebalance`(){
+
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `If WorkPool and number of DJMs does not change, no rebalance is triggered `(){
+
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `DJM shutdown triggers rebalance in cluster `(){
+
+    }
+
+
+    @Test
+    @Disabled("TODO")
+    fun `DJM set of available jobs changes triggers rebalance in cluster `(){
 
     }
 
@@ -76,6 +107,11 @@ class DistributedJobLaunchingTest {
     @Disabled("TODO")
     fun `DJM follows assignment strategy`(){
 
+    }
+
+    @Test
+    @Disabled("TODO")
+    fun `Assignment strategy that assign same workItem to different workers rise an exception`(){
     }
 
     @Test
