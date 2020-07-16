@@ -55,6 +55,11 @@ class DistributedJobLaunchingTest {
     }
 
     @Test
+    fun `job with invalid WorkItem rises an exception`() {
+        TODO()
+    }
+
+    @Test
     fun `djm without any provided jobs logs a warnnig`(){
         TODO()
     }
