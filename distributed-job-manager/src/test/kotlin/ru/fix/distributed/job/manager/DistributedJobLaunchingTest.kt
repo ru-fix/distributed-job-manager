@@ -58,8 +58,8 @@ class DistributedJobLaunchingTest {
             Unit
         }
 
-        exc.message.shouldContain("job")
-        exc.message.shouldContain("id")
+        exc.message.shouldContain("little red fox")
+        exc.message.shouldContain("does not match")
     }
 
     @Test
@@ -176,6 +176,7 @@ class DistributedJobLaunchingTest {
         TODO()
     }
 
+    @Disabled("TODO")
     @Test
     fun `custom work pool running strategy split work items between job launches`() {
         sleep(1000)
