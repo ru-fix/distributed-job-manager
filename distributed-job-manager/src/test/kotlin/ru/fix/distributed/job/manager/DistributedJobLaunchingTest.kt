@@ -44,7 +44,6 @@ class DistributedJobLaunchingTest {
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-
         val exc = shouldThrow<Exception> {
             DistributedJobManager(
                     server.client,
@@ -99,8 +98,7 @@ class DistributedJobLaunchingTest {
             Unit
         }
 
-        exc.message.shouldContain("job")
-        exc.message.shouldContain("id")
+        exc.message.shouldContain("same JobId")
     }
 
     @Disabled

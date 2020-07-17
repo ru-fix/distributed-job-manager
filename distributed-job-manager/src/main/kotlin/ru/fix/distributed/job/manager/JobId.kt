@@ -7,7 +7,7 @@ import java.util.*
  */
 class JobId(val id: String) {
 
-    private val PATTERN = "[a-zA-Z0-9_-]".toRegex()
+    private val PATTERN = "[a-zA-Z0-9_-]+".toRegex()
 
     init {
         require(PATTERN.matches(id)) { "JobId '$id' does not match pattern $PATTERN" }
