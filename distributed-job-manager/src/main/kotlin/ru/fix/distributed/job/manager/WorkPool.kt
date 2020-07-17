@@ -1,29 +1,24 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager
 
-import javax.validation.constraints.NotNull;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+/**
+ * [WorkPool] represent set of items to process within the cluster by [DistributedJob] instances with same [JobId].
+ * Items will be distributed between [DistributedJob] instances with same [JobId] based on [ru.fix.distributed.job.manager.strategy.AssignmentStrategy]
+ */
+class WorkPool(items: Set<String>) {
 
-public final class WorkPool {
+    companion object {
+        const val WORK_POOL_ITEM_MAX_LENGTH = 255
 
-    private final Set<String> items;
+        @JvmStatic
+        fun of(items: Set<String>): WorkPool {
+            return WorkPool(items)
+        }
 
-    public WorkPool(Set<String> items) {
-        this.items = new HashSet<>(items);
+        @JvmStatic
+        fun singleton(): WorkPool {
+            return WorkPool(setOf("singleton"))
+        }
     }
 
-    public static WorkPool of(Set<String> items) {
-        return new WorkPool(items);
-    }
-
-    @NotNull
-    public static WorkPool single() {
-        return new WorkPool(Collections.singleton("singleton"));
-    }
-
-    public Set<String> getItems() {
-        return items;
-    }
-
+    val items: Set<String> = HashSet(items)
 }

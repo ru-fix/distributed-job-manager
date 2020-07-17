@@ -12,7 +12,7 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 class RebillJob : DistributedJob {
-    override fun getJobId() = "rebill-job"
+    override fun getJobId() = JobId("rebill-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(1000L))
 
@@ -31,14 +31,14 @@ class RebillJob : DistributedJob {
 }
 
 class SmsJob : DistributedJob {
-    override fun getJobId(): String = "sms-job"
+    override fun getJobId() = JobId("sms-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(100L))
 
     override fun run(context: DistributedJobContext) {
     }
 
-    override fun getWorkPool() = WorkPool.single()
+    override fun getWorkPool() = WorkPool.singleton()
 
     override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 
@@ -47,14 +47,14 @@ class SmsJob : DistributedJob {
 }
 
 class UssdJob : DistributedJob {
-    override fun getJobId(): String = "ussd-job"
+    override fun getJobId() = JobId("ussd-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(0L))
 
     override fun run(context: DistributedJobContext) {
     }
 
-    override fun getWorkPool() = WorkPool.single()
+    override fun getWorkPool() = WorkPool.singleton()
 
     override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
 

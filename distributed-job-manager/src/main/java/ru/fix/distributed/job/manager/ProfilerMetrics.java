@@ -7,23 +7,23 @@ public final class ProfilerMetrics {
     /**
      * .jobId.start
      */
-    public static String START(String jobId) {
-        return jobId.replace('.', '_') + ".start";
+    public static String START(JobId jobId) {
+        return jobId.getId().replace('.', '_') + ".start";
     }
 
     /**
      * information about job running time, etc.
      * .jobId.stop
      */
-    public static String STOP(String jobId) {
-        return jobId.replace('.', '_') + ".stop";
+    public static String STOP(JobId jobId) {
+        return jobId.getId().replace('.', '_') + ".stop";
     }
 
     /**
      * count of currently running jobs
      * .jobId.run
      */
-    public static String RUN_INDICATOR(String jobId) {
-        return jobId.replace('.', '_') + ".run";
+    public static String RUN_INDICATOR(JobId jobId) {
+        return jobId.getId().replace('.', '_') + ".run";
     }
 }

@@ -3,7 +3,10 @@ package ru.fix.distributed.job.manager.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.DistributedJob;
+import ru.fix.distributed.job.manager.JobId;
 import ru.fix.distributed.job.manager.WorkPool;
+
+import static ru.fix.distributed.job.manager.WorkPool.WORK_POOL_ITEM_MAX_LENGTH;
 
 /**
  * @author a.petrov
@@ -11,8 +14,6 @@ import ru.fix.distributed.job.manager.WorkPool;
 public class WorkPoolUtils {
 
     private static final Logger log = LoggerFactory.getLogger(WorkPoolUtils.class);
-
-    private static final int WORK_POOL_ITEM_MAX_LENGTH = 255;
 
     /**
      * Check WorkPool items for restrictions.
@@ -29,7 +30,7 @@ public class WorkPoolUtils {
                 .forEach(workPoolItem -> checkWorkPoolItemRestriction(job.getJobId(), workPoolItem));
     }
 
-    private static void checkWorkPoolItemRestriction(String jobId, String workPoolItem) {
+    private static void checkWorkPoolItemRestriction(JobId jobId, String workPoolItem) {
         checkZkRestrictions(jobId, workPoolItem);
         if (workPoolItem != null) {
             checkMaxLength(jobId, workPoolItem);
@@ -39,13 +40,13 @@ public class WorkPoolUtils {
     /**
      * Check WorkPool item for maximum length.
      * <p>
-     * It uses {@link WorkPoolUtils#WORK_POOL_ITEM_MAX_LENGTH}
+     * It uses {@link WorkPool#WORK_POOL_ITEM_MAX_LENGTH}
      * as maximum length constraint.
      *
      * @param jobId        Job ID, which owns WorkPool. Used for error logging.
      * @param workPoolItem WorkPool item to check.
      */
-    private static void checkMaxLength(String jobId, String workPoolItem) {
+    private static void checkMaxLength(JobId jobId, String workPoolItem) {
         if (workPoolItem.length() > WORK_POOL_ITEM_MAX_LENGTH) {
             log.error("WorkPool item \"{}\" of job \"{}\" is too long. Maximal length is {}, actual is {}.",
                     workPoolItem, jobId, WORK_POOL_ITEM_MAX_LENGTH, workPoolItem.length());
@@ -60,7 +61,7 @@ public class WorkPoolUtils {
      * @param jobId        Job ID, which owns WorkPool. Used for error logging.
      * @param workPoolItem WorkPool item to check.
      */
-    private static void checkZkRestrictions(String jobId, String workPoolItem) {
+    private static void checkZkRestrictions(JobId jobId, String workPoolItem) {
         if (workPoolItem == null) {
             log.error("WorkPool item can't be null. Job \"{}\".", jobId);
         } else if (workPoolItem.length() == 0) {

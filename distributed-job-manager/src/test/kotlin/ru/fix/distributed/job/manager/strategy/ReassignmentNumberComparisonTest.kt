@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies.Companion.EVENLY_RENDEZVOUS

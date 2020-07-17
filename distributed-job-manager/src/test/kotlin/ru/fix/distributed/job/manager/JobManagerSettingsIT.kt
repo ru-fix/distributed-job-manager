@@ -162,10 +162,10 @@ private class JobManagerSettingsEditor(
         setJobIsDisabled(job.getJobId(), false)
     }
 
-    private fun setJobIsDisabled(jobId: String, value: Boolean) {
+    private fun setJobIsDisabled(jobId: JobId, value: Boolean) {
         val oldConfig = jobDisableConfig.get()
         val newSwitches = HashMap(oldConfig.jobsDisableSwitches).apply {
-            this[jobId] = value
+            this[jobId.id] = value
         }
         jobDisableConfig.set(oldConfig.copy(jobsDisableSwitches = newSwitches))
     }

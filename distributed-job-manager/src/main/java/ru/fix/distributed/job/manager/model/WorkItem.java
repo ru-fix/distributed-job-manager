@@ -1,5 +1,7 @@
 package ru.fix.distributed.job.manager.model;
 
+import ru.fix.distributed.job.manager.JobId;
+
 import java.util.Objects;
 
 public class WorkItem {

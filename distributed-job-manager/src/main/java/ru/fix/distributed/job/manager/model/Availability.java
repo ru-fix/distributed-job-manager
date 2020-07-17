@@ -1,9 +1,10 @@
 package ru.fix.distributed.job.manager.model;
 
+import ru.fix.distributed.job.manager.JobId;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * On which of workers particular job can be executed.

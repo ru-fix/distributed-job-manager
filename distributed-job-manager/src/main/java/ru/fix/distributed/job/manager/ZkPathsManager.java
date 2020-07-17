@@ -40,8 +40,8 @@ class ZkPathsManager {
         return path(LOCKS);
     }
 
-    String workItemLock(String jobId, String workItem) {
-        return path(LOCKS, jobId, String.format("work-share-%s.lock", workItem));
+    String workItemLock(JobId jobId, String workItem) {
+        return path(LOCKS, jobId.getId(), String.format("work-share-%s.lock", workItem));
     }
 
     String workerVersion() {
