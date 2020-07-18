@@ -75,7 +75,8 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @param jobId            job name for filtering work items on worker
      * @param availableWorkers set of workers, that should be considered
      * @return worker from availableWorkers, that have
-     * minimal work pool size of jobId and minimal work pool size on worker
+     * minimal work pool size of jobId
+     * and minimal work pool size on worker, if work pool sized of jobId are equal,
      * or return null, if assignment state or availableWorkers are empty
      */
     public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
@@ -90,12 +91,14 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             int localWorkPoolSizeOnWorker = localPoolSize(jobId, worker.getKey());
             int globalWorkPoolSizeOnWorker = worker.getValue().size();
 
-            if (localWorkPoolSizeOnWorker <= minLocalWorkPoolSizeOnWorker) {
-                if (globalWorkPoolSizeOnWorker <= minGlobalWorkPoolSizeOnWorker) {
-                    minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
-                    minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
-                    localLessBusyWorker = worker.getKey();
-                }
+            boolean localWorkPoolLessThanMin = localWorkPoolSizeOnWorker < minLocalWorkPoolSizeOnWorker;
+            boolean localWorkPoolEqualMin = localWorkPoolSizeOnWorker == minLocalWorkPoolSizeOnWorker;
+            boolean globalWorkPoolLessThanMin = globalWorkPoolSizeOnWorker < minGlobalWorkPoolSizeOnWorker;
+
+            if (localWorkPoolLessThanMin || (localWorkPoolEqualMin && globalWorkPoolLessThanMin)) {
+                minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
+                minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
+                localLessBusyWorker = worker.getKey();
             }
         }
         return localLessBusyWorker;
@@ -331,7 +334,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
 
-
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("AssignmentState\n");
@@ -352,7 +354,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         }
         return result.toString();
     }
-
 
 
 }
