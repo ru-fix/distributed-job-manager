@@ -7,7 +7,7 @@ import java.util.*
 internal class AssignmentStateTest {
 
     @Test
-    fun `getLessBusyWorkerWithJobId localWorkPool is more important than globalWorkPool`() {
+    fun `getLessBusyWorkerWithJobId  WHEN job workPools sizes are different THEN global workPools sizes don't matter`() {
         val workerId0 = WorkerId("0")
         val workerId1 = WorkerId("1")
         val workerId2 = WorkerId("2")
