@@ -9,6 +9,7 @@ import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.distributed.job.manager.model.JobDisableConfig
+import ru.fix.distributed.job.manager.model.resolveJobId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty
@@ -155,11 +156,11 @@ private class JobManagerSettingsEditor(
     }
 
     fun disableConcreteJob(job: DistributedJob) {
-        setJobIsDisabled(job.getJobId()!!, true)
+        setJobIsDisabled(resolveJobId(job), true)
     }
 
     fun enableConcreteJob(job: DistributedJob) {
-        setJobIsDisabled(job.getJobId()!!, false)
+        setJobIsDisabled(resolveJobId(job), false)
     }
 
     private fun setJobIsDisabled(jobId: String, value: Boolean) {
