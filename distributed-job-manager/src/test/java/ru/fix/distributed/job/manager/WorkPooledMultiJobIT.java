@@ -383,7 +383,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 workPoolCleanPeriod
         );
 
-        assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+        assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId().getId()));
 
         Long oldCleanPeriodMs = workPoolCleanPeriod.set(7_000L);
 
