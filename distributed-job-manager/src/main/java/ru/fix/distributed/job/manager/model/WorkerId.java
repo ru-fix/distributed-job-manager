@@ -2,7 +2,10 @@ package ru.fix.distributed.job.manager.model;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class WorkerId implements Comparable<WorkerId> {
 
@@ -11,6 +14,10 @@ public class WorkerId implements Comparable<WorkerId> {
     public WorkerId(String id) {
         Objects.requireNonNull(id);
         this.id = id;
+    }
+
+    public static Set<WorkerId> setOf(String...ids){
+        return Arrays.stream(ids).map(WorkerId::new).collect(Collectors.toSet());
     }
 
     public String getId() {

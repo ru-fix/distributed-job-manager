@@ -1,0 +1,50 @@
+package ru.fix.distributed.job.manager.model
+
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Test
+import ru.fix.distributed.job.manager.JobId
+import ru.fix.distributed.job.manager.strategy.assignmentState
+
+class AssignmentStateTest {
+    @Test
+    fun `less busy worker with jobId prefer local pool size over global pool size`() {
+        val state = assignmentState {
+            "wA"{
+                "j0"("i1","i2")
+                "j1"("i1")
+            }
+
+            "wB"{
+                "j0"("i1","i2","i3")
+                "j1"("i1")
+            }
+            "wC"{
+                "j0"("i1")
+                "j1"("i1","i2","i3", "i4", "i5", "i6", "i7")
+            }
+
+        }
+        state.getLessBusyWorkerWithJobId(JobId("j0"), WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wC"))
+    }
+
+    @Test
+    fun `most busy worker with jobId prefer local pool size over global pool size`() {
+        val state = assignmentState {
+            "wA"{
+                "j0"("i1","i2", "i3")
+                "j1"("i1", "i2")
+            }
+
+            "wB"{
+                "j0"("i1","i2","i3")
+                "j1"("i1")
+            }
+            "wC"{
+                "j0"("i1", "i2")
+                "j1"("i1","i2","i3", "i4", "i5", "i6", "i7")
+            }
+
+        }
+        state.getMostBusyWorkerWithJobId(JobId("j0"), WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wA"))
+    }
+}

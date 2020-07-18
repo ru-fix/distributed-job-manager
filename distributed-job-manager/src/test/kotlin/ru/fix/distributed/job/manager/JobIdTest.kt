@@ -1,6 +1,8 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
 import org.junit.jupiter.api.Test
 
 class JobIdTest {
@@ -19,4 +21,12 @@ class JobIdTest {
         shouldThrow<Exception> { JobId(" withSpacePrefix") }
         shouldThrow<Exception> { JobId("with space") }
     }
+
+    @Test
+    fun `JobId equality based on String id equality`(){
+        JobId("foo").equals(JobId("foo")).shouldBeTrue()
+        JobId("foo").equals(JobId("bar")).shouldBeFalse()
+    }
+
+
 }

@@ -55,7 +55,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
     /**
-     * @return worker which has less work pool size (doesn't depends on job)
+     * @return worker which has minimal total work pool size from all jobs,
      * or return null, if assignment state doesn't contain any worker
      */
     public WorkerId getLessBusyWorker() {
@@ -76,12 +76,13 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     /**
      * @param jobId            job name for filtering work items on worker
      * @param availableWorkers set of workers, that should be considered
-     * @return worker from availableWorkers, that have
-     * minimal work pool size of jobId and minimal work pool size on worker
-     * or return null, if assignment state or availableWorkers are empty
+     * @return worker from availableWorkers, that have minimal work pool size for given jobId.
+     * If there are many workers with same work pool size for given jobId, then
+     * worker with less total work pool size from all jobs will be selected.
+     * or return null if availableWorkers are empty
      */
     public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId localLessBusyWorker = null;
+        WorkerId lessBusyWorker = null;
         int minLocalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
         int minGlobalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
 
@@ -92,15 +93,22 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             int localWorkPoolSizeOnWorker = localPoolSize(jobId, worker.getKey());
             int globalWorkPoolSizeOnWorker = worker.getValue().size();
 
-            if (localWorkPoolSizeOnWorker <= minLocalWorkPoolSizeOnWorker) {
-                if (globalWorkPoolSizeOnWorker <= minGlobalWorkPoolSizeOnWorker) {
+
+            if(localWorkPoolSizeOnWorker < minLocalWorkPoolSizeOnWorker){
+                minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
+                minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
+                lessBusyWorker = worker.getKey();
+
+            } else if (localWorkPoolSizeOnWorker == minLocalWorkPoolSizeOnWorker) {
+
+                if (globalWorkPoolSizeOnWorker < minGlobalWorkPoolSizeOnWorker) {
                     minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
                     minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
-                    localLessBusyWorker = worker.getKey();
+                    lessBusyWorker = worker.getKey();
                 }
             }
         }
-        return localLessBusyWorker;
+        return lessBusyWorker;
     }
 
     /**
@@ -130,20 +138,35 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * @param jobId            job name for filtering work items on worker
      * @param availableWorkers set of workers, that should be considered
      * @return worker from availableWorkers, that have maximal work pool size of jobId
-     * *  or null, if assignment state or availableWorkers are empty
+     * If there are many workers with same work pool size for given jobId, then
+     * worker with most total work pool size from all jobs will be selected.
+     * or return null if availableWorkers are empty
      */
     public WorkerId getMostBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
         WorkerId mostBusyWorker = null;
-        int maxWorkPoolSize = Integer.MIN_VALUE;
+        int maxLocalWorkPoolSizeOnWorker = Integer.MIN_VALUE;
+        int maxGlobalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
             if (!availableWorkers.contains(worker.getKey())) {
                 continue;
             }
-            int workPoolSize = localPoolSize(jobId, worker.getKey());
-            if (workPoolSize >= maxWorkPoolSize) {
-                maxWorkPoolSize = workPoolSize;
+            int localWorkPoolSizeOnWorker = localPoolSize(jobId, worker.getKey());
+            int globalWorkPoolSizeOnWorker = worker.getValue().size();
+
+
+            if(localWorkPoolSizeOnWorker > maxLocalWorkPoolSizeOnWorker){
+                maxLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
+                maxGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
                 mostBusyWorker = worker.getKey();
+
+            } else if (localWorkPoolSizeOnWorker == maxLocalWorkPoolSizeOnWorker) {
+
+                if (globalWorkPoolSizeOnWorker > maxGlobalWorkPoolSizeOnWorker) {
+                    maxLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
+                    maxGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
+                    mostBusyWorker = worker.getKey();
+                }
             }
         }
         return mostBusyWorker;

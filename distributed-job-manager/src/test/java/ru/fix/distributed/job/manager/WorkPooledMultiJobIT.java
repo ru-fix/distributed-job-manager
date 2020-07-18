@@ -366,7 +366,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 List.of(job2, job3),
                 workPoolCleanPeriod
         );
-        assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+        assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId().getId()));
 
         jobManager1.close();
         curator1.close();

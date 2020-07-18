@@ -13,7 +13,6 @@ import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.model.WorkerId
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategies.Companion.EVENLY_RENDEZVOUS
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies.Companion.EVENLY_SPREAD
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies.Companion.RENDEZVOUS
 import java.util.stream.Stream
@@ -29,8 +28,8 @@ internal class ReassignmentNumberComparisonTest {
         @JvmStatic
         fun strategies(): Stream<Arguments> {
             return Stream.of(
-                    Arguments.of(EVENLY_RENDEZVOUS),
-                    Arguments.of(EVENLY_SPREAD)
+                    Arguments.of(AssignmentStrategies.EVENLY_RENDEZVOUS),
+                    Arguments.of(AssignmentStrategies.EVENLY_SPREAD)
             )
         }
     }
@@ -112,8 +111,8 @@ internal class ReassignmentNumberComparisonTest {
             }
         }
 
-        assertEquals(1, reassignmentResults(available, previous, EVENLY_SPREAD).reassignmentNumber)
-        assertEquals(2, reassignmentResults(available, previous, RENDEZVOUS).reassignmentNumber)
+        assertEquals(1, reassignmentResults(available, previous, AssignmentStrategies.EVENLY_SPREAD).reassignmentNumber)
+        assertEquals(2, reassignmentResults(available, previous, AssignmentStrategies.RENDEZVOUS).reassignmentNumber)
     }
 
     @Test
@@ -541,7 +540,7 @@ internal class ReassignmentNumberComparisonTest {
 
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, EVENLY_SPREAD)
         rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, RENDEZVOUS)
-        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(3, evenlySpreadResults.reassignmentNumber)
         assertEquals(2, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
@@ -632,7 +631,7 @@ internal class ReassignmentNumberComparisonTest {
         available.remove(WorkerId("sws-1"))
         evenlySpreadResults = reassignmentResults(available, evenlySpreadResults.newAssignment, EVENLY_SPREAD)
         rendezvousResults = reassignmentResults(available, rendezvousResults.newAssignment, RENDEZVOUS)
-        assertEquals(2, evenlySpreadResults.reassignmentNumber)
+        assertEquals(3, evenlySpreadResults.reassignmentNumber)
         assertEquals(1, rendezvousResults.reassignmentNumber)
 
         available = assignmentState {
