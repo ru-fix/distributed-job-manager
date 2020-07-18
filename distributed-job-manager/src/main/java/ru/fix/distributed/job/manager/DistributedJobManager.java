@@ -45,18 +45,20 @@ public class DistributedJobManager implements AutoCloseable {
 
     private final Worker worker;
     private final Manager manager;
-    private String nodeId;
+    private final String nodeId;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
-                                 Collection<DistributedJob> distributedJobs,
+                                 Collection<DistributedJob> userDefinedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
 
         final Timespan djmInitTimespan = new Timespan().start();
 
         log.trace("Starting DistributedJobManager with settings {}", settings);
+
         initPaths(curatorFramework, settings.getRootPath());
-        Collection<JobDescriptor> jobDescriptors = distributedJobs.stream()
+
+        Collection<JobDescriptor> jobs = userDefinedJobs.stream()
                 .map(JobDescriptor::new).collect(Collectors.toList());
 
         final Timespan managerInitTimespan = new Timespan().start();
@@ -69,7 +71,7 @@ public class DistributedJobManager implements AutoCloseable {
 
         this.worker = new Worker(
                 curatorFramework,
-                jobDescriptors,
+                jobs,
                 new PrefixedProfiler(profiler, "djm."),
                 settings);
 
