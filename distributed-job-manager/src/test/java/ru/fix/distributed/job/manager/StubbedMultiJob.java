@@ -48,8 +48,8 @@ class StubbedMultiJob implements DistributedJob {
         this.singleThread = singleThread;
     }
 
-    public static String getJobId(int id) {
-        return String.format(DISTRIBUTED_JOB_ID_PATTERN, id);
+    public static JobId getJobId(int id) {
+        return new JobId(String.format(DISTRIBUTED_JOB_ID_PATTERN, id));
     }
 
     public void updateWorkPool(Set<String> newWorkPool) {
@@ -83,7 +83,7 @@ class StubbedMultiJob implements DistributedJob {
     }
 
     @Override
-    public String getJobId() {
+    public JobId getJobId() {
         return getJobId(jobId);
     }
 

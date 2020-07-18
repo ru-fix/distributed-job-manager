@@ -1,6 +1,6 @@
 package ru.fix.distributed.job.manager.strategy
 
-import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.JobId
 import ru.fix.distributed.job.manager.model.WorkItem
 
 abstract class AbstractAssignmentStrategy : AssignmentStrategy {

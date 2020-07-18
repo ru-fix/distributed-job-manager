@@ -5,9 +5,31 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 
 interface DistributedJob {
     /**
-     * @return id of the job.
+     * [getJobId] returns  unique identifier of a job type.
+     * There will be several instances of a [DistributedJob] within the cluster.
+     * Only one [DistributedJob] instance with same job id can be registered within single [DistributedJobManager] instance
+     * There could be several [DistributedJob] instances with same job id within cluster of [DistributedJobManager]s.
+     *
+     * [WorkPool] returned by [getWorkPool] will be distributed among [DistributedJob] instances that returned same job id.
+     * according to [ru.fix.distributed.job.manager.strategy.AssignmentStrategy]
+     * provided to [DistributedJobManager]
+     *
+     * [DistributedJob] is not allowed to change it's job id after registration within [DistributedJobManager]
+     *
+     * ```
+     * class FooJob: DistributedJob{
+     *   fun getJobId() = "Foo"
+     *   ...
+     * }
+     * class BarJob: DistributedJob{
+     *   fun getJobId() = "Bar"
+     *   ...
+     * }
+     * ```
+     *
+     * @return identifier of the job type.
      */
-    fun getJobId(): String
+    fun getJobId(): JobId
 
     /**
      * @return delay between job invocation
@@ -29,8 +51,18 @@ interface DistributedJob {
     }
 
     /**
-     * See [ru.fix.distributed.job.manager.util.WorkPoolUtils.checkWorkPoolItemsRestrictions]
-     * for restrictions on WorkPool items
+     * Each job has a [WorkPool]
+     * [WorkPool] represent set of items to process for the cluster.
+     * Since there could be several [DistributedJobManager] instances within the cluster, each of them could invoke
+     * this method.
+     *
+     * This items will be passed to each [DistributedJob] launch through [JobContext.getWorkShare]
+     * Items will be distributed among [DistributedJob] instances within the cluster
+     * according to [ru.fix.distributed.job.manager.strategy.AssignmentStrategy]
+     *
+     * WorkPool item should be a latin string [a-zA-Z0-9_.-] no more that [WorkPool.WORK_POOL_ITEM_MAX_LENGTH] size
+     *
+     *
      * Возвращает пулл обрабатываемых сейчас элементов, т.е. не только элементов которые необходимо обработать, но и тех, что сейчас в процессе обработки.
      * Если элемент был в пуле, но сейчас его не передаем туда, то джоба обрабатывающая его, будет остановлена.
      */

@@ -1,7 +1,7 @@
 package ru.fix.distributed.job.manager.strategy
 
+import ru.fix.distributed.job.manager.JobId
 import ru.fix.distributed.job.manager.model.*
-import java.util.function.Consumer
 
 class WorkerScope(private val state: AssignmentState) {
     operator fun String.invoke(builder: JobScope.() -> Unit) {

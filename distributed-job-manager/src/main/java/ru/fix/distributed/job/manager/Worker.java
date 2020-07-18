@@ -62,13 +62,16 @@ class Worker implements AutoCloseable {
     private volatile boolean isWorkerShutdown = false;
 
     Worker(CuratorFramework curatorFramework,
-           Collection<DistributedJob> distributedJobs,
+           Collection<DistributedJob> jobs,
            Profiler profiler,
            DistributedJobManagerSettings settings) {
         this.curatorFramework = curatorFramework;
         this.paths = new ZkPathsManager(settings.getRootPath());
         this.workerId = settings.getNodeId();
-        this.availableJobs = distributedJobs;
+
+        assertAllJobsHasUniqueJobId(jobs);
+        this.availableJobs = jobs;
+
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
@@ -77,7 +80,7 @@ class Worker implements AutoCloseable {
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
                 "worker-update-thread",
-                DynamicProperty.of(distributedJobs.size()),
+                DynamicProperty.of(jobs.size()),
                 profiler
         );
 
@@ -98,6 +101,18 @@ class Worker implements AutoCloseable {
         );
 
         attachProfilerIndicators();
+    }
+
+    private void assertAllJobsHasUniqueJobId(Collection<DistributedJob> jobs) {
+        if (jobs.stream()
+                .map(job -> job.getJobId())
+                .collect(Collectors.toSet())
+                .size() != jobs.size())
+            throw new IllegalArgumentException(
+                    "There are two or more job instances with same JobId: " +
+                            jobs.stream()
+                                    .map(job -> job.getJobId().getId())
+                                    .collect(Collectors.joining()));
     }
 
     private static Map<DistributedJob, Integer> getThreadCounts(
@@ -261,7 +276,7 @@ class Worker implements AutoCloseable {
 
         // register work pooled jobs
         for (DistributedJob job : availableJobs) {
-            transaction.createPath(paths.availableJob(workerId, job.getJobId()));
+            transaction.createPath(paths.availableJob(workerId, job.getJobId().getId()));
         }
     }
 
@@ -301,7 +316,7 @@ class Worker implements AutoCloseable {
 
     private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
         try {
-            String jobId = job.getJobId();
+            String jobId = job.getJobId().getId();
             String workPoolsPath = paths.availableWorkPool(jobId);
             String availableJobPath = paths.availableJob(workerId, jobId);
             String workerAliveFlagPath = paths.aliveWorker(workerId);
@@ -448,7 +463,7 @@ class Worker implements AutoCloseable {
     private List<String> getWorkerWorkPool(DistributedJob job) throws Exception {
         try {
             return curatorFramework.getChildren()
-                    .forPath(paths.assignedWorkPool(workerId, job.getJobId()));
+                    .forPath(paths.assignedWorkPool(workerId, job.getJobId().getId()));
         } catch (KeeperException.NoNodeException e) {
             log.trace("Received event when NoNode for work pool path {}", e, e);
             return Collections.emptyList();

@@ -152,8 +152,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         }
 
         @Override
-        public String getJobId() {
-            return "job-id";
+        public JobId getJobId() {
+            return new JobId("job-id");
         }
 
         @Override
@@ -203,8 +203,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         }
 
         @Override
-        public String getJobId() {
-            return "job-id";
+        public JobId getJobId() {
+            return new JobId("job-id");
         }
 
         @Override

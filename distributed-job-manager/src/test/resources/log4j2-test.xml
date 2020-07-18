@@ -11,6 +11,8 @@
     </Appenders>
     <Loggers>
         <Logger name="ru.fix" level="debug"/>
+        <Logger name="org.apache.zookeeper" level="warn"/>
+        <Logger name="org.apache.curator" level="warn"/>
         <Root level="info">
             <AppenderRef ref="console"/>
         </Root>
