@@ -361,7 +361,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     public String toString() {
         StringBuilder result = new StringBuilder("AssignmentState\n");
         List<Entry<WorkerId, HashSet<WorkItem>>> sortedAssignment = new ArrayList<>(entrySet());
-        sortedAssignment.sort(Comparator.comparing(Entry::getKey));
+        sortedAssignment.sort(Entry.comparingByKey());
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : sortedAssignment) {
             String workerId = worker.getKey().getId();
