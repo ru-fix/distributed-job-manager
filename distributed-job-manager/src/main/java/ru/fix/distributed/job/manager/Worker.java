@@ -319,11 +319,7 @@ class Worker implements AutoCloseable {
                         boolean workerAliveFlagPathExists = null != transaction.checkPath(workerAliveFlagPath);
 
                         if (workPoolsPathExists && availableJobPathExists && workerAliveFlagPathExists) {
-                            boolean workPoolUpdated = workPoolSubTree.updateJob(transaction, jobId, newWorkPool);
-                            if (workPoolUpdated) {
-                                transaction.setData(paths.aliveWorker(workerId),
-                                        curatorFramework.getData().forPath(workerAliveFlagPath));
-                            }
+                            workPoolSubTree.updateJob(transaction, jobId, newWorkPool);
                         } else {
                             log.warn("Received work pool update before worker registration, job {} wp {}. State " +
                                             "workPoolsPathExists {}, availableJobPathExists {}, workerAliveFlagPathExists {}",
