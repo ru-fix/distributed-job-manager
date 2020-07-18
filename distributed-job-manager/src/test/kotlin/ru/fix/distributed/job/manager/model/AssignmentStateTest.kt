@@ -47,4 +47,27 @@ class AssignmentStateTest {
         }
         state.getMostBusyWorkerWithJobId(JobId("j0"), WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wA"))
     }
+
+    @Test
+    fun `getLessBusyWorkerWithJobId  WHEN job workPools sizes are different THEN global workPools sizes don't matter`() {
+
+        val state = assignmentState {
+            "wA"{
+                "j1"("0")
+                "j2"("2")
+            }
+
+            "wB"{
+                "j1"("2")
+                "j2"("0")
+            }
+            "wC"{
+                "j1"("1")
+                "j2"("0")
+            }
+
+        }
+        state.getLessBusyWorkerWithJobId(JobId("j1"), WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wA"))
+    }
+
 }
