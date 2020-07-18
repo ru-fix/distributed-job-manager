@@ -8,6 +8,9 @@ import ru.fix.distributed.job.manager.annotation.JobIdField
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
+/**
+ * Internal DJM representation of user-defined [DistributedJob]
+ * */
 class JobDescriptor(private val job: DistributedJob) {
 
     private val jobId: String = resolveJobId(job)
