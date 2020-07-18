@@ -93,9 +93,9 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
 
             boolean localWorkPoolLessThanMin = localWorkPoolSizeOnWorker < minLocalWorkPoolSizeOnWorker;
             boolean localWorkPoolEqualMin = localWorkPoolSizeOnWorker == minLocalWorkPoolSizeOnWorker;
-            boolean globalWorkPoolLessThanMin = globalWorkPoolSizeOnWorker < minGlobalWorkPoolSizeOnWorker;
+            boolean globalWorkPoolLessOrEqualMin = globalWorkPoolSizeOnWorker <= minGlobalWorkPoolSizeOnWorker;
 
-            if (localWorkPoolLessThanMin || (localWorkPoolEqualMin && globalWorkPoolLessThanMin)) {
+            if (localWorkPoolLessThanMin || (localWorkPoolEqualMin && globalWorkPoolLessOrEqualMin)) {
                 minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
                 minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
                 localLessBusyWorker = worker.getKey();
