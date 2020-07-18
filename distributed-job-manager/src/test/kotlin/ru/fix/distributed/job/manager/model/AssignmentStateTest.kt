@@ -11,20 +11,16 @@ internal class AssignmentStateTest {
         val workerId0 = WorkerId("0")
         val workerId1 = WorkerId("1")
         val workerId2 = WorkerId("2")
-        val workerId3 = WorkerId("3")
-        val workerId4 = WorkerId("4")
-        val allWorkers = setOf(workerId0, workerId1, workerId2, workerId3, workerId4)
+        val allWorkers = setOf(workerId0, workerId1, workerId2)
 
         val jobId1 = JobId("1")
         val jobId2 = JobId("2")
 
         val state = AssignmentState()
         state.putAll(mapOf(
-                worker(workerId0, items(jobId1, 56), items(jobId2, 6)),
-                worker(workerId1, items(jobId1, 58), items(jobId2, 4)),
-                worker(workerId2, items(jobId1, 57), items(jobId2, 4)),
-                worker(workerId3, items(jobId1, 57), items(jobId2, 4)),
-                worker(workerId4, items(jobId1, 57), items(jobId2, 5))
+                worker(workerId0, items(jobId1, 0), items(jobId2, 2)),
+                worker(workerId1, items(jobId1, 2), items(jobId2, 0)),
+                worker(workerId2, items(jobId1, 1), items(jobId2, 0))
         ))
 
         assertEquals(workerId0, state.getLessBusyWorkerWithJobId(jobId1, allWorkers))
