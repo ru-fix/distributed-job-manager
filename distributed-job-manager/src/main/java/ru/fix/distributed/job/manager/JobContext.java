@@ -15,7 +15,7 @@ public class JobContext implements DistributedJobContext {
 
     private static final Logger log = LoggerFactory.getLogger(JobContext.class);
     private final List<ShutdownListener> shutdownListeners = new CopyOnWriteArrayList<>();
-    private final String jobId;
+    private final JobId jobId;
     private final Set<String> workShare;
     /**
      * Nullable
@@ -23,7 +23,7 @@ public class JobContext implements DistributedJobContext {
     private final Supplier<Boolean> shutdownChecker;
     private volatile boolean shutdownFlag;
 
-    public JobContext(String jobId,
+    public JobContext(JobId jobId,
                       Set<String> workShare) {
         this.jobId = jobId;
         this.workShare = workShare;
@@ -33,7 +33,7 @@ public class JobContext implements DistributedJobContext {
     /**
      * Constructor can be used for test purposes in DistributedJob implementations
      */
-    public JobContext(String jobId, Set<String> workShare, Supplier<Boolean> shutdownChecker) {
+    public JobContext(JobId jobId, Set<String> workShare, Supplier<Boolean> shutdownChecker) {
         this.jobId = jobId;
         this.workShare = workShare;
         this.shutdownChecker = shutdownChecker;

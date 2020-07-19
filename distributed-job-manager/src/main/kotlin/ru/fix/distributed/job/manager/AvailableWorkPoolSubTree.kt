@@ -28,12 +28,12 @@ internal class AvailableWorkPoolSubTree(
 
     fun updateAllJobs(transaction: ZkTransaction, newWorkPools: ConcurrentMap<JobDescriptor, WorkPool>) {
         for (job in newWorkPools.keys) {
-            val workPoolsPath: String = paths.availableWorkPool(job.getJobId())
+            val workPoolsPath: String = paths.availableWorkPool(job.getJobId().id)
             if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {
                 transaction.createPath(workPoolsPath)
             }
             val newWorkPool = newWorkPools[job]!!.items
-            updateJob(transaction, job.getJobId(), newWorkPool)
+            updateJob(transaction, job.getJobId().id, newWorkPool)
         }
     }
 

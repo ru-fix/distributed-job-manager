@@ -62,7 +62,7 @@ class ScheduledJobExecution implements Runnable {
 
     @Override
     public void run() {
-        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId())) {
+        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId().getId())) {
             log.trace("Job {} wasn't launched due to jobDisableConfig", job.getJobId());
             return;
         }
@@ -149,7 +149,7 @@ class ScheduledJobExecution implements Runnable {
     }
 
 
-    public String getJobId() {
+    public JobId getJobId() {
         return job.getJobId();
     }
 

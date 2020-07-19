@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.JobId
+import ru.fix.distributed.job.manager.JobId
 import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class RendezvousHashAssignmentStrategyTest {

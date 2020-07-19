@@ -42,7 +42,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager1 = createNewJobManager(nodeId, curator)
         ) {
             await().atMost(30, TimeUnit.SECONDS).untilAsserted(() ->
-                    assertNodeExists(paths.availableWorkItem(getJobId(1), "work-item-1.1"), curator)
+                    assertNodeExists(paths.availableWorkItem(getJobId(1).getId(), "work-item-1.1"), curator)
             );
         }
     }
@@ -62,7 +62,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 List<String> totalWorkPool = new ArrayList<>(3);
                 // Work pool contains 3 work items. Then every distributed job should contains 1 work item.
                 for (String nodeId : nodeIds) {
-                    String assignedWorkPoolPath = paths.assignedWorkPool(nodeId, getJobId(1));
+                    String assignedWorkPoolPath = paths.assignedWorkPool(nodeId, getJobId(1).getId());
                     assertNodeExists(assignedWorkPoolPath, curator);
                     List<String> workPool = curator.getChildren().forPath(assignedWorkPoolPath);
                     assertThat(assertionMessage, workPool.size(), equalTo(1));
@@ -83,8 +83,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         ) {
             await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
 
-                String pathForWorker1 = paths.assignedWorkPool(nodeIds[0], getJobId(1));
-                String pathForWorker2 = paths.assignedWorkPool(nodeIds[1], getJobId(1));
+                String pathForWorker1 = paths.assignedWorkPool(nodeIds[0], getJobId(1).getId());
+                String pathForWorker2 = paths.assignedWorkPool(nodeIds[1], getJobId(1).getId());
 
                 assertNodeExists(pathForWorker1, curator);
                 assertNodeExists(pathForWorker2, curator);
@@ -176,7 +176,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
         ZkPathsManager paths = new ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH);
         // simulate hard shutdown where availability is not cleaned up
-        String availableWorkpoolPath = paths.availableWorkPool(new JobDescriptor(testJob).getJobId());
+        String availableWorkpoolPath = paths.availableWorkPool(new JobDescriptor(testJob).getJobId().getId());
         zkTestingServer.getClient().create().creatingParentsIfNeeded().forPath(availableWorkpoolPath);
 
         try (
@@ -367,7 +367,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 List.of(job2, job3),
                 workPoolCleanPeriod
         );
-        assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+        assertTrue(curator2.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId().getId()));
 
         jobManager1.close();
         curator1.close();
@@ -375,7 +375,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         awaitCleaningJob(
                 0,
                 workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                job1.getJobId(), curator2);
+                job1.getJobId().getId(), curator2);
 
         CuratorFramework curator3 = defaultZkClient();
         DistributedJobManager jobManager3 = createNewJobManager(
@@ -384,7 +384,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 workPoolCleanPeriod
         );
 
-        assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId()));
+        assertTrue(curator3.getChildren().forPath(paths.availableWorkPool()).contains(job1.getJobId().getId()));
 
         Long oldCleanPeriodMs = workPoolCleanPeriod.set(7_000L);
 
@@ -398,7 +398,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         awaitCleaningJob(
                 workPoolCleanPeriod.get() - closingDjmTimeoutMs - oldCleanPeriodMs,
                 workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                job3.getJobId(), curator3);
+                job3.getJobId().getId(), curator3);
 
         jobManager3.close();
         curator3.close();
@@ -433,7 +433,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
 
             List<String> workPoolForFirstJobOnSecondWorker = curator2.getChildren()
-                    .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1)));
+                    .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1).getId()));
 
             assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
                     workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printDjmZkTree(),
@@ -497,10 +497,10 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     private boolean jobsHasSameIdAndSameWorkPool(DistributedJob... jobs) {
         DistributedJob firstJob = jobs[0];
-        String id = firstJob.getJobId();
+        String id = firstJob.getJobId().getId();
         Set<String> workPool = firstJob.getWorkPool().getItems();
         for (DistributedJob nextJob : jobs) {
-            String nextId = nextJob.getJobId();
+            String nextId = nextJob.getJobId().getId();
             Set<String> nextWorkPool = nextJob.getWorkPool().getItems();
             if (!nextId.equals(id) || !nextWorkPool.equals(workPool)) {
                 return false;
