@@ -10,10 +10,11 @@ import ru.fix.distributed.job.manager.DistributedJob
  * //...
  * }
  * ```
+ *
  * This annotation will be ignored, if you override [DistributedJob.jobId].
  *
- * If you don't use neither this annotation neither [DistributedJob.jobId],
- * full class name of job will be used as jobId
+ * If jobId is not defined, full class name of job will be used as jobId.
+ * @see DistributedJob.jobId
  * */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)

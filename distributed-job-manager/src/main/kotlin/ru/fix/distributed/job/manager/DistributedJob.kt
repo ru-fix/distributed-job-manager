@@ -19,25 +19,19 @@ interface DistributedJob {
      *
      * ```
      * class FooJob: DistributedJob{
-     *   fun getJobId() = "Foo"
+     *   val jobId = JobId("Foo")
      *   ...
      * }
      * class BarJob: DistributedJob{
-     *   fun getJobId() = "Bar"
+     *   val jobId = JobId("Bar")
      *   ...
      * }
      * ```
      *
-     * To define job id you can use [DistributedJobId] instead.
-     * Overriding this method overrides the use of [DistributedJobId]
+     * To define job id you can also use [DistributedJobId] instead.
+     * Overriding this value overrides the use of [DistributedJobId].
+     * If jobId is not defined, full class name of job will be used as jobId.
      *
-     * ```
-     * class BazJob: DistributedJob{
-     *   @JobIdField
-     *   val jobId = JobId("Baz")
-     *   ...
-     * }
-     * ```
      * @return identifier of the job type.
      */
     val jobId: JobId?
