@@ -18,21 +18,21 @@ internal class AnnotationResolverTest {
                 JobDoesNotDescribingJobId::class.java.name
                         .replace('.', '-')
                         .replace('$', '_'),
-                descriptor.getJobId())
+                descriptor.jobId)
     }
 
     @Test
     fun `JobDescriptor WHEN jobId specified by annotation THEN getJobId returns value from annotated field` () {
         val job = JobDescribingIdByAnnotation()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.id, descriptor.getJobId())
+        assertEquals(job.id, descriptor.jobId)
     }
 
     @Test
     fun `JobDescriptor WHEN jobId specified by method THEN getJobId delegated to that method` () {
         val job = JobDescribingIdByMethod()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.jobId, descriptor.getJobId())
+        assertEquals(job.jobId, descriptor.jobId)
     }
 
     class JobDescribingIdByAnnotation : NoopJob() {

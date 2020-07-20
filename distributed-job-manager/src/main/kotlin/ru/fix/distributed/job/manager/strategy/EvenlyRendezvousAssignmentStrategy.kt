@@ -29,13 +29,17 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
                 currentAssignment.putIfAbsent(worker, HashSet<WorkItem>())
             }
 
+            val itemsCount = itemsToAssignForJob.size
             val workersCount = availableWorkers.size
-            val workItemsCount = itemsToAssignForJob.size
-            var limitWorkItemsOnWorker = limitWorkItemsOnWorker(workItemsCount, workersCount)
-            val expectedWorkersNumberWithHigherLimitAchieved = majorityLimit(workItemsCount, workersCount)
+
+            val higherLimitItemsOnWorker = higherLimitItemsOnWorker(itemsCount, workersCount)
+            val lowerLimitItemsOnWorker = lowerLimitItemsOnWorker(itemsCount, workersCount)
+
+            val expectedCountOfWorkersWithHigherLimitAchieved =
+                    expectedCountOfWorkersWithHigherLimitAchieved(itemsCount, workersCount)
+
             var workersCountHigherLimitAchieved = 0
             val excludedWorkerIds = mutableSetOf<String>()
-            var limitDecreased = false
 
             for (item in itemsToAssignForJob) {
                 val key = item.jobId.id + ":" + item.id
@@ -44,29 +48,44 @@ class EvenlyRendezvousAssignmentStrategy : AbstractAssignmentStrategy() {
                 currentAssignment.addWorkItem(WorkerId(workerId), item)
                 itemsToAssign.remove(item)
 
-                val workPoolSizeAfterAdd = currentAssignment.localPoolSize(jobId, WorkerId(workerId))
-                if (workPoolSizeAfterAdd == limitWorkItemsOnWorker) {
-                    if (expectedWorkersNumberWithHigherLimitAchieved != workersCountHigherLimitAchieved || limitDecreased) {
+                val itemsOnWorkerAfterAddition = currentAssignment.localPoolSize(jobId, WorkerId(workerId))
+
+                if(workersCountHigherLimitAchieved < expectedCountOfWorkersWithHigherLimitAchieved){
+                    if (itemsOnWorkerAfterAddition == higherLimitItemsOnWorker) {
                         workersCountHigherLimitAchieved++
                         excludedWorkerIds.add(workerId)
+
+                        if(workersCountHigherLimitAchieved == expectedCountOfWorkersWithHigherLimitAchieved){
+                            availableWorkers
+                                    .filter { !excludedWorkerIds.contains(it.id) }
+                                    .filter { currentAssignment.localPoolSize(jobId, it) == lowerLimitItemsOnWorker }
+                                    .forEach { excludedWorkerIds.add(it.id) }
+                        }
+
                     }
-                }
-                if (expectedWorkersNumberWithHigherLimitAchieved == workersCountHigherLimitAchieved && !limitDecreased) {
-                    limitDecreased = true
-                    limitWorkItemsOnWorker--
-                    availableWorkers
-                            .filter { currentAssignment.localPoolSize(jobId, it) == limitWorkItemsOnWorker }
-                            .forEach { excludedWorkerIds.add(it.id) }
+                } else {
+                    if(itemsOnWorkerAfterAddition == lowerLimitItemsOnWorker){
+                        excludedWorkerIds.add(workerId)
+                    }
                 }
             }
         }
     }
 
-    private fun limitWorkItemsOnWorker(workItemsCount: Int, workersCount: Int): Int {
-        return workItemsCount / workersCount + if (workItemsCount % workersCount == 0) 0 else 1
+    private fun higherLimitItemsOnWorker(itemsCount: Int, workersCount: Int): Int {
+        return if (itemsCount % workersCount == 0)
+            itemsCount / workersCount
+        else
+            itemsCount / workersCount + 1
+    }
+    private fun lowerLimitItemsOnWorker(itemsCount: Int, workersCount: Int): Int {
+        return if (itemsCount % workersCount == 0)
+            itemsCount / workersCount
+        else
+            itemsCount / workersCount
     }
 
-    private fun majorityLimit(workItemsCount: Int, workersCount: Int): Int {
-        return if (workItemsCount % workersCount == 0) workersCount else workItemsCount % workersCount
+    private fun expectedCountOfWorkersWithHigherLimitAchieved(itemsCount: Int, workersCount: Int): Int {
+        return if (itemsCount % workersCount == 0) workersCount else itemsCount % workersCount
     }
 }

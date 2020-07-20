@@ -10,9 +10,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
  * */
 class JobDescriptor(private val job: DistributedJob) {
 
-    private val jobId: JobId = resolveJobId(job)
-
-    fun getJobId(): JobId = jobId
+    val jobId: JobId = resolveJobId(job)
 
     fun run(context: DistributedJobContext) = job.run(context)
 

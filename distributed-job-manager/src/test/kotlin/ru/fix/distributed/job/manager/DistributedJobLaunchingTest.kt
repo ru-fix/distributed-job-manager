@@ -30,9 +30,9 @@ class DistributedJobLaunchingTest {
     }
 
     @Test
-    fun `job with invalid id rises an exception in DJM ctor`() {
+    fun `job with invalid id rises an exception during it's object creation`() {
         val exc = shouldThrow<Exception> {
-            val invalidIdJob = object : DistributedJob {
+            object : DistributedJob {
                 override val jobId = JobId("little red fox")
                 override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
                 override fun run(context: DistributedJobContext) {
@@ -43,16 +43,6 @@ class DistributedJobLaunchingTest {
                 override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
                 override fun getWorkPoolCheckPeriod(): Long = 0
             }
-
-            DistributedJobManager(
-                    server.client,
-                    listOf(invalidIdJob),
-                    NoopProfiler(),
-                    DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
-                            rootPath = generateRootPath(),
-                            timeToWaitTermination = DynamicProperty.of(10000)
-                    ))
             Unit
         }
 
@@ -68,6 +58,7 @@ class DistributedJobLaunchingTest {
             override fun run(context: DistributedJobContext) {
                 throw AssertionError("Job does not expected to run")
             }
+
             override fun getWorkPool(): WorkPool = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
@@ -79,6 +70,7 @@ class DistributedJobLaunchingTest {
             override fun run(context: DistributedJobContext) {
                 throw AssertionError("Job does not expected to run")
             }
+
             override fun getWorkPool(): WorkPool = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
