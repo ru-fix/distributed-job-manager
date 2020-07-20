@@ -18,11 +18,11 @@ interface DistributedJob {
      *
      * ```
      * class FooJob: DistributedJob{
-     *   fun getJobId() = "Foo"
+     *   val jobId = JobId("Foo")
      *   ...
      * }
      * class BarJob: DistributedJob{
-     *   fun getJobId() = "Bar"
+     *   val jobId = JobId("Bar")
      *   ...
      * }
      * ```
