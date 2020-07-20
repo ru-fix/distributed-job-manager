@@ -4,7 +4,10 @@ import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry.ExponentialBackoffRetry
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.distributed.job.manager.*
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
@@ -12,7 +15,7 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 class RebillJob : DistributedJob {
-    override fun getJobId() = JobId("rebill-job")
+    override val jobId = JobId("rebill-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(1000L))
 
@@ -31,7 +34,7 @@ class RebillJob : DistributedJob {
 }
 
 class SmsJob : DistributedJob {
-    override fun getJobId() = JobId("sms-job")
+    override val jobId = JobId("sms-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(100L))
 
@@ -47,7 +50,7 @@ class SmsJob : DistributedJob {
 }
 
 class UssdJob : DistributedJob {
-    override fun getJobId() = JobId("ussd-job")
+    override val jobId = JobId("ussd-job")
 
     override fun getSchedule() = Schedule.withDelay(DynamicProperty.of(0L))
 
