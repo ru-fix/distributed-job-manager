@@ -6,6 +6,8 @@ package ru.fix.distributed.job.manager.annotation
  *
  * Now you can change that behaviour by overriding {@link ru.fix.distributed.job.manager.DistributedJob}
  * */
-@Target(AnnotationTarget.FIELD)
+@Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class JobIdField
+annotation class DistributedJobId(
+        val value: String
+)

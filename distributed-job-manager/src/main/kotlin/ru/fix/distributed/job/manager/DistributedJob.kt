@@ -1,6 +1,6 @@
 package ru.fix.distributed.job.manager
 
-import ru.fix.distributed.job.manager.annotation.JobIdField
+import ru.fix.distributed.job.manager.annotation.DistributedJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
@@ -28,8 +28,8 @@ interface DistributedJob {
      * }
      * ```
      *
-     * To define job id you can use [JobIdField] instead.
-     * Overriding this method overrides the use of [JobIdField]
+     * To define job id you can use [DistributedJobId] instead.
+     * Overriding this method overrides the use of [DistributedJobId]
      *
      * ```
      * class BazJob: DistributedJob{

@@ -1,7 +1,7 @@
 package ru.fix.distributed.job.manager.model
 
 import ru.fix.distributed.job.manager.*
-import ru.fix.distributed.job.manager.annotation.JobIdField
+import ru.fix.distributed.job.manager.annotation.DistributedJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
@@ -30,16 +30,9 @@ fun resolveJobId(job: DistributedJob): JobId {
     if (jobIdByGetter != null) {
         return jobIdByGetter
     }
-    for (field in job.javaClass.declaredFields) {
-        if (field.isAnnotationPresent(JobIdField::class.java)) {
-            try {
-                field.isAccessible = true
-                return field[job] as JobId
-            } catch (e: Exception) {
-                throw IllegalStateException(
-                        "Some troubles with getting jobId by annotation. Maybe it's not a JobId class?", e)
-            }
-        }
+    val jobIdAnnotation = job.javaClass.getAnnotation(DistributedJobId::class.java)
+    if (jobIdAnnotation != null) {
+        return JobId(jobIdAnnotation.value)
     }
     return JobId(job.javaClass.name.replace('.', '-').replace('$', '_'))
 }

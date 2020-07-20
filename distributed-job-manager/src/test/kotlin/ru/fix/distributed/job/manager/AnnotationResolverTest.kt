@@ -1,9 +1,8 @@
 package ru.fix.distributed.job.manager
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import ru.fix.distributed.job.manager.annotation.JobIdField
+import ru.fix.distributed.job.manager.annotation.DistributedJobId
 import ru.fix.distributed.job.manager.model.JobDescriptor
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
@@ -11,40 +10,35 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 internal class AnnotationResolverTest {
 
     @Test
-    @Disabled
-    fun `JobDescriptor WHEN jobId notSpecified THEN getJobId returns full class name` () {
+    fun `JobDescriptor WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
         val descriptor = JobDescriptor(JobDoesNotDescribingJobId())
         assertEquals(
                 JobDoesNotDescribingJobId::class.java.name
                         .replace('.', '-')
                         .replace('$', '_'),
-                descriptor.jobId)
+                descriptor.jobId.id)
     }
 
     @Test
-    fun `JobDescriptor WHEN jobId specified by annotation THEN getJobId returns value from annotated field` () {
+    fun `JobDescriptor WHEN jobId specified by annotation THEN jobId is value from annotated field`() {
         val job = JobDescribingIdByAnnotation()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.id, descriptor.jobId)
+        assertEquals(job.javaClass.getAnnotation(DistributedJobId::class.java).value, descriptor.jobId.id)
     }
 
     @Test
-    fun `JobDescriptor WHEN jobId specified by method THEN getJobId delegated to that method` () {
-        val job = JobDescribingIdByMethod()
+    fun `JobDescriptor WHEN jobId specified by val THEN jobId is that val`() {
+        val job = JobDescribingIdByVal()
         val descriptor = JobDescriptor(job)
         assertEquals(job.jobId, descriptor.jobId)
     }
 
-    class JobDescribingIdByAnnotation : NoopJob() {
-
-        @JobIdField
-        val id = JobId("JobDescribingIdByAnnotation")
-    }
-
-    class JobDescribingIdByMethod : NoopJob() {
-
+    class JobDescribingIdByVal : NoopJob() {
         override val jobId = JobId("JobDescribingIdByMethod")
     }
+
+    @DistributedJobId("JobDescribingIdByAnnotation")
+    class JobDescribingIdByAnnotation : NoopJob()
 
     class JobDoesNotDescribingJobId : NoopJob()
 
