@@ -10,7 +10,6 @@ import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import ru.fix.zookeeper.testing.ZKTestingServer
-import java.lang.AssertionError
 import java.lang.Thread.sleep
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -32,19 +31,19 @@ class DistributedJobLaunchingTest {
 
     @Test
     fun `job with invalid id rises an exception in DJM ctor`() {
-        val invalidIdJob = object : DistributedJob {
-            override fun getJobId() = JobId("little red fox")
-            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
-            override fun run(context: DistributedJobContext) {
-                throw AssertionError("Job does not expected to run")
+        val exc = shouldThrow<Exception> {
+            val invalidIdJob = object : DistributedJob {
+                override val jobId = JobId("little red fox")
+                override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
+                override fun run(context: DistributedJobContext) {
+                    throw AssertionError("Job does not expected to run")
+                }
+
+                override fun getWorkPool(): WorkPool = WorkPool.singleton()
+                override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+                override fun getWorkPoolCheckPeriod(): Long = 0
             }
 
-            override fun getWorkPool(): WorkPool = WorkPool.singleton()
-            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
-            override fun getWorkPoolCheckPeriod(): Long = 0
-        }
-
-        val exc = shouldThrow<Exception> {
             DistributedJobManager(
                     server.client,
                     listOf(invalidIdJob),
@@ -64,7 +63,7 @@ class DistributedJobLaunchingTest {
     @Test
     fun `two jobs with same id rise an exception in DJM ctor`() {
         val jobWithSameId1 = object : DistributedJob {
-            override fun getJobId() = JobId("sameId")
+            override val jobId = JobId("sameId")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {
                 throw AssertionError("Job does not expected to run")
@@ -75,7 +74,7 @@ class DistributedJobLaunchingTest {
         }
 
         val jobWithSameId2 = object : DistributedJob {
-            override fun getJobId() = JobId("sameId")
+            override val jobId = JobId("sameId")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {
                 throw AssertionError("Job does not expected to run")

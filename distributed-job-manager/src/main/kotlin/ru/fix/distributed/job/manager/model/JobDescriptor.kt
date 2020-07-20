@@ -1,9 +1,6 @@
 package ru.fix.distributed.job.manager.model
 
-import ru.fix.distributed.job.manager.DistributedJob
-import ru.fix.distributed.job.manager.DistributedJobContext
-import ru.fix.distributed.job.manager.WorkPool
-import ru.fix.distributed.job.manager.WorkPoolRunningStrategy
+import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.annotation.JobIdField
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
@@ -13,9 +10,9 @@ import ru.fix.stdlib.concurrency.threads.Schedule
  * */
 class JobDescriptor(private val job: DistributedJob) {
 
-    private val jobId: String = resolveJobId(job)
+    private val jobId: JobId = resolveJobId(job)
 
-    fun getJobId(): String = jobId
+    fun getJobId(): JobId = jobId
 
     fun run(context: DistributedJobContext) = job.run(context)
 
@@ -30,8 +27,8 @@ class JobDescriptor(private val job: DistributedJob) {
     fun getWorkPoolCheckPeriod(): Long = job.getWorkPoolCheckPeriod()
 }
 
-fun resolveJobId(job: DistributedJob): String {
-    val jobIdByGetter = job.getJobId()
+fun resolveJobId(job: DistributedJob): JobId {
+    val jobIdByGetter = job.jobId
     if (jobIdByGetter != null) {
         return jobIdByGetter
     }
@@ -39,12 +36,12 @@ fun resolveJobId(job: DistributedJob): String {
         if (field.isAnnotationPresent(JobIdField::class.java)) {
             try {
                 field.isAccessible = true
-                return field[job] as String
+                return field[job] as JobId
             } catch (e: Exception) {
                 throw IllegalStateException(
-                        "Some troubles with getting jobId by annotation. Maybe it's not a String field?", e)
+                        "Some troubles with getting jobId by annotation. Maybe it's not a JobId class?", e)
             }
         }
     }
-    return job.javaClass.name
+    return JobId(job.javaClass.name.replace('.', '-').replace('$', '_'))
 }

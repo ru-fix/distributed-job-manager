@@ -1,12 +1,12 @@
 package ru.fix.distributed.job.manager
 
-import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.distributed.job.manager.annotation.JobIdField
+import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
 interface DistributedJob {
     /**
-     * [getJobId] returns  unique identifier of a job type.
+     * [jobId] is unique identifier of a job type.
      * There will be several instances of a [DistributedJob] within the cluster.
      * Only one [DistributedJob] instance with same job id can be registered within single [DistributedJobManager] instance
      * There could be several [DistributedJob] instances with same job id within cluster of [DistributedJobManager]s.
@@ -34,13 +34,14 @@ interface DistributedJob {
      * ```
      * class BazJob: DistributedJob{
      *   @JobIdField
-     *   val jobId = "Baz"
+     *   val jobId = JobId("Baz")
      *   ...
      * }
      * ```
      * @return identifier of the job type.
      */
-    fun getJobId(): JobId? = null
+    val jobId: JobId?
+        get() = null
 
     /**
      * @return delay between job invocation
