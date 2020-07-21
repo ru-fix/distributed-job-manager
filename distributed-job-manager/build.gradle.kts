@@ -36,5 +36,6 @@ dependencies {
     testImplementation(Libs.log4j_core)
     testImplementation(Libs.slf4j_over_log4j)
     testImplementation(Libs.awaitility)
+    testImplementation(Libs.netcrusher)
     testImplementation(Libs.kotest_assertions)
 }
