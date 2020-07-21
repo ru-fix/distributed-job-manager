@@ -13,7 +13,7 @@ internal class ManagerCleaningTest : AbstractJobManagerTest() {
 
     @Test
     @Throws(Exception::class)
-    fun cleaning_WHEN_last_djm_with_available_job_closed_THEN_removing_job_from_workPool() {
+    fun `WHEN last djm with available job closed THEN removing job from workPool`() {
         val workPoolCleanPeriod = AtomicProperty(500L)
         val cleaningPerformTimeoutMs: Long = 1000
         val closingDjmTimeoutMs: Long = 1500
