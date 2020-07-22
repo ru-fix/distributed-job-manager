@@ -17,8 +17,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
+import static ru.fix.distributed.job.manager.VerificationUtilsKt.awaitSingleJobIsDistributedBetweenWorkers;
 import static ru.fix.distributed.job.manager.VerificationUtilsKt.collectionsContainSameElements;
-import static ru.fix.distributed.job.manager.VerificationUtilsKt.verifySingleJobIsDistributedBetweenWorkers;
 
 /**
  * @author Ayrat Zulkarnyaev
@@ -133,7 +133,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob), curator)
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
+            awaitSingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
 
             StubbedMultiJob testJob2 = new StubbedMultiJob(10, getWorkItems(10));
             try (
@@ -143,7 +143,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                             curator2
                     )
             ) {
-                verifySingleJobIsDistributedBetweenWorkers(30, testJob, testJob2);
+                awaitSingleJobIsDistributedBetweenWorkers(30, testJob, testJob2);
             }
         }
     }
@@ -161,7 +161,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob), curator)
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
+            awaitSingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
         }
     }
 
@@ -172,7 +172,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 CuratorFramework curator = defaultZkClient();
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob), curator)
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
+            awaitSingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
             verify(testJob, timeout(500)).run(any());
         }
     }
@@ -185,13 +185,13 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         try (
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob))
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
+            awaitSingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob);
             verify(testJob, timeout(500)).run(any());
 
             try (
                     DistributedJobManager jobManager2 = createNewJobManager(Collections.singletonList(testJob2))
             ) {
-                verifySingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob2);
+                awaitSingleJobIsDistributedBetweenWorkers(DEFAULT_TIMEOUT_SEC, testJob2);
                 verify(testJob).run(any());
             }
 
@@ -228,7 +228,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager1 = createNewJobManager(Collections.singletonList(testJobOnWorker1));
                 DistributedJobManager jobManager2 = createNewJobManager(Collections.singletonList(testJobOnWorker2))
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
+            awaitSingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
 
             Set<String> updatedWorkPool = new HashSet<>(Arrays.asList(
                     getWorkPool(10, 1),
@@ -237,7 +237,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             testJobOnWorker1.updateWorkPool(updatedWorkPool);
             testJobOnWorker2.updateWorkPool(updatedWorkPool);
 
-            verifySingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
+            awaitSingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
         }
     }
 
@@ -250,7 +250,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJobOnWorker1));
                 DistributedJobManager jobManager2 = createNewJobManager(Collections.singletonList(testJobOnWorker2))
         ) {
-            verifySingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
+            awaitSingleJobIsDistributedBetweenWorkers(30, testJobOnWorker1, testJobOnWorker2);
 
             List<CompletableFuture<Void>> allUpdates = new ArrayList<>();
             Set<String> updatedWorkPool1 = Set.of(
@@ -275,7 +275,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
             testJobOnWorker1.updateWorkPool(updatedWorkPool2);
             testJobOnWorker2.updateWorkPool(updatedWorkPool2);
 
-            verifySingleJobIsDistributedBetweenWorkers(50, testJobOnWorker1, testJobOnWorker2);
+            awaitSingleJobIsDistributedBetweenWorkers(50, testJobOnWorker1, testJobOnWorker2);
         }
     }
 
