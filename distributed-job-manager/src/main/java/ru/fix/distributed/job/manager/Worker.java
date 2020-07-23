@@ -312,7 +312,9 @@ class Worker implements AutoCloseable {
         };
         workPooledCache.listenable().addListener(curatorCacheListener);
         workPooledCache.start();
-        cacheInitLocker.acquire();
+        while (!cacheInitLocker.tryAcquire(5, TimeUnit.SECONDS)) {
+            if (isWorkerShutdown) return;
+        }
     }
 
     private void updateWorkPoolForJob(JobDescriptor job, Set<String> newWorkPool) {
