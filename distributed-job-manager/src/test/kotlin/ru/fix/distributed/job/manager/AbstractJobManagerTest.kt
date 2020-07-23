@@ -8,6 +8,7 @@ import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import ru.fix.zookeeper.testing.ZKTestingServer
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
@@ -50,18 +51,21 @@ internal abstract class AbstractJobManagerTest {
             curatorFramework: CuratorFramework = defaultZkClient(),
             nodeId: String = UUID.randomUUID().toString(),
             strategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
-            workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L)
+            workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L),
+            lockManagerConfig: DynamicProperty<PersistentExpiringLockManagerConfig> =
+                    DynamicProperty.of(PersistentExpiringLockManagerConfig())
     ): DistributedJobManager {
         return DistributedJobManager(
                 curatorFramework,
                 jobs,
                 NoopProfiler(),
                 DistributedJobManagerSettings(
-                        nodeId,
-                        JOB_MANAGER_ZK_ROOT_PATH,
-                        strategy,
-                        DynamicProperty.of(180000L),
-                        workPoolCleanPeriod
+                        nodeId = nodeId,
+                        rootPath = JOB_MANAGER_ZK_ROOT_PATH,
+                        assignmentStrategy = strategy,
+                        timeToWaitTermination = DynamicProperty.of(180000L),
+                        workPoolCleanPeriod = workPoolCleanPeriod,
+                        lockManagerConfig = lockManagerConfig
                 )
         )
     }
