@@ -32,20 +32,20 @@ internal class ManagerCleaningTest : AbstractJobManagerTest() {
                 jobs = listOf(job2, job3),
                 workPoolCleanPeriod = workPoolCleanPeriod
         )
-        assertTrue(curator2.children.forPath(paths.availableWorkPool()).contains(job1.getJobId().id))
+        assertTrue(curator2.children.forPath(paths.availableWorkPool()).contains(job1.jobId.id))
         jobManager1.close()
         curator1.close()
         awaitCleaningJob(
                 atLeast = 0,
                 atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                jobIdForRemoval = job1.getJobId().id, curator = curator2)
+                jobIdForRemoval = job1.jobId.id, curator = curator2)
         val curator3 = defaultZkClient()
         val jobManager3 = createNewJobManager(
                 curatorFramework = curator3,
                 jobs = listOf(job1, job2),
                 workPoolCleanPeriod = workPoolCleanPeriod
         )
-        assertTrue(curator3.children.forPath(paths.availableWorkPool()).contains(job1.getJobId().id))
+        assertTrue(curator3.children.forPath(paths.availableWorkPool()).contains(job1.jobId.id))
         val oldCleanPeriodMs = workPoolCleanPeriod.set(7000L)
         await().pollDelay(Duration.ofMillis(oldCleanPeriodMs)).untilAsserted {}
         jobManager2.close()
@@ -53,7 +53,7 @@ internal class ManagerCleaningTest : AbstractJobManagerTest() {
         awaitCleaningJob(
                 atLeast = workPoolCleanPeriod.get() - closingDjmTimeoutMs - oldCleanPeriodMs,
                 atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                jobIdForRemoval = job3.getJobId().id, curator = curator3)
+                jobIdForRemoval = job3.jobId.id, curator = curator3)
         jobManager3.close()
         curator3.close()
     }

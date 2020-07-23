@@ -48,10 +48,10 @@ fun collectionsContainSameElements(c1: Collection<String>, c2: Collection<String
 
 private fun jobsHasSameIdAndSameWorkPool(vararg jobs: DistributedJob): Boolean {
     val firstJob = jobs[0]
-    val id = firstJob.getJobId().id
+    val id = firstJob.jobId.id
     val workPool = firstJob.getWorkPool().items
     for (nextJob in jobs) {
-        val nextId = nextJob.getJobId().id
+        val nextId = nextJob.jobId.id
         val nextWorkPool = nextJob.getWorkPool().items
         if (nextId != id || nextWorkPool != workPool) {
             return false
