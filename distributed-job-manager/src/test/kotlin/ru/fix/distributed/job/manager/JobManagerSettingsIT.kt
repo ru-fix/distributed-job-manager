@@ -155,11 +155,11 @@ private class JobManagerSettingsEditor(
     }
 
     fun disableConcreteJob(job: DistributedJob) {
-        setJobIsDisabled(job.getJobId(), true)
+        setJobIsDisabled(job.jobId, true)
     }
 
     fun enableConcreteJob(job: DistributedJob) {
-        setJobIsDisabled(job.getJobId(), false)
+        setJobIsDisabled(job.jobId, false)
     }
 
     private fun setJobIsDisabled(jobId: JobId, value: Boolean) {

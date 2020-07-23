@@ -5,7 +5,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 
 interface DistributedJob {
     /**
-     * [getJobId] returns  unique identifier of a job type.
+     * [jobId] is unique identifier of a job type.
      * There will be several instances of a [DistributedJob] within the cluster.
      * Only one [DistributedJob] instance with same job id can be registered within single [DistributedJobManager] instance
      * There could be several [DistributedJob] instances with same job id within cluster of [DistributedJobManager]s.
@@ -18,18 +18,18 @@ interface DistributedJob {
      *
      * ```
      * class FooJob: DistributedJob{
-     *   fun getJobId() = "Foo"
+     *   val jobId = JobId("Foo")
      *   ...
      * }
      * class BarJob: DistributedJob{
-     *   fun getJobId() = "Bar"
+     *   val jobId = JobId("Bar")
      *   ...
      * }
      * ```
      *
      * @return identifier of the job type.
      */
-    fun getJobId(): JobId
+    val jobId: JobId
 
     /**
      * @return delay between job invocation
