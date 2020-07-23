@@ -99,7 +99,7 @@ class DistributedJobLaunchingTest {
 
         val jobIsStarted = AtomicBoolean()
         val jobWithEmptyWorkPool = object : DistributedJob {
-            override fun getJobId() = JobId("jobWithEmptyWorkPool")
+            override val jobId = JobId("jobWithEmptyWorkPool")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(10))
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
@@ -129,7 +129,7 @@ class DistributedJobLaunchingTest {
         val damageWorkPool = AtomicBoolean()
 
         val jobWithInvalidWorkItem = object : DistributedJob {
-            override fun getJobId() = JobId("jobWithInvalidWorkItem")
+            override val jobId = JobId("jobWithInvalidWorkItem")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
             override fun run(context: DistributedJobContext) {
                 logger.info("JOB")
