@@ -162,6 +162,7 @@ class DistributedJobLaunchingTest {
         djm.close()
 
         logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkItem]")
+
         logRecorder.close()
     }
 
