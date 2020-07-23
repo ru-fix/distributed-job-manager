@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 class DistributedJobLaunchingTest {
 
     companion object : Logging
