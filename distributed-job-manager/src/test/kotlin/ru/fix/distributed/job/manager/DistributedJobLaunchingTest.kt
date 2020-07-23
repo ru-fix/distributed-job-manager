@@ -18,6 +18,7 @@ import java.lang.Thread.sleep
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -132,7 +133,6 @@ class DistributedJobLaunchingTest {
             override val jobId = JobId("jobWithInvalidWorkItem")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
             override fun run(context: DistributedJobContext) {
-                logger.info("JOB")
                 jobIsStarted.set(true)
             }
 
@@ -167,8 +167,31 @@ class DistributedJobLaunchingTest {
     }
 
     @Test
-    fun `work pool can change over time`() {
+    fun `when work pool changes, new work share passed to job launch context`() {
+        val jobReceivedWorkPool = AtomicReference<Set<String>>()
+        val workPool = AtomicReference<Set<String>>(setOf("work-item-1"))
 
+        val jobWithDynamicWorkPool = object : DistributedJob {
+            override val jobId = JobId("jobWithDynamicWorkPool")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
+            override fun run(context: DistributedJobContext) {
+                jobReceivedWorkPool.set(context.workShare)
+            }
+            override fun getWorkPool(): WorkPool {
+                return WorkPool.of(workPool.get())
+            }
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 50
+        }
+        val djm = createDJM(jobWithDynamicWorkPool)
+
+        await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-1") }
+
+        workPool.set(setOf("work-item-2"))
+
+        await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-2") }
+
+        djm.close()
     }
 
     @Disabled("TODO")
