@@ -13,6 +13,7 @@ import ru.fix.dynamic.property.api.AtomicProperty
 import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 
 /**
  * Only single manager is active on the cluster.
@@ -103,7 +104,9 @@ class Manager(
             }
         })
         cache.start()
-        cacheInitLocker.acquire()
+        while (!cacheInitLocker.tryAcquire(5, TimeUnit.SECONDS)) {
+            if (currentState.get() == State.SHUTDOWN) return
+        }
     }
 
     private fun handleManagerEvent(event: ManagerEvent) {
