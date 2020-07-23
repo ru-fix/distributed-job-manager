@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager
 
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import org.netcrusher.core.reactor.NioReactor
 import org.netcrusher.tcp.TcpCrusher
@@ -24,8 +25,10 @@ internal class DjmConnectionProblemsTest : AbstractJobManagerTest() {
 
         awaitSingleJobIsDistributedBetweenWorkers(15, jobInstanceOnWorker1, jobInstanceOnWorker2)
         crusherForWorker1.close()
+        await().until { !proxyCurator.zookeeperClient.isConnected }
         awaitSingleJobIsDistributedBetweenWorkers(30, jobInstanceOnWorker2)
         crusherForWorker1.open()
+        await().until { proxyCurator.zookeeperClient.isConnected }
         awaitSingleJobIsDistributedBetweenWorkers(30, jobInstanceOnWorker1, jobInstanceOnWorker2)
 
         djm1.close()
