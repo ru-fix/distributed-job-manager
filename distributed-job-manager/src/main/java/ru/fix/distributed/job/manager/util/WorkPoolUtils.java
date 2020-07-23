@@ -2,7 +2,6 @@ package ru.fix.distributed.job.manager.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.DistributedJob;
 import ru.fix.distributed.job.manager.JobId;
 import ru.fix.distributed.job.manager.WorkPool;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
