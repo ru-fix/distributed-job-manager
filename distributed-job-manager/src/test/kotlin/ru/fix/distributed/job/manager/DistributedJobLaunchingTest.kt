@@ -22,7 +22,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-@Execution(ExecutionMode.SAME_THREAD)
+ //Prevent log messages from different tests to mix
+ @Execution(ExecutionMode.SAME_THREAD)
 class DistributedJobLaunchingTest {
 
     companion object : Logging
@@ -194,10 +195,12 @@ class DistributedJobLaunchingTest {
         djm.close()
     }
 
-    @Disabled("TODO")
     @Test
-    fun `djm without any provided jobs logs a warnnig`() {
-        TODO()
+    fun `djm without any provided jobs logs a warning`() {
+        val logRecorder = Log4jLogRecorder()
+        val djm = createDJM(emptyList())
+        logRecorder.getContent().shouldContain("WARN No job instance provided")
+        djm.close()
     }
 
     @Disabled("TODO")

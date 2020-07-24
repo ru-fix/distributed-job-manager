@@ -70,6 +70,10 @@ class Worker implements AutoCloseable {
         this.workerId = settings.getNodeId();
 
         assertAllJobsHasUniqueJobId(jobs);
+        if (jobs.isEmpty()) {
+            log.warn("No job instance provided to DJM Worker " + settings.getNodeId());
+        }
+
         this.availableJobs = jobs;
 
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
@@ -80,7 +84,7 @@ class Worker implements AutoCloseable {
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
                 "worker-update-thread",
-                DynamicProperty.of(jobs.size()),
+                DynamicProperty.of(Math.max(jobs.size(), 1)),
                 profiler
         );
 
