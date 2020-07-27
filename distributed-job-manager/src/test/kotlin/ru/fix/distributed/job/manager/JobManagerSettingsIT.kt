@@ -12,7 +12,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty
 
-private const val defaultJobRunTimeoutMs = 1_500L
+private const val defaultJobRunTimeoutMs = 1_000L
 
 internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
