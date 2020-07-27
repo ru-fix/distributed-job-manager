@@ -200,8 +200,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldMinimizeWorkerMultiThreadFactoryJobExecution() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10), 3600_000, false)); // don't pass too
-        // big value here
+        StubbedMultiJob testJob = Mockito.spy(
+                new StubbedMultiJob(10, getWorkItems(10), 3600_000, 0, false)
+        ); // don't pass too big value here
         try (
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob))
         ) {

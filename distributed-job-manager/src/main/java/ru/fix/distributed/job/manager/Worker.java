@@ -174,19 +174,24 @@ class Worker implements AutoCloseable {
         workPools.forEach(WorkPoolUtils::checkWorkPoolItemsRestrictions);
         registerWorkerAndJobs(workPools);
 
-        availableJobs.forEach(v -> {
-            long workPoolCheckPeriod = v.getWorkPoolCheckPeriod();
+        availableJobs.forEach(job -> {
+            long workPoolCheckPeriod = job.getWorkPoolCheckPeriod();
             if (workPoolCheckPeriod != 0) {
                 workPoolReschedulableScheduler.schedule(
-                        DynamicProperty.delegated(() -> Schedule.withDelay(v.getWorkPoolCheckPeriod())),
+                        DynamicProperty.delegated(() -> Schedule.withDelay(job.getWorkPoolCheckPeriod())),
                         workPoolCheckPeriod,
                         () -> {
                             if (isWorkerShutdown) {
                                 return;
                             }
-                            WorkPool workPool = v.getWorkPool();
-                            WorkPoolUtils.checkWorkPoolItemsRestrictions(v, workPool);
-                            updateWorkPoolForJob(v, workPool.getItems());
+                            WorkPool workPool = WorkPool.of(Collections.emptySet());
+                            try {
+                                workPool = job.getWorkPool();
+                            } catch (Exception exception) {
+                                log.error("Failed to access job WorkPool {}", job.getJobId(), exception);
+                            }
+                            WorkPoolUtils.checkWorkPoolItemsRestrictions(job, workPool);
+                            updateWorkPoolForJob(job, workPool.getItems());
                         }
                 );
             }
