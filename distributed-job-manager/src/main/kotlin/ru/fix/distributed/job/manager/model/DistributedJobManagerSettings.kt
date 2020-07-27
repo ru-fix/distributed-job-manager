@@ -22,7 +22,9 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
         val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig()),
 
         val lockManagerConfig: DynamicProperty<PersistentExpiringLockManagerConfig> =
-                DynamicProperty.of(PersistentExpiringLockManagerConfig())
+                DynamicProperty.of(PersistentExpiringLockManagerConfig()),
+
+        val shutdownListenersThreadPoolSize: DynamicProperty<Int> = DynamicProperty.of(1)
 )
 
 data class JobDisableConfig(

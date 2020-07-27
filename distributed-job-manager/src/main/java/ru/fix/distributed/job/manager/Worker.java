@@ -48,6 +48,7 @@ class Worker implements AutoCloseable {
     private final String workerId;
     private final AvailableWorkPoolSubTree workPoolSubTree;
     private final ReschedulableScheduler jobReschedulableScheduler;
+    private final ExecutorService shutdownListenersExecutor;
     private final ExecutorService assignmentUpdatesExecutor;
     private final ReschedulableScheduler workPoolReschedulableScheduler;
     private final Profiler profiler;
@@ -76,6 +77,10 @@ class Worker implements AutoCloseable {
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
                 "worker-" + workerId,
+                profiler);
+        this.shutdownListenersExecutor = NamedExecutors.newDynamicPool(
+                "shutdown-listeners",
+                settings.getShutdownListenersThreadPoolSize(),
                 profiler);
         this.profiler = profiler;
         this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
@@ -434,6 +439,7 @@ class Worker implements AutoCloseable {
         ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
                 newMultiJob,
                 new HashSet<>(workPoolToExecute),
+                shutdownListenersExecutor,
                 profiler,
                 lockManager,
                 jobDisableConfig,

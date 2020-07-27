@@ -11,6 +11,7 @@ import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +35,7 @@ class ScheduledJobExecution implements Runnable {
     private final Lock lock = new ReentrantLock();
     private final DynamicProperty<JobDisableConfig> jobDisableConfig;
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
+    private final Executor jobShutdownListenersExecutor;
     private volatile ScheduledFuture<?> scheduledFuture;
     private volatile long lastShutdownTime;
 
@@ -41,6 +43,7 @@ class ScheduledJobExecution implements Runnable {
     public ScheduledJobExecution(
             DistributedJob job,
             Set<String> workShare,
+            Executor jobShutdownListenersExecutor,
             Profiler profiler,
             PersistentExpiringLockManager lockManager,
             DynamicProperty<JobDisableConfig> jobDisableConfig,
@@ -52,6 +55,7 @@ class ScheduledJobExecution implements Runnable {
         }
 
         this.job = job;
+        this.jobShutdownListenersExecutor = jobShutdownListenersExecutor;
         this.workShare = workShare;
         this.profiler = profiler;
         this.lockManager = lockManager;
@@ -93,7 +97,7 @@ class ScheduledJobExecution implements Runnable {
                  */
                 if (!lockManager.tryAcquire(
                         new LockIdentity(zkPathsManager.workItemLock(job.getJobId(), workItem), null),
-                        lockIdentity -> jobContext.shutdown())
+                        lockIdentity -> jobContext.shutdown(jobShutdownListenersExecutor))
                 ) {
                     log.info("Failed to tryAcquire work share '{}' for job '{}'. Job launching will rescheduled.",
                             workItem, job.getJobId());
@@ -164,7 +168,7 @@ class ScheduledJobExecution implements Runnable {
     public void shutdown() {
         lastShutdownTime = System.currentTimeMillis();
         this.shutdownFlag.set(true);
-        jobRuns.forEach(JobContext::shutdown);
+        jobRuns.forEach(jobContext -> jobContext.shutdown(jobShutdownListenersExecutor));
         scheduledFuture.cancel(false);
 
         log.debug("Future {} with hash={} cancelled for jobId={} with {}",

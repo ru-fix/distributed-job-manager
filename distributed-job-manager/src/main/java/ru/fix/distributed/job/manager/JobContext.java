@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 /**
@@ -63,14 +64,14 @@ public class JobContext implements DistributedJobContext {
         shutdownListeners.remove(o);
     }
 
-    public void shutdown() {
+    public void shutdown(Executor jobShutdownListenersExecutor) {
         shutdownFlag = true;
-        shutdownListeners.forEach(shutdownListener -> {
+        shutdownListeners.forEach(shutdownListener -> jobShutdownListenersExecutor.execute(() -> {
             try {
                 shutdownListener.onShutdown();
             } catch (Exception exc) {
                 log.error("Failed to call shutdown listener on job: {}", jobId, exc);
             }
-        });
+        }));
     }
 }
