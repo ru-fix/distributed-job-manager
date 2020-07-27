@@ -1,7 +1,11 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
+import org.apache.logging.log4j.kotlin.Logging
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
@@ -11,13 +15,19 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import ru.fix.zookeeper.testing.ZKTestingServer
 import java.lang.Thread.sleep
+import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
+
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 class DistributedJobLaunchingTest {
 
+    companion object : Logging
+
     lateinit var server: ZKTestingServer
+
 
     @BeforeEach
     fun beforeEach() {
@@ -77,25 +87,88 @@ class DistributedJobLaunchingTest {
         }
 
         val exc = shouldThrow<Exception> {
-            DistributedJobManager(
-                    server.client,
-                    listOf(jobWithSameId1, jobWithSameId2),
-                    NoopProfiler(),
-                    DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
-                            rootPath = generateRootPath(),
-                            timeToWaitTermination = DynamicProperty.of(10000)
-                    ))
-            Unit
+            createDJM(jobs = listOf(jobWithSameId1, jobWithSameId2))
         }
 
         exc.message.shouldContain("same JobId")
     }
 
-    @Disabled
     @Test
-    fun `job with invalid WorkItem behave as if there was an empty WorkItem`() {
-        TODO("assert that logs contains error")
+    fun `job with empty WorkPool list does not starts `() {
+        val logRecorder = Log4jLogRecorder()
+
+        val jobIsStarted = AtomicBoolean()
+        val jobWithEmptyWorkPool = object : DistributedJob {
+            override val jobId = JobId("jobWithEmptyWorkPool")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(10))
+            override fun run(context: DistributedJobContext) {
+                jobIsStarted.set(true)
+            }
+
+            override fun getWorkPool(): WorkPool = WorkPool(emptySet())
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 100
+        }
+        val djm = createDJM(jobWithEmptyWorkPool)
+
+        sleep(3000)
+        jobIsStarted.get().shouldBe(false)
+
+        djm.close()
+
+        logRecorder.getContent().shouldNotContain("ERROR")
+        logRecorder.close()
+    }
+
+
+    @Test
+    fun `after failed getWorkPool job stop launching`() {
+        val logRecorder = Log4jLogRecorder()
+
+        val jobIsStarted = AtomicBoolean()
+        val damageWorkPool = AtomicBoolean()
+
+        val jobWithInvalidWorkItem = object : DistributedJob {
+            override val jobId = JobId("jobWithInvalidWorkItem")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
+            override fun run(context: DistributedJobContext) {
+                logger.info("JOB")
+                jobIsStarted.set(true)
+            }
+
+            override fun getWorkPool(): WorkPool {
+                if (damageWorkPool.get()) {
+                    throw Exception("Failed to calculate workpool")
+                } else {
+                    return WorkPool.singleton()
+                }
+            }
+
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 100
+        }
+
+        val djm = createDJM(jobWithInvalidWorkItem)
+
+        await().atMost(10, SECONDS).until { jobIsStarted.get() }
+        damageWorkPool.set(true)
+
+        sleep(1000)
+        jobIsStarted.set(false)
+
+        sleep(1000)
+        jobIsStarted.get().shouldBe(false)
+
+        djm.close()
+
+        logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkItem]")
+
+        logRecorder.close()
+    }
+
+    @Test
+    fun `work pool can change over time`() {
+
     }
 
     @Disabled("TODO")
@@ -234,6 +307,13 @@ class DistributedJobLaunchingTest {
 
     @Disabled("TODO")
     @Test
+    fun `Check WorkPool period small, no change in WorkPool then should be no change to zk and no rebalance is triggered`() {
+        sleep(1000)
+        TODO()
+    }
+
+    @Disabled("TODO")
+    @Test
     fun `If WorkPool and number of DJMs does not change, no rebalance is triggered `() {
         sleep(1000)
         TODO()
@@ -282,6 +362,20 @@ class DistributedJobLaunchingTest {
         sleep(1000)
         TODO()
     }
+
+    private fun createDJM(job: DistributedJob) = createDJM(listOf(job))
+
+    private fun createDJM(jobs: List<DistributedJob>) =
+            DistributedJobManager(
+                    server.client,
+                    jobs,
+                    NoopProfiler(),
+                    DistributedJobManagerSettings(
+                            nodeId = generateNodeId(),
+                            rootPath = generateRootPath(),
+                            timeToWaitTermination = DynamicProperty.of(10000)
+                    ))
+
 
     private val lastNodeId = AtomicInteger(1)
     fun generateNodeId() = lastNodeId.incrementAndGet().toString()

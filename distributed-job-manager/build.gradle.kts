@@ -32,6 +32,7 @@ dependencies {
     testImplementation(Libs.junit_jupiter_api)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.mockito)
+    testImplementation(Libs.mockk)
     testImplementation(Libs.curator_test)
     testImplementation(Libs.log4j_core)
     testImplementation(Libs.slf4j_over_log4j)

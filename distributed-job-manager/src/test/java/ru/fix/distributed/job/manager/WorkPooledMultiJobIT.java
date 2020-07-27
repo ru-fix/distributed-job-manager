@@ -17,8 +17,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
-import static ru.fix.distributed.job.manager.VerificationUtilsKt.awaitSingleJobIsDistributedBetweenWorkers;
-import static ru.fix.distributed.job.manager.VerificationUtilsKt.collectionsContainSameElements;
+import static ru.fix.distributed.job.manager.StubbedMultiJobKt.awaitSingleJobIsDistributedBetweenWorkers;
 
 /**
  * @author Ayrat Zulkarnyaev
@@ -200,8 +199,9 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
     @Test
     public void shouldMinimizeWorkerMultiThreadFactoryJobExecution() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(10, getWorkItems(10), 3600_000, false)); // don't pass too
-        // big value here
+        StubbedMultiJob testJob = Mockito.spy(
+                new StubbedMultiJob(10, getWorkItems(10), 3600_000, 0, false)
+        ); // don't pass too big value here
         try (
                 DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob))
         ) {
@@ -299,7 +299,8 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
                     workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printDjmZkTree(),
-                    collectionsContainSameElements(totalWorkPoolForFirstJob, workPoolForFirstJobOnSecondWorker)
+                    workPoolForFirstJobOnSecondWorker.size() == totalWorkPoolForFirstJob.size()
+                            && workPoolForFirstJobOnSecondWorker.containsAll(totalWorkPoolForFirstJob)
             );
         });
 
