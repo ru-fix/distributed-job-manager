@@ -19,6 +19,7 @@ object Vers {
 
     const val junit = "5.6.2"
     const val mockito = "3.3.3"
+    const val mockk = "1.10.0"
     const val awaitility = "4.0.3"
 
     const val log4j = "2.13.3"
@@ -64,6 +65,7 @@ object Libs {
     const val junit_jupiter_params = "org.junit.jupiter:junit-jupiter-params:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
     const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
+    const val mockk = "io.mockk:mockk:${Vers.mockk}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
     const val kotest_assertions = "io.kotest:kotest-assertions-core:4.1.1"
 }
