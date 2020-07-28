@@ -1,8 +1,8 @@
 package ru.fix.distributed.job.manager
 
-import io.mockk.spyk
-import io.mockk.verify
+import com.nhaarman.mockitokotlin2.*
 import org.apache.curator.framework.CuratorFramework
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
@@ -11,78 +11,83 @@ import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty
+import java.time.Duration
 
-private const val defaultJobRunTimeoutMs = 2_000L
 
 internal class JobManagerSettingsIT : AbstractJobManagerTest() {
 
+    companion object {
+        private val defaultJobRunTimeout = Duration.ofSeconds(2)
+    }
+
     @Test
     fun `WHEN disableAllJobsProperty changed THEN jobs running accordingly`() {
-        val job1 = spyk(createStubbedJob(1))
-        val job2 = spyk(createStubbedJob(2))
+        val job1 = spy(createStubbedJob(1))
+        val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
         settingsEditor.setDisableAllJobProperty(true)
         createDjm(
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            Thread.sleep(defaultJobRunTimeoutMs)
-            verify(exactly = 0) {
-                job1.run(any())
-                job2.run(any())
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
+                verify(job1, never()).run(any())
+                verify(job2, never()).run(any())
             }
             settingsEditor.setDisableAllJobProperty(false)
-            verify(exactly = 1, timeout = defaultJobRunTimeoutMs) {
-                job1.run(any())
-                job2.run(any())
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, times(1)).run(any())
+                verify(job2, times(1)).run(any())
             }
             settingsEditor.setDisableAllJobProperty(true)
-            Thread.sleep(defaultJobRunTimeoutMs)
-            verify(exactly = 1) {
-                job1.run(any())
-                job2.run(any())
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
+                verify(job1, times(1)).run(any())
+                verify(job2, times(1)).run(any())
             }
             settingsEditor.setDisableAllJobProperty(false)
-            verify(atLeast = 2, timeout = defaultJobRunTimeoutMs) {
-                job1.run(any())
-                job2.run(any())
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, atLeast(2)).run(any())
+                verify(job2, atLeast(2)).run(any())
             }
         }
     }
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
-        val job1 = spyk(createStubbedJob(1))
-        val job2 = spyk(createStubbedJob(2))
+        val job1 = spy(createStubbedJob(1))
+        val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor()
         settingsEditor.disableConcreteJob(job1)
         createDjm(
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            verify(exactly = 1, timeout = defaultJobRunTimeoutMs) { job2.run(any()) }
-            verify(exactly = 0) { job1.run(any()) }
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, never()).run(any())
+                verify(job2, times(1)).run(any())
+            }
             settingsEditor.disableConcreteJob(job2)
-            Thread.sleep(defaultJobRunTimeoutMs)
-            verify(exactly = 1) { job2.run(any()) }
-            verify(exactly = 0) { job1.run(any()) }
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
+                verify(job1, never()).run(any())
+                verify(job2, times(1)).run(any())
+            }
             settingsEditor.enableConcreteJob(job1)
-            verify(exactly = 1, timeout = defaultJobRunTimeoutMs) {
-                job1.run(any())
-                job2.run(any())
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, times(1)).run(any())
+                verify(job2, times(1)).run(any())
             }
             settingsEditor.enableConcreteJob(job2)
-            verify(atLeast = 2, timeout = defaultJobRunTimeoutMs) {
-                job1.run(any())
-                job2.run(any())
+            await().atMost(defaultJobRunTimeout).untilAsserted {
+                verify(job1, atLeast(2)).run(any())
+                verify(job2, atLeast(2)).run(any())
             }
         }
     }
 
     @Test
     fun `WHEN disableAllJobsProperty is true THEN jobs switches don't matter`() {
-        val job1 = spyk(createStubbedJob(1))
-        val job2 = spyk(createStubbedJob(2))
+        val job1 = spy(createStubbedJob(1))
+        val job2 = spy(createStubbedJob(2))
         val settingsEditor = JobManagerSettingsEditor().apply {
             setDisableAllJobProperty(true)
             enableConcreteJob(job1)
@@ -92,10 +97,9 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
         ).use {
-            Thread.sleep(defaultJobRunTimeoutMs)
-            verify(exactly = 0) {
-                job1.run(any())
-                job2.run(any())
+            await().pollDelay(defaultJobRunTimeout).untilAsserted {
+                verify(job1, never()).run(any())
+                verify(job2, never()).run(any())
             }
         }
     }
