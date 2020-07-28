@@ -43,7 +43,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     private final Worker worker;
     private final Manager manager;
-    private final String nodeId;
+    private String nodeId;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> distributedJobs,

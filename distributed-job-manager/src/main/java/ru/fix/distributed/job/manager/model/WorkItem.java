@@ -6,8 +6,8 @@ import java.util.Objects;
 
 public class WorkItem {
 
-    private final String id;
-    private final JobId jobId;
+    private String id;
+    private JobId jobId;
 
     public WorkItem(String id, JobId jobId) {
         Objects.requireNonNull(id);

@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class WorkerId implements Comparable<WorkerId> {
 
-    private final String id;
+    private String id;
 
     public WorkerId(String id) {
         Objects.requireNonNull(id);
