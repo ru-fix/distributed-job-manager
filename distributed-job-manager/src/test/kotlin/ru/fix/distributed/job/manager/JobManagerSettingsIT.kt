@@ -1,10 +1,9 @@
 package ru.fix.distributed.job.manager
 
+import com.nhaarman.mockitokotlin2.*
 import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.*
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
