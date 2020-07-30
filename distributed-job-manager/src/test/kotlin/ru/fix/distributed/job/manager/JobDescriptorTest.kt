@@ -10,7 +10,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 internal class JobDescriptorTest {
 
     @Test
-    fun `JobDescriptor WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
+    fun `WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
         val descriptor = JobDescriptor(JobDoesNotDescribingJobId())
         assertEquals(
                 JobDoesNotDescribingJobId::class.java.name
@@ -20,14 +20,14 @@ internal class JobDescriptorTest {
     }
 
     @Test
-    fun `JobDescriptor WHEN jobId specified by annotation THEN jobId is value from annotated field`() {
+    fun `WHEN jobId specified by annotation THEN jobId is value from annotated field`() {
         val job = JobDescribingIdByAnnotation()
         val descriptor = JobDescriptor(job)
         assertEquals(job.javaClass.getAnnotation(DistributedJobId::class.java).value, descriptor.jobId.id)
     }
 
     @Test
-    fun `JobDescriptor WHEN jobId specified by val THEN jobId is that val`() {
+    fun `WHEN jobId specified by val THEN jobId is that val`() {
         val job = JobDescribingIdByVal()
         val descriptor = JobDescriptor(job)
         assertEquals(job.jobId, descriptor.jobId)
