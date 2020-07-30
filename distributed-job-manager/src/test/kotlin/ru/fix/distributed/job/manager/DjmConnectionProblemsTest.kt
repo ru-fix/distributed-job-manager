@@ -20,15 +20,22 @@ internal class DjmConnectionProblemsTest : AbstractJobManagerTest() {
 
         val jobInstanceOnWorker1 = StubbedMultiJob(1, setOf("1", "2", "3", "4"))
         val jobInstanceOnWorker2 = StubbedMultiJob(1, setOf("1", "2", "3", "4"))
-        val djm1 = createNewJobManager(jobs = setOf(jobInstanceOnWorker1), curatorFramework = proxyCurator)
-        val djm2 = createNewJobManager(jobs = setOf(jobInstanceOnWorker2), curatorFramework = normalCurator)
+        val djm1 = createNewJobManager(
+                nodeId = "proxiedWorker",
+                jobs = setOf(jobInstanceOnWorker1),
+                curatorFramework = proxyCurator)
+        val djm2 = createNewJobManager(
+                jobs = setOf(jobInstanceOnWorker2),
+                curatorFramework = normalCurator)
 
         awaitSingleJobIsDistributedBetweenWorkers(15, jobInstanceOnWorker1, jobInstanceOnWorker2)
         crusherForWorker1.close()
         await().until { !proxyCurator.zookeeperClient.isConnected }
+        await().until { normalCurator.checkExists().forPath(paths.aliveWorker("proxiedWorker")) == null }
         awaitSingleJobIsDistributedBetweenWorkers(30, jobInstanceOnWorker2)
         crusherForWorker1.open()
         await().until { proxyCurator.zookeeperClient.isConnected }
+        await().until { normalCurator.checkExists().forPath(paths.aliveWorker("proxiedWorker")) != null }
         awaitSingleJobIsDistributedBetweenWorkers(30, jobInstanceOnWorker1, jobInstanceOnWorker2)
 
         djm1.close()
