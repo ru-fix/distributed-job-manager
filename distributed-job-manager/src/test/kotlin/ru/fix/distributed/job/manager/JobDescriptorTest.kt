@@ -7,7 +7,7 @@ import ru.fix.distributed.job.manager.model.JobDescriptor
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
-internal class AnnotationResolverTest {
+internal class JobDescriptorTest {
 
     @Test
     fun `JobDescriptor WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
