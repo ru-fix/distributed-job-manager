@@ -3,9 +3,6 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import ru.fix.aggregating.profiler.NoopProfiler;
-import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.Schedule;
@@ -15,40 +12,30 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.mockito.Mockito.*;
 
 class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
-    private final WorkItemMonitor monitor = mock(WorkItemMonitor.class);
+    @SuppressWarnings("unchecked")
+    private final Consumer<Set<String>> monitor = mock(Consumer.class);
 
     @Test
     void shouldRunAllWorkItemsInSingleWorker() throws Exception {
-        try (CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
-             DistributedJobManager ignored = new DistributedJobManager(
-                     curator,
+        try (CuratorFramework curator = defaultZkClient();
+             DistributedJobManager ignored = createNewJobManager(
                      Collections.singleton(
                              new SingleThreadMultiJob(
                                      Schedule.withDelay(DynamicProperty.of(100L)),
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))
                              )
                      ),
-                     new NoopProfiler(),
-                     new DistributedJobManagerSettings(
-                             "work-name",
-                             JOB_MANAGER_ZK_ROOT_PATH,
-                             AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime(),
-                             getWorkPoolCleanPeriod()
-                     )
+                     curator
              )
         ) {
-            verify(monitor, timeout(10_000)).check(anySet());
+            verify(monitor, timeout(10_000)).accept(anySet());
         }
-    }
-
-    private DynamicProperty<Long> getWorkPoolCleanPeriod() {
-        return DynamicProperty.of(1_000L);
     }
 
     @Test
@@ -56,33 +43,25 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
     void delayedJobShouldStartAccordingToNewScheduleSettings() throws Exception {
         // initial setting - 1h delay, and implicit 1h initial delay
         AtomicProperty<Long> delay = new AtomicProperty<>(TimeUnit.HOURS.toMillis(1));
-        try (CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
-             DistributedJobManager ignored = new DistributedJobManager(
-                     curator,
+        try (CuratorFramework curator = defaultZkClient();
+             DistributedJobManager ignored = createNewJobManager(
                      Collections.singleton(
                              new SingleThreadMultiJob(
                                      Schedule.withDelay(delay),
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))
                              )
                      ),
-                     new NoopProfiler(),
-                     new DistributedJobManagerSettings(
-                             "work-name",
-                             JOB_MANAGER_ZK_ROOT_PATH,
-                             AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime(),
-                             getWorkPoolCleanPeriod()
-                     )
+                     curator
              )
         ) {
             // initial 1h delay continues still, job not started
-            verify(monitor, after(3000).never()).check(anySet());
+            verify(monitor, after(3000).never()).accept(anySet());
 
             // change schedule delay setting of the job with implicit start delay settings,
             // so the job should start in moments
             delay.set(TimeUnit.SECONDS.toMillis(1L));
 
-            verify(monitor, timeout(5_000)).check(anySet());
+            verify(monitor, timeout(5_000)).accept(anySet());
         }
     }
 
@@ -92,9 +71,8 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
         // initial setting - 1h delay, and explicit 1h initial delay
         long delay1H = TimeUnit.HOURS.toMillis(1);
         AtomicProperty<Long> startDelay = new AtomicProperty<>(delay1H);
-        try (CuratorFramework curator = zkTestingServer.createClient(60000, 15000);
-             DistributedJobManager ignored = new DistributedJobManager(
-                     curator,
+        try (CuratorFramework curator = defaultZkClient();
+             DistributedJobManager ignored = createNewJobManager(
                      Collections.singleton(
                              new CustomInitialDelayImplJob(
                                      Schedule.withDelay(DynamicProperty.of(delay1H)),
@@ -102,28 +80,17 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
                                      new HashSet<>(Arrays.asList("1", "2", "3", "4"))
                              )
                      ),
-                     new NoopProfiler(),
-                     new DistributedJobManagerSettings(
-                             "work-name",
-                             JOB_MANAGER_ZK_ROOT_PATH,
-                             AssignmentStrategies.Companion.getDEFAULT(),
-                             getTerminationWaitTime(),
-                             getWorkPoolCleanPeriod()
-                     )
+                     curator
              )
         ) {
             // initial 1h delay continues still, job not started
-            verify(monitor, after(3000).never()).check(anySet());
+            verify(monitor, after(3000).never()).accept(anySet());
 
             // change start delay setting, so the job should start immediately
             startDelay.set(0L);
 
-            verify(monitor, timeout(5_000)).check(anySet());
+            verify(monitor, timeout(5_000)).accept(anySet());
         }
-    }
-
-    private DynamicProperty<Long> getTerminationWaitTime() {
-        return DynamicProperty.of(180_000L);
     }
 
     private class SingleThreadMultiJob implements DistributedJob {
@@ -158,7 +125,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
         @Override
         public void run(DistributedJobContext context) {
-            monitor.check(context.getWorkShare());
+            monitor.accept(context.getWorkShare());
         }
 
         @Override
@@ -209,7 +176,7 @@ class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
 
         @Override
         public void run(DistributedJobContext context) {
-            monitor.check(context.getWorkShare());
+            monitor.accept(context.getWorkShare());
         }
 
         @Override
