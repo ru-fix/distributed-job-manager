@@ -12,7 +12,7 @@ import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-class CuratorCacheTest : AbstractJobManagerTest() {
+internal class CuratorCacheTest : AbstractJobManagerTest() {
 
     @Test
     fun `not all nodes are cached, because initialized event ignored`() {
