@@ -6,13 +6,13 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import ru.fix.aggregating.profiler.AggregatingProfiler
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.generateAvailability
-import ru.fix.dynamic.property.api.DynamicProperty
 import java.time.Duration
 
 internal class DistributedJobManagerTest : AbstractJobManagerTest() {
@@ -234,10 +234,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             }
         }
 
-        createDjm("worker-0", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
-        createDjm("worker-1", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
-        createDjm("worker-2", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
-        createDjm("worker-3", listOf<DistributedJob>(smsJob, ussdJob, rebillJob), customStrategy)
+        createNewJobManager(nodeId = "worker-0", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
+        createNewJobManager(nodeId = "worker-1", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
+        createNewJobManager(nodeId = "worker-2", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
+        createNewJobManager(nodeId = "worker-3", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
         awaitPathInit(listOf(
                 paths.assignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
         ))
@@ -281,26 +281,6 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 StubbedMultiJob(
                         2, createWorkPool("distr-job-id-2", 2).items, 50000L
                 ))
-    }
-
-    @Throws(Exception::class)
-    private fun createDjm(
-            nodeId: String,
-            jobs: List<DistributedJob>,
-            strategy: AssignmentStrategy
-    ): DistributedJobManager {
-        return DistributedJobManager(
-                zkTestingServer.createClient(60000, 15000),
-                jobs,
-                AggregatingProfiler(),
-                DistributedJobManagerSettings(
-                        nodeId = nodeId,
-                        rootPath = JOB_MANAGER_ZK_ROOT_PATH,
-                        assignmentStrategy = strategy,
-                        timeToWaitTermination = DynamicProperty.of(10_000L),
-                        workPoolCleanPeriod = DynamicProperty.of(1_000L)
-                )
-        )
     }
 
     private fun readAvailableState(curatorFramework: CuratorFramework): AssignmentState {
@@ -355,12 +335,12 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
 
     @Throws(Exception::class)
     private fun createDjmWithEvenlySpread(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
-        return createDjm(nodeId, jobs, AssignmentStrategies.EVENLY_SPREAD)
+        return createNewJobManager(nodeId = nodeId, jobs = jobs, strategy = AssignmentStrategies.EVENLY_SPREAD)
     }
 
     @Throws(Exception::class)
     private fun createDjmWithRendezvous(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
-        return createDjm(nodeId, jobs, AssignmentStrategies.RENDEZVOUS)
+        return createNewJobManager(nodeId = nodeId, jobs = jobs, strategy = AssignmentStrategies.RENDEZVOUS)
     }
 
     private fun createWorkPool(jobId: String, workItemsNumber: Int): WorkPool {
