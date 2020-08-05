@@ -12,23 +12,21 @@ internal class JobDescriptorTest {
     @Test
     fun `WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
         val descriptor = JobDescriptor(JobDoesNotDescribingJobId())
-        assertEquals(
-                "ru-fix-distributed-job-manager-JobDescriptorTest_JobDoesNotDescribingJobId",
-                descriptor.jobId.id)
+        assertEquals("ru-fix-distributed-job-manager-JobDescriptorTest_JobDoesNotDescribingJobId", descriptor.jobId.id)
     }
 
     @Test
     fun `WHEN jobId specified by annotation THEN jobId is value from annotated field`() {
         val job = JobDescribingIdByAnnotation()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.javaClass.getAnnotation(DistributedJobId::class.java).value, descriptor.jobId.id)
+        assertEquals("JobDescribingIdByAnnotation", descriptor.jobId.id)
     }
 
     @Test
     fun `WHEN jobId specified by val THEN jobId is that val`() {
         val job = JobDescribingIdByVal()
         val descriptor = JobDescriptor(job)
-        assertEquals(job.jobId, descriptor.jobId)
+        assertEquals("JobDescribingIdByMethod", descriptor.jobId.id)
     }
 
     class JobDescribingIdByVal : NoopJob() {
