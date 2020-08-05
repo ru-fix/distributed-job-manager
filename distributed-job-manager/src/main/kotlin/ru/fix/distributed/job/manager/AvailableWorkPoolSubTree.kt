@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager
 
 import org.apache.curator.framework.CuratorFramework
 import org.apache.logging.log4j.kotlin.Logging
+import ru.fix.distributed.job.manager.model.JobDescriptor
 import ru.fix.zookeeper.transactional.ZkTransaction
 import java.util.concurrent.ConcurrentMap
 
@@ -25,7 +26,7 @@ internal class AvailableWorkPoolSubTree(
 
     private fun currentJobsFromZk(): MutableList<String> = curatorFramework.children.forPath(paths.availableWorkPool())
 
-    fun updateAllJobs(transaction: ZkTransaction, newWorkPools: ConcurrentMap<DistributedJob, WorkPool>) {
+    fun updateAllJobs(transaction: ZkTransaction, newWorkPools: ConcurrentMap<JobDescriptor, WorkPool>) {
         for (job in newWorkPools.keys) {
             val workPoolsPath: String = paths.availableWorkPool(job.jobId.id)
             if (curatorFramework.checkExists().forPath(workPoolsPath) == null) {

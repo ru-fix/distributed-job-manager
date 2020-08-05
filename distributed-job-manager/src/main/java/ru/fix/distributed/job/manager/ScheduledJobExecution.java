@@ -8,6 +8,7 @@ import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.zookeeper.lock.LockIdentity;
 import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +28,7 @@ class ScheduledJobExecution implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ScheduledJobExecution.class);
     final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
     final PersistentExpiringLockManager lockManager;
-    private final DistributedJob job;
+    private final JobDescriptor job;
     private final Set<String> workShare;
     private final Profiler profiler;
     private final ZkPathsManager zkPathsManager;
@@ -39,7 +40,7 @@ class ScheduledJobExecution implements Runnable {
 
 
     public ScheduledJobExecution(
-            DistributedJob job,
+            JobDescriptor job,
             Set<String> workShare,
             Profiler profiler,
             PersistentExpiringLockManager lockManager,

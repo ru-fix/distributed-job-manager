@@ -13,6 +13,7 @@ import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
@@ -41,7 +42,7 @@ class Worker implements AutoCloseable {
     private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
     private final CuratorFramework curatorFramework;
 
-    private final Collection<DistributedJob> availableJobs;
+    private final Collection<JobDescriptor> availableJobs;
     private final ScheduledJobManager scheduledJobManager = new ScheduledJobManager();
 
     private final ZkPathsManager paths;
@@ -62,7 +63,7 @@ class Worker implements AutoCloseable {
     private volatile boolean isWorkerShutdown = false;
 
     Worker(CuratorFramework curatorFramework,
-           Collection<DistributedJob> jobs,
+           Collection<JobDescriptor> jobs,
            Profiler profiler,
            DistributedJobManagerSettings settings) {
         this.curatorFramework = curatorFramework;
@@ -107,7 +108,7 @@ class Worker implements AutoCloseable {
         );
     }
 
-    private void assertAllJobsHasUniqueJobId(Collection<DistributedJob> jobs) {
+    private void assertAllJobsHasUniqueJobId(Collection<JobDescriptor> jobs) {
         if (jobs.stream()
                 .map(job -> job.getJobId())
                 .collect(Collectors.toSet())
@@ -119,8 +120,8 @@ class Worker implements AutoCloseable {
                                     .collect(Collectors.joining()));
     }
 
-    private static Map<DistributedJob, Integer> getThreadCounts(
-            Map<DistributedJob, Set<String>> assignedWorkPools) {
+    private static Map<JobDescriptor, Integer> getThreadCounts(
+            Map<JobDescriptor, Set<String>> assignedWorkPools) {
         return assignedWorkPools.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         o -> o.getKey().getWorkPoolRunningStrategy().getThreadCount(o.getValue()))
@@ -160,8 +161,8 @@ class Worker implements AutoCloseable {
     }
 
     public void start() throws Exception {
-        ConcurrentMap<DistributedJob, WorkPool> workPools = availableJobs.stream()
-                .collect(Collectors.toConcurrentMap(k -> k, DistributedJob::getWorkPool));
+        ConcurrentMap<JobDescriptor, WorkPool> workPools = availableJobs.stream()
+                .collect(Collectors.toConcurrentMap(k -> k, JobDescriptor::getWorkPool));
         workPools.forEach(WorkPoolUtils::checkWorkPoolItemsRestrictions);
         registerWorkerAndJobs(workPools);
 
@@ -198,8 +199,8 @@ class Worker implements AutoCloseable {
                     case RECONNECTED:
                         assignmentUpdatesExecutor.submit(() -> {
                             try {
-                                ConcurrentMap<DistributedJob, WorkPool> workPoolsMap = availableJobs.stream()
-                                        .collect(Collectors.toConcurrentMap(k -> k, DistributedJob::getWorkPool));
+                                ConcurrentMap<JobDescriptor, WorkPool> workPoolsMap = availableJobs.stream()
+                                        .collect(Collectors.toConcurrentMap(k -> k, JobDescriptor::getWorkPool));
                                 workPoolsMap.forEach(WorkPoolUtils::checkWorkPoolItemsRestrictions);
                                 registerWorkerAndJobs(workPoolsMap);
                             } catch (Exception e) {
@@ -212,7 +213,7 @@ class Worker implements AutoCloseable {
         });
     }
 
-    private void registerWorkerAndJobs(ConcurrentMap<DistributedJob, WorkPool> workPools) throws Exception {
+    private void registerWorkerAndJobs(ConcurrentMap<JobDescriptor, WorkPool> workPools) throws Exception {
 
         closeListenerToAssignedTree();
 
@@ -271,7 +272,7 @@ class Worker implements AutoCloseable {
         transaction.createPath(paths.assignedJobs(workerId));
 
         // register work pooled jobs
-        for (DistributedJob job : availableJobs) {
+        for (JobDescriptor job : availableJobs) {
             transaction.createPath(paths.availableJob(workerId, job.getJobId().getId()));
         }
     }
@@ -312,7 +313,7 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void updateWorkPoolForJob(DistributedJob job, Set<String> newWorkPool) {
+    private void updateWorkPoolForJob(JobDescriptor job, Set<String> newWorkPool) {
         try {
             String jobId = job.getJobId().getId();
             String workPoolsPath = paths.availableWorkPool(jobId);
@@ -346,7 +347,7 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void reconfigureExecutors(Map<DistributedJob, Integer> workPooledMultiJobThreadCounts) {
+    private void reconfigureExecutors(Map<JobDescriptor, Integer> workPooledMultiJobThreadCounts) {
         int threadsCount = workPooledMultiJobThreadCounts.values().stream().mapToInt(v -> v).sum();
         log.trace("Pool size now is {}", threadsCount);
         threadPoolSize.set(threadsCount);
@@ -360,15 +361,15 @@ class Worker implements AutoCloseable {
         }
 
         // get new assignment
-        Map<DistributedJob, Set<String>> newAssignments = getAssignedWorkPools(availableJobs);
+        Map<JobDescriptor, Set<String>> newAssignments = getAssignedWorkPools(availableJobs);
 
         // configure executors
-        Map<DistributedJob, Integer> threadCounts = getThreadCounts(newAssignments);
+        Map<JobDescriptor, Integer> threadCounts = getThreadCounts(newAssignments);
         reconfigureExecutors(threadCounts);
 
         // stop already running jobs which changed their states
         scheduledJobManager.removeIf(scheduledEntry -> {
-            DistributedJob multiJob = scheduledEntry.getKey();
+            JobDescriptor multiJob = scheduledEntry.getKey();
             List<ScheduledJobExecution> jobExecutions = scheduledEntry.getValue();
 
             // stop job work pools if they are not equal
@@ -400,8 +401,8 @@ class Worker implements AutoCloseable {
         });
 
         // start required jobs
-        for (Map.Entry<DistributedJob, Set<String>> newAssignment : newAssignments.entrySet()) {
-            DistributedJob newMultiJob = newAssignment.getKey();
+        for (Map.Entry<JobDescriptor, Set<String>> newAssignment : newAssignments.entrySet()) {
+            JobDescriptor newMultiJob = newAssignment.getKey();
             List<String> newWorkPool = new ArrayList<>(newAssignment.getValue());
             if (scheduledJobManager.getScheduledJobExecutions(newMultiJob) == null && !newWorkPool.isEmpty()) {
                 int threadCount = threadCounts.get(newMultiJob);
@@ -414,7 +415,7 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, DistributedJob newMultiJob) {
+    private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, JobDescriptor newMultiJob) {
         DynamicProperty<Long> initialJobDelay = newMultiJob.getInitialJobDelay();
         long initialJobDelayVal = initialJobDelay.get();
         log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
@@ -449,16 +450,16 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private Map<DistributedJob, Set<String>> getAssignedWorkPools(
-            Collection<DistributedJob> workPooledMultiJobs) throws Exception {
-        Map<DistributedJob, Set<String>> newAssignments = new HashMap<>();
-        for (DistributedJob workPooledMultiJob : workPooledMultiJobs) {
+    private Map<JobDescriptor, Set<String>> getAssignedWorkPools(
+            Collection<JobDescriptor> workPooledMultiJobs) throws Exception {
+        Map<JobDescriptor, Set<String>> newAssignments = new HashMap<>();
+        for (JobDescriptor workPooledMultiJob : workPooledMultiJobs) {
             newAssignments.put(workPooledMultiJob, new HashSet<>(getWorkerWorkPool(workPooledMultiJob)));
         }
         return newAssignments;
     }
 
-    private List<String> getWorkerWorkPool(DistributedJob job) throws Exception {
+    private List<String> getWorkerWorkPool(JobDescriptor job) throws Exception {
         try {
             return curatorFramework.getChildren()
                     .forPath(paths.assignedWorkPool(workerId, job.getJobId().getId()));

@@ -7,9 +7,10 @@ import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -46,10 +47,9 @@ public class DistributedJobManager implements AutoCloseable {
     private final Worker worker;
     private final Manager manager;
     private String nodeId;
-    private final Profiler profiler;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
-                                 Collection<DistributedJob> distributedJobs,
+                                 Collection<DistributedJob> userDefinedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
         log.info("Starting DJM with id {}", settings.getNodeId());
@@ -62,10 +62,14 @@ public class DistributedJobManager implements AutoCloseable {
             );
 
             initPaths(curatorFramework, settings.getRootPath());
+
+            Collection<JobDescriptor> jobs = userDefinedJobs.stream()
+                    .map(JobDescriptor::new).collect(Collectors.toList());
+
             this.manager = new Manager(curatorFramework, profiler, settings);
             this.worker = new Worker(
                     curatorFramework,
-                    distributedJobs,
+                    jobs,
                     profiler,
                     settings);
 

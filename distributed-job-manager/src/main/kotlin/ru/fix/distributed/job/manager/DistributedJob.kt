@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager
 
+import ru.fix.distributed.job.manager.annotation.DistributedJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 
@@ -27,9 +28,14 @@ interface DistributedJob {
      * }
      * ```
      *
+     * To define job id you can also use [DistributedJobId] instead.
+     * Overriding this value overrides the use of [DistributedJobId].
+     * If jobId is not defined, full class name of job will be used as jobId.
+     *
      * @return identifier of the job type.
      */
-    val jobId: JobId
+    val jobId: JobId?
+        get() = null
 
     /**
      * @return delay between job invocation

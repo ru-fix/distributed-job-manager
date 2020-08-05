@@ -2,9 +2,9 @@ package ru.fix.distributed.job.manager.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.distributed.job.manager.DistributedJob;
 import ru.fix.distributed.job.manager.JobId;
 import ru.fix.distributed.job.manager.WorkPool;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import static ru.fix.distributed.job.manager.WorkPool.WORK_POOL_ITEM_MAX_LENGTH;
 
@@ -22,10 +22,10 @@ public class WorkPoolUtils {
      * - standard ZooKeeper naming restrictions
      * - maximum length
      *
-     * @param job      Job, which owns WorkPool.
+     * @param job      Descriptor of job, which owns WorkPool.
      * @param workPool WorkPool to check.
      */
-    public static void checkWorkPoolItemsRestrictions(DistributedJob job, WorkPool workPool) {
+    public static void checkWorkPoolItemsRestrictions(JobDescriptor job, WorkPool workPool) {
         workPool.getItems()
                 .forEach(workPoolItem -> checkWorkPoolItemRestriction(job.getJobId(), workPoolItem));
     }
