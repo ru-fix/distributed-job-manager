@@ -13,9 +13,7 @@ internal class JobDescriptorTest {
     fun `WHEN jobId notSpecified THEN jobId is full class name with dots replaced by '-' and '$' replaced by '_'`() {
         val descriptor = JobDescriptor(JobDoesNotDescribingJobId())
         assertEquals(
-                JobDoesNotDescribingJobId::class.java.name
-                        .replace('.', '-')
-                        .replace('$', '_'),
+                "ru-fix-distributed-job-manager-JobDescriptorTest_JobDoesNotDescribingJobId",
                 descriptor.jobId.id)
     }
 
