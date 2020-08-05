@@ -9,7 +9,7 @@ object Vers {
 
     const val slf4j = "1.7.30"
 
-    const val aggregating_profiler = "1.6.5"
+    const val aggregating_profiler = "1.6.6"
     const val jfix_zookeeper = "1.1.1"
     const val jfix_stdlib = "3.0.5"
     const val jfix_dynamic_property = "2.0.7"

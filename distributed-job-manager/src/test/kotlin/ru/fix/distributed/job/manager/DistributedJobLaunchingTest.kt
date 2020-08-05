@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -9,12 +10,16 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
+import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.aggregating.profiler.NoopProfiler
+import ru.fix.aggregating.profiler.ProfiledCallReport
+import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import ru.fix.zookeeper.testing.ZKTestingServer
 import java.lang.Thread.sleep
+import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -22,24 +27,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
- //Prevent log messages from different tests to mix
- @Execution(ExecutionMode.SAME_THREAD)
-class DistributedJobLaunchingTest {
-
+//Prevent log messages from different tests to mix
+@Execution(ExecutionMode.SAME_THREAD)
+class DistributedJobLaunchingTest : DjmTestSuite() {
     companion object : Logging
-
-    lateinit var server: ZKTestingServer
-
-
-    @BeforeEach
-    fun beforeEach() {
-        server = ZKTestingServer().start()
-    }
-
-    @AfterEach
-    fun afterEach() {
-        server.client
-    }
 
     @Test
     fun `job with invalid id rises an exception during it's object creation`() {
@@ -89,7 +80,7 @@ class DistributedJobLaunchingTest {
         }
 
         val exc = shouldThrow<Exception> {
-            createDJM(jobs = listOf(jobWithSameId1, jobWithSameId2))
+            createDJM(jobs = listOf(jobWithSameId1, jobWithSameId2), profiler = NoopProfiler())
         }
 
         exc.message.shouldContain("same JobId")
@@ -178,9 +169,11 @@ class DistributedJobLaunchingTest {
             override fun run(context: DistributedJobContext) {
                 jobReceivedWorkPool.set(context.workShare)
             }
+
             override fun getWorkPool(): WorkPool {
                 return WorkPool.of(workPool.get())
             }
+
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 50
         }
@@ -198,40 +191,15 @@ class DistributedJobLaunchingTest {
     @Test
     fun `djm without any provided jobs logs a warning`() {
         val logRecorder = Log4jLogRecorder()
-        val djm = createDJM(emptyList())
+        val djm = createDJM(emptyList(), NoopProfiler())
         logRecorder.getContent().shouldContain("WARN No job instance provided")
         djm.close()
     }
 
-    @Disabled("TODO")
-    @Test
-    fun `djm profiles how many time it took to start`() {
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `djm profiles how many time it took to shutdow`() {
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `each job launch is profiled`() {
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `all thread pools are profiled`() {
-        TODO()
-    }
 
     @Disabled("TODO")
     @Test
     fun `job restarted with delay`() {
-
-
         sleep(1000)
         TODO()
     }
@@ -389,25 +357,6 @@ class DistributedJobLaunchingTest {
         TODO()
     }
 
-    private fun createDJM(job: DistributedJob) = createDJM(listOf(job))
-
-    private fun createDJM(jobs: List<DistributedJob>) =
-            DistributedJobManager(
-                    server.client,
-                    jobs,
-                    NoopProfiler(),
-                    DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
-                            rootPath = generateRootPath(),
-                            timeToWaitTermination = DynamicProperty.of(10000)
-                    ))
-
-
-    private val lastNodeId = AtomicInteger(1)
-    fun generateNodeId() = lastNodeId.incrementAndGet().toString()
-
-    private val lastRootId = AtomicInteger(1)
-    fun generateRootPath() = "root/${lastRootId.incrementAndGet()}"
 
 }
 

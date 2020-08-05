@@ -9,6 +9,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
@@ -35,7 +36,6 @@ import java.util.stream.Collectors;
  * @see Manager
  */
 class Worker implements AutoCloseable {
-    public static final String THREAD_NAME_DJM_WORKER_NONE = "djm-worker-none";
     private static final Logger log = LoggerFactory.getLogger(Worker.class);
     private static final int WORKER_REGISTRATION_RETRIES_COUNT = 10;
     private static final int WORK_POOL_UPDATE_RETRIES_COUNT = 5;
@@ -49,7 +49,7 @@ class Worker implements AutoCloseable {
     private final AvailableWorkPoolSubTree workPoolSubTree;
     private final ReschedulableScheduler jobReschedulableScheduler;
     private final ExecutorService assignmentUpdatesExecutor;
-    private final ReschedulableScheduler workPoolReschedulableScheduler;
+    private final ReschedulableScheduler checkWorkPoolScheduler;
     private final Profiler profiler;
     private final DynamicProperty<Long> timeToWaitTermination;
     private final DynamicProperty<JobDisableConfig> jobDisableConfig;
@@ -76,22 +76,24 @@ class Worker implements AutoCloseable {
 
         this.availableJobs = jobs;
 
+        this.profiler = profiler;
+
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "worker-" + workerId,
+                "assignment-updates-worker-" + workerId,
                 profiler);
-        this.profiler = profiler;
-        this.workPoolReschedulableScheduler = NamedExecutors.newScheduler(
-                "worker-update-thread",
+
+        this.checkWorkPoolScheduler = NamedExecutors.newScheduler(
+                "check-work-pool-worker-" + workerId,
                 DynamicProperty.of(Math.max(jobs.size(), 1)),
                 profiler
         );
 
-        threadPoolSize = new AtomicProperty<>(1);
+        this.threadPoolSize = new AtomicProperty<>(1);
 
         this.jobReschedulableScheduler = new ReschedulableScheduler(
-                THREAD_NAME_DJM_WORKER_NONE,
+                "job-scheduler-worker-" + workerId,
                 threadPoolSize,
                 profiler);
 
@@ -103,8 +105,6 @@ class Worker implements AutoCloseable {
                 settings.getLockManagerConfig(),
                 profiler
         );
-
-        attachProfilerIndicators();
     }
 
     private void assertAllJobsHasUniqueJobId(Collection<DistributedJob> jobs) {
@@ -159,19 +159,6 @@ class Worker implements AutoCloseable {
         return System.currentTimeMillis() - startTime;
     }
 
-    private void attachProfilerIndicators() {
-        availableJobs.forEach(job -> profiler.attachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId()), () -> {
-            List<ScheduledJobExecution> executions = scheduledJobManager.getScheduledJobExecutions(job);
-            if (executions != null) {
-                return executions.stream()
-                        .mapToLong(ScheduledJobExecution::getRunningJobsCount)
-                        .sum();
-            } else {
-                return 0L;
-            }
-        }));
-    }
-
     public void start() throws Exception {
         ConcurrentMap<DistributedJob, WorkPool> workPools = availableJobs.stream()
                 .collect(Collectors.toConcurrentMap(k -> k, DistributedJob::getWorkPool));
@@ -181,7 +168,7 @@ class Worker implements AutoCloseable {
         availableJobs.forEach(job -> {
             long workPoolCheckPeriod = job.getWorkPoolCheckPeriod();
             if (workPoolCheckPeriod != 0) {
-                workPoolReschedulableScheduler.schedule(
+                checkWorkPoolScheduler.schedule(
                         DynamicProperty.delegated(() -> Schedule.withDelay(job.getWorkPoolCheckPeriod())),
                         workPoolCheckPeriod,
                         () -> {
@@ -525,7 +512,7 @@ class Worker implements AutoCloseable {
         }
 
         // shutdown work pool update executor
-        workPoolReschedulableScheduler.shutdown();
+        checkWorkPoolScheduler.shutdown();
 
         // shutdown assignment update executor
         assignmentUpdatesExecutor.shutdown();
@@ -543,7 +530,7 @@ class Worker implements AutoCloseable {
         timeToWait -= executorPoolTerminationTime;
         log.info("Job executor pool is terminated. Awaiting time: {} ms.", executorPoolTerminationTime);
 
-        long workPoolExecutorTerminationTime = awaitAndTerminate(workPoolReschedulableScheduler, timeToWait);
+        long workPoolExecutorTerminationTime = awaitAndTerminate(checkWorkPoolScheduler, timeToWait);
         timeToWait -= workPoolExecutorTerminationTime;
         log.info("Work pool update executor service is terminated. Awaiting time: {} ms.",
                 workPoolExecutorTerminationTime);
@@ -565,17 +552,11 @@ class Worker implements AutoCloseable {
 
         lockManager.close();
 
-        detachProfilerIndicators();
-
         log.info("Distributed job manager closing completed. Closing took {} ms.",
                 System.currentTimeMillis() - closingStart);
     }
 
     private void shutdownAllJobExecutions() {
         scheduledJobManager.shutdownAllJobExecutions();
-    }
-
-    private void detachProfilerIndicators() {
-        availableJobs.forEach(job -> profiler.detachIndicator(ProfilerMetrics.RUN_INDICATOR(job.getJobId())));
     }
 }

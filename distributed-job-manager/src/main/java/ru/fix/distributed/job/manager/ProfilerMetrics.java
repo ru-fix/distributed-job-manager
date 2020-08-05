@@ -1,29 +1,19 @@
 package ru.fix.distributed.job.manager;
 
+import ru.fix.aggregating.profiler.PrefixedProfiler;
+import ru.fix.aggregating.profiler.Profiler;
+
 /**
  * @author Kamil Asfandiyarov
  */
 public final class ProfilerMetrics {
-    /**
-     * .jobId.start
-     */
-    public static String START(JobId jobId) {
-        return jobId.getId().replace('.', '_') + ".start";
+    public static String DJM_PREFIX = "djm";
+
+    public static String JOB(JobId jobId) {
+        return "job." + jobId.getId().replace('.', '_').replace('-', '_');
     }
 
-    /**
-     * information about job running time, etc.
-     * .jobId.stop
-     */
-    public static String STOP(JobId jobId) {
-        return jobId.getId().replace('.', '_') + ".stop";
-    }
+    public static String DJM_INIT = "init";
+    public static String DJM_CLOSE = "close";
 
-    /**
-     * count of currently running jobs
-     * .jobId.run
-     */
-    public static String RUN_INDICATOR(JobId jobId) {
-        return jobId.getId().replace('.', '_') + ".run";
-    }
 }

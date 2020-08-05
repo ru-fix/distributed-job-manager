@@ -4,10 +4,12 @@ import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.PrefixedProfiler;
+import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * <p>
@@ -44,51 +46,34 @@ public class DistributedJobManager implements AutoCloseable {
     private final Worker worker;
     private final Manager manager;
     private String nodeId;
+    private final Profiler profiler;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> distributedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
+        log.info("Starting DJM with id {}", settings.getNodeId());
+        try(ProfiledCall initProfiledCall = profiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
+            this.nodeId = settings.getNodeId();
+            this.profiler = new PrefixedProfiler(
+                    profiler,
+                    ProfilerMetrics.DJM_PREFIX,
+                    Collections.singletonMap("nodeId", nodeId)
+            );
 
-        final Timespan djmInitTimespan = new Timespan().start();
+            initPaths(curatorFramework, settings.getRootPath());
+            this.manager = new Manager(curatorFramework, profiler, settings);
+            this.worker = new Worker(
+                    curatorFramework,
+                    distributedJobs,
+                    profiler,
+                    settings);
 
-        log.trace("Starting DistributedJobManager with settings {}", settings);
-        initPaths(curatorFramework, settings.getRootPath());
+            this.manager.start();
+            this.worker.start();
 
-        final Timespan managerInitTimespan = new Timespan().start();
-        this.manager = new Manager(curatorFramework, profiler, settings);
-        managerInitTimespan.stop();
-
-        final Timespan workerInitTimespan = new Timespan().start();
-
-        this.nodeId = settings.getNodeId();
-
-        this.worker = new Worker(
-                curatorFramework,
-                distributedJobs,
-                new PrefixedProfiler(profiler, "djm."),
-                settings);
-
-        workerInitTimespan.stop();
-
-
-        final Timespan managerStartTimespan = new Timespan().start();
-        this.manager.start();
-        managerStartTimespan.stop();
-
-        final Timespan workerStartTimespan = new Timespan().start();
-        this.worker.start();
-
-        workerStartTimespan.stop();
-
-        djmInitTimespan.stop();
-
-        log.info("DJM initialized in {}ms, Manager init in {}ms, started in {}ms, Worker init in {}ms, started in {}ms",
-                djmInitTimespan.getTimespan(),
-                managerInitTimespan.getTimespan(),
-                managerStartTimespan.getTimespan(),
-                workerInitTimespan.getTimespan(),
-                workerStartTimespan.getTimespan());
+            initProfiledCall.stop();
+        }
     }
 
     private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
@@ -110,43 +95,11 @@ public class DistributedJobManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        log.info("Closing DJM with worker id {}", nodeId);
+        log.info("Closing DJM with id {}", nodeId);
 
-        Timespan djmClosing = new Timespan().start();
-
-        Timespan workerClosing = new Timespan().start();
-        worker.close();
-        workerClosing.stop();
-
-        Timespan managerClosing = new Timespan().start();
-        manager.close();
-        managerClosing.stop();
-
-        djmClosing.stop();
-
-        log.info("DJM closed in {}ms, Worker {} closed in {}ms, Manager closed in {}ms",
-                djmClosing.getTimespan(),
-                nodeId,
-                workerClosing.getTimespan(),
-                managerClosing.getTimespan());
-    }
-
-    private static class Timespan {
-        long startTimestamp;
-        long stopTimestamp;
-
-        public Timespan start() {
-            startTimestamp = System.currentTimeMillis();
-            return this;
-        }
-
-        public Timespan stop() {
-            stopTimestamp = System.currentTimeMillis();
-            return this;
-        }
-
-        public long getTimespan() {
-            return stopTimestamp - startTimestamp;
-        }
+        profiler.profiledCall(ProfilerMetrics.DJM_CLOSE).profileThrowable(() -> {
+            worker.close();
+            manager.close();
+        });
     }
 }
