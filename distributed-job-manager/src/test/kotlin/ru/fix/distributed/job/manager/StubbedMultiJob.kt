@@ -3,6 +3,7 @@ package ru.fix.distributed.job.manager
 import org.awaitility.Awaitility
 import org.hamcrest.MatcherAssert
 import org.slf4j.LoggerFactory
+import ru.fix.distributed.job.manager.model.resolveJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.*
@@ -106,10 +107,10 @@ private fun collectionsContainSameElements(c1: Collection<String>, c2: Set<Strin
 
 private fun jobsHasSameIdAndSameWorkPool(vararg jobs: DistributedJob): Boolean {
     val firstJob = jobs[0]
-    val id = firstJob.jobId.id
+    val id = resolveJobId(firstJob)
     val workPool = firstJob.getWorkPool().items
     for (nextJob in jobs) {
-        val nextId = nextJob.jobId.id
+        val nextId = resolveJobId(nextJob)
         val nextWorkPool = nextJob.getWorkPool().items
         if (nextId != id || nextWorkPool != workPool) {
             return false

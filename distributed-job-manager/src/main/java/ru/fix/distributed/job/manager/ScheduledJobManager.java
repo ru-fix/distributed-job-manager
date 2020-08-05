@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,17 +21,17 @@ class ScheduledJobManager {
     private static final Logger log = LoggerFactory.getLogger(ScheduledJobManager.class);
 
     //Jobs that currently scheduled. Some of them are running and some will be launched any time.
-    private final Map<DistributedJob, List<ScheduledJobExecution>> scheduledJobs = new ConcurrentHashMap<>();
+    private final Map<JobDescriptor, List<ScheduledJobExecution>> scheduledJobs = new ConcurrentHashMap<>();
 
-    synchronized List<ScheduledJobExecution> getScheduledJobExecutions(DistributedJob distributedJob) {
+    synchronized List<ScheduledJobExecution> getScheduledJobExecutions(JobDescriptor distributedJob) {
         return scheduledJobs.get(distributedJob);
     }
 
-    synchronized void removeIf(Predicate<Map.Entry<DistributedJob, List<ScheduledJobExecution>>> predicate) {
+    synchronized void removeIf(Predicate<Map.Entry<JobDescriptor, List<ScheduledJobExecution>>> predicate) {
         scheduledJobs.entrySet().removeIf(predicate);
     }
 
-    synchronized void add(DistributedJob distributedJob, ScheduledJobExecution scheduledJobExecution) {
+    synchronized void add(JobDescriptor distributedJob, ScheduledJobExecution scheduledJobExecution) {
         scheduledJobs.computeIfAbsent(distributedJob, e -> Collections.synchronizedList(new ArrayList<>()))
                 .add(scheduledJobExecution);
     }
