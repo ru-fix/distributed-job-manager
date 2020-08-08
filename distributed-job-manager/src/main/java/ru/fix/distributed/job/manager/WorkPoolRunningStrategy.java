@@ -7,6 +7,10 @@ import java.util.Set;
  */
 @FunctionalInterface
 public interface WorkPoolRunningStrategy {
-    int getThreadCount(Set<String> localWorkPool);
+    /**
+     * @param workShare WorkItems assigned to current [{@link DistributedJobManager}] instance for given Job type.
+     * @return how many threads should be used to process workShare
+     */
+    int getThreadCount(Set<String> workShare);
 
 }
