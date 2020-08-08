@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -14,11 +15,11 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.IllegalStateException
 import java.lang.Thread.sleep
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.TimeUnit.MINUTES
 import java.util.concurrent.TimeUnit.SECONDS
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -173,7 +174,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
             override fun getWorkPoolCheckPeriod(): Long = 50
         }
         val djm = createDJM(jobWithDynamicWorkPool)
-Job
+
         await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-1") }
 
         workPool.set(setOf("work-item-2"))
@@ -207,7 +208,7 @@ Job
 
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
-            override fun getWorkPoolCheckPeriod(): Long = 50
+            override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
         val logRecorder = Log4jLogRecorder()
@@ -223,11 +224,35 @@ Job
         logRecorder.close()
     }
 
-    @Disabled("TODO")
     @Test
     fun `job restarted with delay`() {
+        val jobWith100msDelay = object : DistributedJob {
+            val previousStartTime = AtomicReference(Instant.now())
+            val delaysPerInvocation = AtomicReferenceArray<Duration>(10)
+            val invocationCounter = AtomicInteger()
+
+            override val jobId = JobId("jobWith100msDelay")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
+            override fun run(context: DistributedJobContext) {
+                val now = Instant.now()
+                val invocationNumber = invocationCounter.incrementAndGet()
+                delaysPerInvocation.set(invocationNumber, Duration.between(previousStartTime.get(), now))
+                previousStartTime.set(now)
+            }
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
+        val djm = createDJM(jobWith100msDelay)
+
+        jobWith100msDelay.invocationCounter.set(0)
         sleep(1000)
-        TODO()
+        //ignore first invocation
+        (1..8).map { jobWith100msDelay.delaysPerInvocation[it].toMillis().toInt() }.forEach {
+            //100ms delay +/- 20ms
+            it.shouldBeInRange(80..120)
+        }
+        djm.close()
     }
 
     @Disabled("TODO")
