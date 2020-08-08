@@ -289,26 +289,86 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
     }
 
 
-    @Disabled("TODO")
     @Test
     fun `work pool single thread strategy passes several WorkItems to single job run`() {
-        sleep(1000)
-        TODO()
+        val workItems = (1..10).map { it.toString() }.toSet()
+
+        val jobWithSingleThreadStrategy = object : DistributedJob {
+            val receivedWorkPool = AtomicReference<Set<String>>()
+
+            override val jobId = JobId("jobWithSingleThreadStrategy")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(10))
+            override fun run(context: DistributedJobContext) {
+                receivedWorkPool.set(context.workShare)
+            }
+
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
+        val djm = createDJM(jobWithSingleThreadStrategy)
+        await().pollDelay(100, MILLISECONDS)
+                .atMost(1, MINUTES).until {
+                    jobWithSingleThreadStrategy.receivedWorkPool.get() == workItems
+                }
+        djm.close()
     }
 
-    @Disabled("TODO")
     @Test
     fun `work pool thread per workItem strategy passes single WorkItem to job run and run all work items in parallel`() {
-        sleep(1000)
-        TODO()
+        val workItems = (1..10).map { it.toString() }.toSet()
+
+        val jobWithThreadPerWorkItem = object : DistributedJob {
+            val receivedWorkShare = ConcurrentLinkedDeque<Set<String>>()
+
+            override val jobId = JobId("jobWithThreadPerWorkItem")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                receivedWorkShare.add(context.workShare)
+            }
+
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getThreadPerWorkItemStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
+
+        val djm = createDJM(jobWithThreadPerWorkItem)
+        await().pollDelay(100, MILLISECONDS)
+                .atMost(1, MINUTES).until {
+                    val workShares = jobWithThreadPerWorkItem.receivedWorkShare.toList()
+                    workShares.flatten().toSet().size == 10 &&
+                            workShares.all { it.size == 1 }
+                }
+
+        djm.close()
     }
 
-    @Disabled("TODO")
     @Test
     fun `custom work pool running strategy split work items between job launches`() {
-        sleep(1000)
-        TODO()
+        val workItems = (1..10).map { it.toString() }.toSet()
 
+        val jobWithCustomWorkPoolRunningnStrategy = object : DistributedJob {
+            val receivedWorkShare = ConcurrentLinkedDeque<Set<String>>()
+
+            override val jobId = JobId("jobWithCustomWorkPoolRunningnStrategy")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                receivedWorkShare.add(context.workShare)
+            }
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategy { workPool -> workPool.size / 2 }
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+
+        val djm = createDJM(jobWithCustomWorkPoolRunningnStrategy)
+        await().pollDelay(100, MILLISECONDS)
+                .atMost(1, MINUTES).until {
+                    val workShares = jobWithCustomWorkPoolRunningnStrategy.receivedWorkShare.toList()
+                    workShares.flatten().toSet().size == 10 &&
+                            workShares.all { it.size == 2 }
+                }
+
+        djm.close()
     }
 
     @Disabled("TODO")
