@@ -17,8 +17,8 @@ import java.lang.IllegalStateException
 import java.lang.Thread.sleep
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.TimeUnit.MINUTES
-import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.TimeUnit.*
 import java.util.concurrent.atomic.*
 
 
@@ -228,63 +228,63 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
     fun `job restarted with delay`() {
         val jobWith100msDelay = object : DistributedJob {
             val previousStartTime = AtomicReference(Instant.now())
-            val delaysPerInvocation = AtomicReferenceArray<Duration>(10)
+            val delaysPerInvocation = ConcurrentLinkedDeque<Duration>()
             val invocationCounter = AtomicInteger()
 
             override val jobId = JobId("jobWith100msDelay")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {
                 val now = Instant.now()
-                val invocationNumber = invocationCounter.incrementAndGet()
-                delaysPerInvocation.set(invocationNumber, Duration.between(previousStartTime.get(), now))
+                invocationCounter.incrementAndGet()
+                delaysPerInvocation.add(Duration.between(previousStartTime.get(), now))
                 previousStartTime.set(now)
             }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
         val djm = createDJM(jobWith100msDelay)
+        await().pollDelay(10, MILLISECONDS)
+                .atMost(1, MINUTES)
+                .until { jobWith100msDelay.invocationCounter.get() > 10 }
 
         jobWith100msDelay.invocationCounter.set(0)
         sleep(1000)
-        //ignore first invocation
-        (1..8).map { jobWith100msDelay.delaysPerInvocation[it].toMillis().toInt() }.forEach {
-            //100ms delay +/- 20ms
-            it.shouldBeInRange(80..120)
-        }
+
+        jobWith100msDelay.delaysPerInvocation.toList()
+                .drop(10)
+                .map { it.toMillis().toInt() }
+                .forEach {
+                    //100ms delay +/- 20ms
+                    it.shouldBeInRange(80..120)
+                }
         jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
         djm.close()
     }
 
     @Test
     fun `job restarted with rate`() {
-        val jobWithRate100PerSec = object : DistributedJob {
-            val previousStartTime = AtomicReference(Instant.now())
-            val delaysPerInvocation = AtomicReferenceArray<Duration>(10)
+        val jobWithRate100ms = object : DistributedJob {
             val invocationCounter = AtomicInteger()
 
-            override val jobId = JobId("jobWithRate100PerSec")
+            override val jobId = JobId("jobWithRate100ms")
             override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(100))
             override fun run(context: DistributedJobContext) {
-                val now = Instant.now()
-                val invocationNumber = invocationCounter.incrementAndGet()
-                delaysPerInvocation.set(invocationNumber, Duration.between(previousStartTime.get(), now))
-                previousStartTime.set(now)
+                invocationCounter.incrementAndGet()
             }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
-        val djm = createDJM(jobWithRate100PerSec)
+        val djm = createDJM(jobWithRate100ms)
+        await().pollDelay(10, MILLISECONDS)
+                .atMost(1, MINUTES).until { jobWithRate100ms.invocationCounter.get() > 10 }
 
-        jobWithRate100PerSec.invocationCounter.set(0)
+        jobWithRate100ms.invocationCounter.set(0)
         sleep(1000)
-        //ignore first invocation
-        (1..8).map { jobWithRate100PerSec.delaysPerInvocation[it].toMillis().toInt() }.forEach {
-            //10ms delay +/- 10ms
-            it.shouldBeInRange(1..20)
-        }
-        jobWithRate100PerSec.invocationCounter.get().shouldBeInRange(80..120)
+        jobWithRate100ms.invocationCounter.get().shouldBeInRange(8..12)
         djm.close()
     }
 
