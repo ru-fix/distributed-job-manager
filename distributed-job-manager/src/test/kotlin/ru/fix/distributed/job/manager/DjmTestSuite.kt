@@ -2,11 +2,13 @@ package ru.fix.distributed.job.manager
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.netcrusher.tcp.TcpCrusher
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.testing.ZKTestingServer
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 open class DjmTestSuite {
@@ -16,7 +18,7 @@ open class DjmTestSuite {
         fun generateNodeId() = lastNodeId.incrementAndGet().toString()
 
         private val lastRootId = AtomicInteger(1)
-        fun generateRootPath() = "root/${lastRootId.incrementAndGet()}"
+        fun generateDjmRootPath() = "root/${lastRootId.incrementAndGet()}"
     }
 
     lateinit var server: ZKTestingServer
@@ -31,19 +33,46 @@ open class DjmTestSuite {
         server.client
     }
 
-    fun createDJM(job: DistributedJob, profiler: Profiler = NoopProfiler()) =
-            createDJM(listOf(job), profiler)
+    private val djmCrushers = ConcurrentHashMap<DistributedJobManager, TcpCrusher>()
 
-    fun createDJM(jobs: List<DistributedJob>, profiler: Profiler = NoopProfiler()) =
-            DistributedJobManager(
-                    server.client,
-                    jobs,
-                    profiler,
-                    DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
-                            rootPath = generateRootPath(),
-                            timeToWaitTermination = DynamicProperty.of(10000)
-                    ))
+    fun createDJM(job: DistributedJob,
+                  profiler: Profiler = NoopProfiler(),
+                  rootPath: String = generateDjmRootPath()) =
+            createDJM(listOf(job), profiler, rootPath)
 
+    fun createDJM(jobs: List<DistributedJob>,
+                  profiler: Profiler = NoopProfiler(),
+                  rootPath: String = generateDjmRootPath()): DistributedJobManager {
+        val tcpCrusher = server.openProxyTcpCrusher()
+        val curator = server.createZkProxyClient(tcpCrusher)
+
+        val djm = DistributedJobManager(
+                curator,
+                jobs,
+                profiler,
+                DistributedJobManagerSettings(
+                        nodeId = generateNodeId(),
+                        rootPath = rootPath,
+                        timeToWaitTermination = DynamicProperty.of(10000)
+                ))
+        djmCrushers[djm] = tcpCrusher
+        return djm
+    }
+
+    fun disconnectDjm(djm: DistributedJobManager){
+        djmCrushers[djm]!!.close()
+    }
+
+    fun connectDjm(djm: DistributedJobManager){
+        djmCrushers[djm]!!.open()
+    }
+
+    fun closeDjm(djm: DistributedJobManager){
+        djm.close()
+        djmCrushers.compute(djm){_, crusher ->
+            crusher!!.close()
+            null
+        }
+    }
 }
 

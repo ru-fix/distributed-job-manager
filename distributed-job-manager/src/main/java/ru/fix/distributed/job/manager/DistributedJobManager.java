@@ -49,13 +49,15 @@ public class DistributedJobManager implements AutoCloseable {
     private final Manager manager;
     private final String nodeId;
     private final Profiler djmProfiler;
+    private final DistributedJobManagerSettings settings;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> userDefinedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
         this.nodeId = settings.getNodeId();
-        log.info("Starting DJM with id {}", nodeId);
+        this.settings = settings;
+        log.info("Starting DJM with id {} at {}", nodeId, settings.getRootPath());
 
         this.djmProfiler = new PrefixedProfiler(
                 profiler,
@@ -86,7 +88,7 @@ public class DistributedJobManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        log.info("Closing DJM with id {}", nodeId);
+        log.info("Closing DJM with id {} at {}", nodeId, settings.getRootPath());
 
         djmProfiler.profiledCall(ProfilerMetrics.DJM_CLOSE).profileThrowable(() -> {
             worker.close();

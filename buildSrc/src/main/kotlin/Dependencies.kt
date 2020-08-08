@@ -68,4 +68,5 @@ object Libs {
     const val mockito_kotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:${Vers.mockito_kotlin}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
     const val kotest_assertions = "io.kotest:kotest-assertions-core:4.1.1"
+    const val netcrusher = "com.github.netcrusherorg:netcrusher-core:0.10"
 }
