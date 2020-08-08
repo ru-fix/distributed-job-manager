@@ -82,11 +82,11 @@ class Worker implements AutoCloseable {
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
 
         this.assignmentUpdatesExecutor = NamedExecutors.newSingleThreadPool(
-                "assignment-updates-worker-" + workerId,
+                "update-assignment",
                 profiler);
 
         this.checkWorkPoolScheduler = NamedExecutors.newScheduler(
-                "check-work-pool-worker-" + workerId,
+                "check-work-pool",
                 DynamicProperty.of(Math.max(jobs.size(), 1)),
                 profiler
         );
@@ -94,7 +94,7 @@ class Worker implements AutoCloseable {
         this.threadPoolSize = new AtomicProperty<>(1);
 
         this.jobReschedulableScheduler = new ReschedulableScheduler(
-                "job-scheduler-worker-" + workerId,
+                "job-scheduler",
                 threadPoolSize,
                 profiler);
 

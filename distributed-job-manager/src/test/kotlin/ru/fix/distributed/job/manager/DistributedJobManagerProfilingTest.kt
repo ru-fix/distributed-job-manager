@@ -8,7 +8,7 @@ import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.aggregating.profiler.ProfiledCallReport
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
-import java.lang.Thread.sleep
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class DistributedJobManagerProfilingTest : DjmTestSuite() {
@@ -29,8 +29,9 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
         val djm = createDJM(job, profiler)
 
         val initReport = reporter.buildReportAndReset()
+        println("Init report: $initReport")
         initReport.profilerCallReports
-                .single { it.identity.name == ProfilerMetrics.DJM_INIT }
+                .single { it.identity.name == "djm.init" }
                 .apply {
                     stopSum.shouldBe(1)
                     latencyAvg.shouldBeGreaterThanOrEqual(0)
@@ -39,8 +40,9 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
         djm.close()
 
         val closeReport = reporter.buildReportAndReset()
+        println("Close report: $initReport")
         closeReport.profilerCallReports
-                .single { it.identity.name == ProfilerMetrics.DJM_CLOSE }
+                .single { it.identity.name == "djm.close" }
                 .apply {
                     stopSum.shouldBe(1)
                     latencyAvg.shouldBeGreaterThanOrEqual(0)
@@ -56,6 +58,7 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
             override fun run(context: DistributedJobContext) {
                 Thread.sleep(1000)
             }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod() = 0L
@@ -68,7 +71,7 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
         fun awaitFor(condition: (ProfiledCallReport) -> Boolean) {
             Awaitility.await().pollInterval(100, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.SECONDS).until {
                 reporter.buildReportAndReset().profilerCallReports
-                        .singleOrNull { it.identity.name == ProfilerMetrics.JOB(JobId("oneSecondJob")) }
+                        .singleOrNull { it.identity.name == "djm." + ProfilerMetrics.JOB(JobId("oneSecondJob")) }
                         ?.let {
                             condition(it)
                         } ?: false
@@ -92,24 +95,43 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
             override fun run(context: DistributedJobContext) {
                 Thread.sleep(1000)
             }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
-            override fun getWorkPoolCheckPeriod() = 0L
+            override fun getWorkPoolCheckPeriod() = 100L
         }
 
         val profiler = AggregatingProfiler()
         val reporter = profiler.createReporter()
         val djm = createDJM(oneSecondJob, profiler)
 
-        println("REPORT: "+ reporter.buildReportAndReset())
+        class Condition
+        val runJobProfiled = Condition()
+        val getWorkPoolProfiled = Condition()
+        val fulfilledConditions = ConcurrentHashMap.newKeySet<Condition>()
 
-        Awaitility.await().pollInterval(100, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.SECONDS).until {
-            reporter.buildReportAndReset().profilerCallReports
-                    .singleOrNull { it.identity.name == "djm.pool.job-scheduler" }
-                    ?.let {
-                        it.stopSum > 0
-                    } ?: false
-        }
+        Awaitility.await()
+                .pollInterval(300, TimeUnit.MILLISECONDS)
+                .atMost(10, TimeUnit.SECONDS)
+                .until {
+
+                    val report = reporter.buildReportAndReset()
+                    val profiledCallsReport = report.profilerCallReports
+
+                    if (profiledCallsReport.any {
+                                it.identity.name == "djm.pool.job-scheduler.run" && it.stopSum > 0
+                            }) fulfilledConditions += runJobProfiled
+
+                    if (profiledCallsReport.any {
+                                it.identity.name == "djm.pool.check-work-pool.run" && it.stopSum > 0
+                            }) fulfilledConditions += getWorkPoolProfiled
+
+                    println("REPORT: " + report)
+
+                    fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
+                }
+
+
 
         djm.close()
     }

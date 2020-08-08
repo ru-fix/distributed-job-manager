@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager;
 
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 
 class ZkPathsManager {
@@ -18,6 +19,22 @@ class ZkPathsManager {
 
     ZkPathsManager(String rootPath) {
         this.rootPath = rootPath;
+    }
+
+    public void initPaths(CuratorFramework curatorFramework) throws Exception {
+        createIfNeeded(curatorFramework, this.allWorkers());
+        createIfNeeded(curatorFramework, this.aliveWorkers());
+        createIfNeeded(curatorFramework, this.workerVersion());
+        createIfNeeded(curatorFramework, this.assignmentVersion());
+        createIfNeeded(curatorFramework, this.locks());
+        createIfNeeded(curatorFramework, this.availableWorkPool());
+        createIfNeeded(curatorFramework, this.availableWorkPoolVersion());
+    }
+
+    private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
+        if (curatorFramework.checkExists().forPath(path) == null) {
+            curatorFramework.create().creatingParentsIfNeeded().forPath(path);
+        }
     }
 
     public String aliveWorkers() {

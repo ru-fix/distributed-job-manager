@@ -10,6 +10,7 @@ import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -46,31 +47,34 @@ public class DistributedJobManager implements AutoCloseable {
 
     private final Worker worker;
     private final Manager manager;
-    private String nodeId;
+    private final String nodeId;
+    private final Profiler djmProfiler;
 
     public DistributedJobManager(CuratorFramework curatorFramework,
                                  Collection<DistributedJob> userDefinedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
-        log.info("Starting DJM with id {}", settings.getNodeId());
-        try(ProfiledCall initProfiledCall = profiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
-            this.nodeId = settings.getNodeId();
-            this.profiler = new PrefixedProfiler(
-                    profiler,
-                    ProfilerMetrics.DJM_PREFIX,
-                    Collections.singletonMap("nodeId", nodeId)
-            );
+        this.nodeId = settings.getNodeId();
+        log.info("Starting DJM with id {}", nodeId);
 
-            initPaths(curatorFramework, settings.getRootPath());
+        this.djmProfiler = new PrefixedProfiler(
+                profiler,
+                ProfilerMetrics.DJM_PREFIX,
+                Collections.singletonMap("djmNodeId", nodeId)
+        );
+
+        try(ProfiledCall initProfiledCall = djmProfiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
+            ZkPathsManager paths = new ZkPathsManager(settings.getRootPath());
+            paths.initPaths(curatorFramework);
 
             Collection<JobDescriptor> jobs = userDefinedJobs.stream()
                     .map(JobDescriptor::new).collect(Collectors.toList());
 
-            this.manager = new Manager(curatorFramework, profiler, settings);
+            this.manager = new Manager(curatorFramework, djmProfiler, settings);
             this.worker = new Worker(
                     curatorFramework,
                     jobs,
-                    profiler,
+                    djmProfiler,
                     settings);
 
             this.manager.start();
@@ -80,28 +84,11 @@ public class DistributedJobManager implements AutoCloseable {
         }
     }
 
-    private static void initPaths(CuratorFramework curatorFramework, String rootPath) throws Exception {
-        ZkPathsManager paths = new ZkPathsManager(rootPath);
-        createIfNeeded(curatorFramework, paths.allWorkers());
-        createIfNeeded(curatorFramework, paths.aliveWorkers());
-        createIfNeeded(curatorFramework, paths.workerVersion());
-        createIfNeeded(curatorFramework, paths.assignmentVersion());
-        createIfNeeded(curatorFramework, paths.locks());
-        createIfNeeded(curatorFramework, paths.availableWorkPool());
-        createIfNeeded(curatorFramework, paths.availableWorkPoolVersion());
-    }
-
-    private static void createIfNeeded(CuratorFramework curatorFramework, String path) throws Exception {
-        if (curatorFramework.checkExists().forPath(path) == null) {
-            curatorFramework.create().creatingParentsIfNeeded().forPath(path);
-        }
-    }
-
     @Override
     public void close() throws Exception {
         log.info("Closing DJM with id {}", nodeId);
 
-        profiler.profiledCall(ProfilerMetrics.DJM_CLOSE).profileThrowable(() -> {
+        djmProfiler.profiledCall(ProfilerMetrics.DJM_CLOSE).profileThrowable(() -> {
             worker.close();
             manager.close();
         });

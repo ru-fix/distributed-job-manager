@@ -51,7 +51,7 @@ class Manager(
             paths, curatorFramework, settings.assignmentStrategy, nodeId
     )
 
-    private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance_thread", profiler)
+    private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)
     private val rebalanceAccumulator =
             ReducingEventAccumulator.lastEventWinAccumulator<RebalanceTrigger>()
 
