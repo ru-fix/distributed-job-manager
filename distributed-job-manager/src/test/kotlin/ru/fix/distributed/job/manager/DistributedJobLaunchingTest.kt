@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -10,16 +9,12 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
-import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.aggregating.profiler.NoopProfiler
-import ru.fix.aggregating.profiler.ProfiledCallReport
-import ru.fix.aggregating.profiler.Profiler
-import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
-import ru.fix.zookeeper.testing.ZKTestingServer
+import java.lang.IllegalStateException
 import java.lang.Thread.sleep
-import java.util.concurrent.TimeUnit.MILLISECONDS
+import java.util.concurrent.TimeUnit.MINUTES
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -194,8 +189,39 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         val djm = createDJM(emptyList(), NoopProfiler())
         logRecorder.getContent().shouldContain("WARN No job instance provided")
         djm.close()
+        logRecorder.close()
     }
 
+    @Test
+    fun `job restarted by schedule after failure and logs job failure`() {
+        val jobWithFailedFirstInvocation = object : DistributedJob {
+            val invocationCounter = AtomicInteger()
+            override val jobId = JobId("jobWithFailedFirstInvocation")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(10))
+            override fun run(context: DistributedJobContext) {
+                val invocationNumber = invocationCounter.incrementAndGet()
+                if (invocationNumber == 1) {
+                    throw IllegalStateException("First failed invocation")
+                }
+            }
+
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 50
+        }
+
+        val logRecorder = Log4jLogRecorder()
+
+        val djm = createDJM(jobWithFailedFirstInvocation)
+        await().atMost(1, MINUTES).until {
+            jobWithFailedFirstInvocation.invocationCounter.get() > 10
+        }
+
+        logRecorder.getContent().contains("First failed invocation")
+
+        djm.close()
+        logRecorder.close()
+    }
 
     @Disabled("TODO")
     @Test
@@ -211,12 +237,6 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         TODO()
     }
 
-    @Disabled("TODO")
-    @Test
-    fun `job restarted by schedule after failure`() {
-        sleep(1000)
-        TODO()
-    }
 
     @Disabled("TODO")
     @Test

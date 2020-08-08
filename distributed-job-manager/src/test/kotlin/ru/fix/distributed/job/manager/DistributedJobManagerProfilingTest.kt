@@ -130,9 +130,6 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
 
                     fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
                 }
-
-
-
         djm.close()
     }
 }
