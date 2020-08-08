@@ -173,7 +173,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
             override fun getWorkPoolCheckPeriod(): Long = 50
         }
         val djm = createDJM(jobWithDynamicWorkPool)
-
+Job
         await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-1") }
 
         workPool.set(setOf("work-item-2"))
@@ -193,7 +193,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
     }
 
     @Test
-    fun `job restarted by schedule after failure and logs job failure`() {
+    fun `after faliure job logs error details and succesfully restarts`() {
         val jobWithFailedFirstInvocation = object : DistributedJob {
             val invocationCounter = AtomicInteger()
             override val jobId = JobId("jobWithFailedFirstInvocation")
