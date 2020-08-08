@@ -67,7 +67,7 @@ class ScheduledJobExecution implements Runnable {
             return;
         }
 
-        ProfiledCall stopProfiledCall = profiler.profiledCall(ProfilerMetrics.STOP(job.getJobId()));
+        ProfiledCall jobLaunchProfiledCall = profiler.profiledCall(ProfilerMetrics.JOB(job.getJobId()));
 
         JobContext jobContext = new JobContext(job.getJobId(), workShare);
         jobRuns.add(jobContext);
@@ -80,8 +80,6 @@ class ScheduledJobExecution implements Runnable {
 
         try {
             lock.lock();
-
-            Thread.currentThread().setName("djm-worker-" + job.getJobId());
 
             for (String workItem : workShare) {
 
@@ -102,14 +100,8 @@ class ScheduledJobExecution implements Runnable {
                 }
             }
 
-            Thread.currentThread().setName("djm-worker-" + job.getJobId());
+            jobLaunchProfiledCall.profileThrowable(() -> job.run(jobContext));
 
-            try (ProfiledCall startProfiledCall = profiler.start(ProfilerMetrics.START(job.getJobId()))) {
-                startProfiledCall.stop(jobContext.getWorkShare().size());
-            }
-            stopProfiledCall.start();
-
-            job.run(jobContext);
 
         } catch (Exception exc) {
             log.error("Failure in job execution. Job {}, Class {}",
@@ -117,9 +109,9 @@ class ScheduledJobExecution implements Runnable {
                     job.getClass().getSimpleName(),
                     exc);
         } finally {
+            lock.unlock();
+            jobRuns.remove(jobContext);
             try {
-                jobRuns.remove(jobContext);
-
                 for (String workItem : workShare) {
                     String workItemPath = zkPathsManager.workItemLock(job.getJobId(), workItem);
                     LockIdentity lockId = new LockIdentity(workItemPath, null);
@@ -127,17 +119,12 @@ class ScheduledJobExecution implements Runnable {
                         lockManager.release(lockId);
                     }
                 }
-
-                Thread.currentThread().setName(Worker.THREAD_NAME_DJM_WORKER_NONE);
             } catch (Exception exc) {
                 log.error("Failure in job after-run block. Job {}, Class {}",
                         job.getJobId(),
                         job.getClass().getSimpleName(),
                         exc);
-            } finally {
-                stopProfiledCall.stopIfRunning();
             }
-            lock.unlock();
 
             if (shutdownFlag.get() && lastShutdownTime > 0) {
                 long runningAfterShutdownTime = System.currentTimeMillis() - lastShutdownTime;

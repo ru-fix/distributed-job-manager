@@ -27,10 +27,7 @@ internal class Cleaner(
         private val workPoolCleanPeriod: DynamicProperty<Long>,
         private val aliveWorkersCache: CuratorCache
 ) : AutoCloseable {
-    private val scheduler = NamedExecutors.newSingleThreadScheduler(
-            "work-pool cleaning task",
-            profiler
-    )
+    private val scheduler = NamedExecutors.newSingleThreadScheduler("cleaning-task", profiler)
     private val workPoolSubTree = AvailableWorkPoolSubTree(curatorFramework, paths)
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
