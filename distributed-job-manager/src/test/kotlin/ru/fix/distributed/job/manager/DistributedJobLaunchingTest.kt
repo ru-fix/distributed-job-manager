@@ -252,14 +252,40 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
             //100ms delay +/- 20ms
             it.shouldBeInRange(80..120)
         }
+        jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
         djm.close()
     }
 
-    @Disabled("TODO")
     @Test
     fun `job restarted with rate`() {
+        val jobWithRate100PerSec = object : DistributedJob {
+            val previousStartTime = AtomicReference(Instant.now())
+            val delaysPerInvocation = AtomicReferenceArray<Duration>(10)
+            val invocationCounter = AtomicInteger()
+
+            override val jobId = JobId("jobWithRate100PerSec")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                val now = Instant.now()
+                val invocationNumber = invocationCounter.incrementAndGet()
+                delaysPerInvocation.set(invocationNumber, Duration.between(previousStartTime.get(), now))
+                previousStartTime.set(now)
+            }
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
+        val djm = createDJM(jobWithRate100PerSec)
+
+        jobWithRate100PerSec.invocationCounter.set(0)
         sleep(1000)
-        TODO()
+        //ignore first invocation
+        (1..8).map { jobWithRate100PerSec.delaysPerInvocation[it].toMillis().toInt() }.forEach {
+            //10ms delay +/- 10ms
+            it.shouldBeInRange(1..20)
+        }
+        jobWithRate100PerSec.invocationCounter.get().shouldBeInRange(80..120)
+        djm.close()
     }
 
 
