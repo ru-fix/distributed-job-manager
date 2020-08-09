@@ -123,11 +123,56 @@ class DistributedJobDisconnectsAndRestartsTest : DjmTestSuite() {
         closeDjm(djm3)
     }
 
-    @Disabled("TODO")
     @Test
     fun `when DJM3 shutdowns, WorkItems rebalanced between DJM1 and DJM2`() {
-        sleep(1000)
-        TODO()
+        val workItems = (1..10).map { it.toString() }.toSet()
+
+        class LastUsedWorkShareJob : DistributedJob {
+            val lastUsedWorkShare = AtomicReference<Set<String>>(emptySet())
+            override val jobId = JobId("rebalance-on-disconnect-job")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                lastUsedWorkShare.set(context.workShare)
+            }
+
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+
+        val job1 = LastUsedWorkShareJob()
+        val job2 = LastUsedWorkShareJob()
+        val job3 = LastUsedWorkShareJob()
+
+        val rootPath = generateDjmRootPath()
+        val djm1 = createDJM(job1, rootPath = rootPath)
+        val djm2 = createDJM(job2, rootPath = rootPath)
+        val djm3 = createDJM(job3, rootPath = rootPath)
+
+        await().pollDelay(100, TimeUnit.MILLISECONDS)
+                .atMost(15, TimeUnit.SECONDS)
+                .until {
+                    job1.lastUsedWorkShare.get().isNotEmpty() &&
+                            job2.lastUsedWorkShare.get().isNotEmpty() &&
+                            job3.lastUsedWorkShare.get().isNotEmpty() &&
+
+                            (job1.lastUsedWorkShare.get() +
+                                    job2.lastUsedWorkShare.get() +
+                                    job3.lastUsedWorkShare.get()).toSet().size == 10
+                }
+
+        closeDjm(djm3)
+
+        await().pollDelay(100, TimeUnit.MILLISECONDS)
+                .atMost(15, TimeUnit.SECONDS)
+                .until {
+                    job1.lastUsedWorkShare.get().isNotEmpty() &&
+                            job2.lastUsedWorkShare.get().isNotEmpty() &&
+                            (job1.lastUsedWorkShare.get() + job2.lastUsedWorkShare.get()).toSet().size == 10
+                }
+
+        closeDjm(djm1)
+        closeDjm(djm2)
     }
 
     @Disabled("TODO")

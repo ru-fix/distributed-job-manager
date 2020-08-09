@@ -7,7 +7,9 @@ import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import ru.fix.zookeeper.testing.ZKTestingServer
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -53,7 +55,12 @@ open class DjmTestSuite {
                 DistributedJobManagerSettings(
                         nodeId = generateNodeId(),
                         rootPath = rootPath,
-                        timeToWaitTermination = DynamicProperty.of(10000)
+                        timeToWaitTermination = DynamicProperty.of(10000),
+                        lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
+                                lockAcquirePeriod = Duration.ofSeconds(15),
+                                expirationPeriod = Duration.ofSeconds(5),
+                                lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                        ))
                 ))
         djmCrushers[djm] = tcpCrusher
         return djm
