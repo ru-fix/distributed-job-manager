@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.comparables.shouldBeLessThan
 import org.apache.logging.log4j.kotlin.Logging
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
@@ -9,9 +10,12 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 
@@ -178,6 +182,57 @@ class DistributedJobDisconnectsAndRestartsTest : DjmTestSuite() {
     @Disabled("TODO")
     @Test
     fun `series of random DJMs disconnects, shutdowns, launches, WorkPool changes and restarts does not affect correct WorkItem launching and schedulling`() {
+
+        class WorkItemInvocations {
+            var previousAccessTime = AtomicReference<Instant>(Instant.now())
+            var numberOfInvocations = AtomicInteger(0)
+        }
+        val processings = mapOf(
+                "job1" to mapOf(
+                        "item1" to WorkItemInvocations()
+                ),
+                "job2" to mapOf(
+                        "item1" to WorkItemInvocations(),
+                        "item2" to WorkItemInvocations(),
+                        "item3" to WorkItemInvocations()
+                ),
+                "job3" to mapOf(
+                        "item1" to WorkItemInvocations(),
+                        "item2" to WorkItemInvocations(),
+                        "item3" to WorkItemInvocations(),
+                        "item4" to WorkItemInvocations(),
+                        "item5" to WorkItemInvocations(),
+                        "item6" to WorkItemInvocations(),
+                        "item7" to WorkItemInvocations(),
+                        "item8" to WorkItemInvocations(),
+                        "item9" to WorkItemInvocations()
+                )
+        )
+        class ChaosJob(val id: String, val workPool: Set<String>) : DistributedJob {
+            override val jobId = JobId(id)
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(50))
+            override fun run(context: DistributedJobContext) {
+                for (workItem in context.workShare) {
+                    processings[id]!![workItem]!!.apply {
+                        previousAccessTime.set(Instant.now())
+                        numberOfInvocations.incrementAndGet()
+                    }
+                }
+            }
+            override fun getWorkPool() = WorkPool.of(workPool)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+
+
+        for (item in processings.values.flatMap { it.values }) {
+            Duration.between(item.previousAccessTime.get(), Instant.now()).shouldBeLessThan(Duration.ofSeconds(10))
+        }
+
+
+
+
+
         sleep(1000)
         TODO("same workItem running only by single thread within the cluster")
         TODO("all workItem runs by schedule as expected with small disturbances")
