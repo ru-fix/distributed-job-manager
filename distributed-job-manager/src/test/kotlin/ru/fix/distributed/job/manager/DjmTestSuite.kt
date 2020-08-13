@@ -74,6 +74,10 @@ open class DjmTestSuite {
         djmCrushers[djm]!!.open()
     }
 
+    fun isConnectedDjm(djm: DistributedJobManager): Boolean {
+        return djmCrushers[djm]!!.isOpen
+    }
+
     fun closeDjm(djm: DistributedJobManager){
         djm.close()
         djmCrushers.compute(djm){_, crusher ->
@@ -81,5 +85,7 @@ open class DjmTestSuite {
             null
         }
     }
+
+    val djms: List<DistributedJobManager> get() = djmCrushers.keys().toList()
 }
 

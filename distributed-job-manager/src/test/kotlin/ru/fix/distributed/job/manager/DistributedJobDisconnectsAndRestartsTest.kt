@@ -1,7 +1,6 @@
 package ru.fix.distributed.job.manager
 
 import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.comparables.shouldBeLessThan
 import org.apache.logging.log4j.kotlin.Logging
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
@@ -13,12 +12,14 @@ import java.lang.Thread.sleep
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 
+@ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 //Prevent log messages from different tests to mix
 @Execution(ExecutionMode.SAME_THREAD)
@@ -102,12 +103,12 @@ class DistributedJobDisconnectsAndRestartsTest : DjmTestSuite() {
                 .atMost(15, TimeUnit.SECONDS)
                 .until {
                     job1.lastUsedWorkShare.get().isNotEmpty() &&
-                    job2.lastUsedWorkShare.get().isNotEmpty() &&
-                    job3.lastUsedWorkShare.get().isNotEmpty() &&
+                            job2.lastUsedWorkShare.get().isNotEmpty() &&
+                            job3.lastUsedWorkShare.get().isNotEmpty() &&
 
-                    (job1.lastUsedWorkShare.get() +
-                            job2.lastUsedWorkShare.get() +
-                            job3.lastUsedWorkShare.get()).toSet().size == 10
+                            (job1.lastUsedWorkShare.get() +
+                                    job2.lastUsedWorkShare.get() +
+                                    job3.lastUsedWorkShare.get()).toSet().size == 10
                 }
 
         disconnectDjm(djm3)
@@ -116,8 +117,8 @@ class DistributedJobDisconnectsAndRestartsTest : DjmTestSuite() {
                 .atMost(15, TimeUnit.SECONDS)
                 .until {
                     job1.lastUsedWorkShare.get().isNotEmpty() &&
-                    job2.lastUsedWorkShare.get().isNotEmpty() &&
-                    (job1.lastUsedWorkShare.get() + job2.lastUsedWorkShare.get()).toSet().size == 10
+                            job2.lastUsedWorkShare.get().isNotEmpty() &&
+                            (job1.lastUsedWorkShare.get() + job2.lastUsedWorkShare.get()).toSet().size == 10
                 }
 
         connectDjm(djm3)
@@ -179,65 +180,114 @@ class DistributedJobDisconnectsAndRestartsTest : DjmTestSuite() {
         closeDjm(djm2)
     }
 
-    @Disabled("TODO")
-    @Test
-    fun `series of random DJMs disconnects, shutdowns, launches, WorkPool changes and restarts does not affect correct WorkItem launching and schedulling`() {
 
-        class WorkItemInvocations {
-            var previousAccessTime = AtomicReference<Instant>(Instant.now())
-            var numberOfInvocations = AtomicInteger(0)
+    class WorkItemInvocations {
+        var previousAccessTime = AtomicReference<Instant>(Instant.now())
+        var numberOfInvocations = AtomicInteger(0)
+    }
+
+    val workLoad = mapOf(
+            "job1" to (1..1).map { "$it" }.toSet(),
+            "job3" to (1..3).map { "$it" }.toSet(),
+            "job6" to (1..6).map { "$it" }.toSet(),
+            "job16" to (1..16).map { "$it" }.toSet())
+
+    val processings = workLoad.map { it.key to it.value.map { workItem -> workItem to WorkItemInvocations() }.toMap() }.toMap()
+    val jobs = workLoad.map { ChaosJob(it.key, it.value) }
+    val rootPath = generateDjmRootPath()
+    val maxDjmsCount = 6
+    fun createDjm() = createDJM(jobs, rootPath = rootPath)
+
+
+    inner class ChaosJob(val id: String, val workPool: Set<String>) : DistributedJob {
+        override val jobId = JobId(id)
+        override fun getSchedule() = DynamicProperty.of(Schedule.withRate(50))
+        override fun run(context: DistributedJobContext) {
+            for (workItem in context.workShare) {
+                processings[id]!![workItem]!!.apply {
+                    previousAccessTime.set(Instant.now())
+                    numberOfInvocations.incrementAndGet()
+                }
+            }
         }
-        val processings = mapOf(
-                "job1" to mapOf(
-                        "item1" to WorkItemInvocations()
-                ),
-                "job2" to mapOf(
-                        "item1" to WorkItemInvocations(),
-                        "item2" to WorkItemInvocations(),
-                        "item3" to WorkItemInvocations()
-                ),
-                "job3" to mapOf(
-                        "item1" to WorkItemInvocations(),
-                        "item2" to WorkItemInvocations(),
-                        "item3" to WorkItemInvocations(),
-                        "item4" to WorkItemInvocations(),
-                        "item5" to WorkItemInvocations(),
-                        "item6" to WorkItemInvocations(),
-                        "item7" to WorkItemInvocations(),
-                        "item8" to WorkItemInvocations(),
-                        "item9" to WorkItemInvocations()
-                )
-        )
-        class ChaosJob(val id: String, val workPool: Set<String>) : DistributedJob {
-            override val jobId = JobId(id)
-            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(50))
-            override fun run(context: DistributedJobContext) {
-                for (workItem in context.workShare) {
-                    processings[id]!![workItem]!!.apply {
-                        previousAccessTime.set(Instant.now())
-                        numberOfInvocations.incrementAndGet()
+
+        override fun getWorkPool() = WorkPool.of(workPool)
+        override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+        override fun getWorkPoolCheckPeriod() = 0L
+    }
+
+    fun awaitAllWorkItemsAreAccessedDuringOneSecond() =
+            await().pollInterval(100, TimeUnit.MILLISECONDS)
+                    .atMost(15, TimeUnit.SECONDS)
+                    .until {
+                        processings.values.flatMap { it.values }.all {
+                            Duration.between(it.previousAccessTime.get(), Instant.now()).toSeconds() <= 1
+                        }
+                    }
+
+    enum class ChaosAction {
+        Disconnect, Connect, Close, Start;
+
+        companion object {
+            fun rand() = values()[ThreadLocalRandom.current().nextInt(0, values().size)]
+        }
+    }
+
+    fun printDjmsState() {
+        logger.info(djms.map { if (isConnectedDjm(it)) "[v]" else "[x]" }.joinToString())
+    }
+
+    fun performRandomAction() {
+        for (attempt in 1..10) {
+            when (val action = ChaosAction.rand()) {
+                ChaosAction.Disconnect -> {
+                    val connectedDjms = djms.filter { isConnectedDjm(it) }
+                    if (connectedDjms.size >= 2) {
+                        disconnectDjm(connectedDjms.random())
+                        return
+                    }
+
+                }
+                ChaosAction.Connect -> {
+                    val disconnectedDjms = djms.filter { !isConnectedDjm(it) }
+                    if (disconnectedDjms.isNotEmpty()) {
+                        connectDjm(disconnectedDjms.random())
+                        return
+                    }
+                }
+                ChaosAction.Start -> {
+                    if (djms.size < maxDjmsCount) {
+                        createDJM(jobs, rootPath = rootPath)
+                        return
+                    }
+                }
+                ChaosAction.Close -> {
+                    val connectedDjms = djms.filter { isConnectedDjm(it) }
+                    if (connectedDjms.size >= 2) {
+                        closeDjm(connectedDjms.random())
                     }
                 }
             }
-            override fun getWorkPool() = WorkPool.of(workPool)
-            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
-            override fun getWorkPoolCheckPeriod() = 0L
         }
 
-
-        for (item in processings.values.flatMap { it.values }) {
-            Duration.between(item.previousAccessTime.get(), Instant.now()).shouldBeLessThan(Duration.ofSeconds(10))
-        }
-
-
-
-
-
-        sleep(1000)
-        TODO("same workItem running only by single thread within the cluster")
-        TODO("all workItem runs by schedule as expected with small disturbances")
 
     }
+
+    @Test
+    fun `series of random DJMs disconnects, shutdowns and launches does not affect correct WorkItem launching and schedulling`() {
+        repeat(6) { createDjm() }
+
+        val startTime = Instant.now()
+        while (Duration.between(startTime, Instant.now()).toSeconds() <= 60) {
+            repeat((1..3).random()) {
+                performRandomAction()
+            }
+            printDjmsState()
+            sleep(1100)
+            awaitAllWorkItemsAreAccessedDuringOneSecond()
+        }
+    }
+
 
     @Disabled("TODO")
     @Test
