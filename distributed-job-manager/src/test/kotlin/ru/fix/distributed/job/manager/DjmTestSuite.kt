@@ -24,10 +24,12 @@ open class DjmTestSuite {
     }
 
     lateinit var server: ZKTestingServer
+    lateinit var rootPath: String
 
     @BeforeEach
     fun beforeEach() {
         server = ZKTestingServer().start()
+        rootPath = generateDjmRootPath()
     }
 
     @AfterEach
@@ -38,13 +40,11 @@ open class DjmTestSuite {
     private val djmCrushers = ConcurrentHashMap<DistributedJobManager, TcpCrusher>()
 
     fun createDJM(job: DistributedJob,
-                  profiler: Profiler = NoopProfiler(),
-                  rootPath: String = generateDjmRootPath()) =
-            createDJM(listOf(job), profiler, rootPath)
+                  profiler: Profiler = NoopProfiler()) =
+            createDJM(listOf(job), profiler)
 
     fun createDJM(jobs: List<DistributedJob>,
-                  profiler: Profiler = NoopProfiler(),
-                  rootPath: String = generateDjmRootPath()): DistributedJobManager {
+                  profiler: Profiler = NoopProfiler()): DistributedJobManager {
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
 
