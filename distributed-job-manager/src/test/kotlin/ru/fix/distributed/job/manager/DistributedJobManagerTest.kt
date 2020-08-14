@@ -346,7 +346,7 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     private fun createWorkPool(jobId: String, workItemsNumber: Int): WorkPool {
         return WorkPool.of((0 until workItemsNumber)
                 .map { i -> "$jobId.work-item-$i" }
-                .toCollection(HashSet()))
+                .toSet())
     }
 
     private fun awaitPathInit(itemPaths: List<String>) {

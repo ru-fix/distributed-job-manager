@@ -155,6 +155,45 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
     }
 
     @Test
+    fun `job with incorrect symbols in WorkPool stops launching`() {
+        val logRecorder = Log4jLogRecorder()
+
+        val jobIsStarted = AtomicBoolean()
+        val damageWorkPool = AtomicBoolean()
+
+        val jobWithInvalidWorkPool = object : DistributedJob {
+            override val jobId = JobId("jobWithInvalidWorkPool")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
+            override fun run(context: DistributedJobContext) {
+                jobIsStarted.set(true)
+            }
+
+            override fun getWorkPool(): WorkPool {
+                return WorkPool.of("invalid/symbol/ы")
+            }
+
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 100
+        }
+
+        val djm = createDJM(jobWithInvalidWorkPool)
+
+        await().atMost(10, SECONDS).until { jobIsStarted.get() }
+        damageWorkPool.set(true)
+
+        sleep(1000)
+        jobIsStarted.set(false)
+
+        sleep(1000)
+        jobIsStarted.get().shouldBe(false)
+
+        djm.close()
+
+        logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkPool]")
+
+        logRecorder.close()
+    }
+    @Test
     fun `when work pool changes, new work share passed to job launch context`() {
         val jobReceivedWorkPool = AtomicReference<Set<String>>()
         val workPool = AtomicReference<Set<String>>(setOf("work-item-1"))
