@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import org.netcrusher.tcp.TcpCrusher
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
@@ -13,6 +14,7 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 open class DjmTestSuite {
 
     companion object {
@@ -20,16 +22,16 @@ open class DjmTestSuite {
         fun generateNodeId() = lastNodeId.incrementAndGet().toString()
 
         private val lastRootId = AtomicInteger(1)
-        fun generateDjmRootPath() = "root/${lastRootId.incrementAndGet()}"
+        fun generateDjmRootPath() = "/${lastRootId.incrementAndGet()}"
     }
 
     lateinit var server: ZKTestingServer
-    lateinit var rootPath: String
+    lateinit var djmZkRootPath: String
 
     @BeforeEach
     fun beforeEach() {
         server = ZKTestingServer().start()
-        rootPath = generateDjmRootPath()
+        djmZkRootPath = generateDjmRootPath()
     }
 
     @AfterEach
@@ -54,7 +56,7 @@ open class DjmTestSuite {
                 profiler,
                 DistributedJobManagerSettings(
                         nodeId = generateNodeId(),
-                        rootPath = rootPath,
+                        rootPath = djmZkRootPath,
                         timeToWaitTermination = DynamicProperty.of(10000),
                         lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
                                 lockAcquirePeriod = Duration.ofSeconds(15),
@@ -84,6 +86,10 @@ open class DjmTestSuite {
             crusher!!.close()
             null
         }
+    }
+
+    fun closeAllDjms(){
+        djmCrushers.keys().toList().forEach (this::closeDjm)
     }
 
     val djms: List<DistributedJobManager> get() = djmCrushers.keys().toList()

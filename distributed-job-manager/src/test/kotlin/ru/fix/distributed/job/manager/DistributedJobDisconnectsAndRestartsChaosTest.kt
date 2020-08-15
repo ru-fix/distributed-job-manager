@@ -36,10 +36,9 @@ class DistributedJobDisconnectsAndRestartsChaosTest : DjmTestSuite() {
 
     val processings = workLoad.map { it.key to it.value.map { workItem -> workItem to WorkItemInvocations() }.toMap() }.toMap()
     val jobs = workLoad.map { ChaosJob(it.key, it.value) }
-    val rootPath = generateDjmRootPath()
     val maxDjmsCount = 6
 
-    fun createDjm() = createDJM(jobs, rootPath = rootPath)
+    fun createDjm() = createDJM(jobs)
     fun createAllDjms() = repeat(maxDjmsCount) { createDjm() }
 
 
@@ -101,7 +100,7 @@ class DistributedJobDisconnectsAndRestartsChaosTest : DjmTestSuite() {
                 }
                 ChaosAction.Start -> {
                     if (djms.size < maxDjmsCount) {
-                        createDJM(jobs, rootPath = rootPath)
+                        createDJM(jobs)
                         return
                     }
                 }

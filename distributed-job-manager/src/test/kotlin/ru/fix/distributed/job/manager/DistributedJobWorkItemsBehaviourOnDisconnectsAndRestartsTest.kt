@@ -21,8 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-//Prevent log messages from different tests to mix
-@Execution(ExecutionMode.SAME_THREAD)
+@Execution(ExecutionMode.CONCURRENT)
 class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuite() {
     companion object : Logging
 
@@ -51,8 +50,8 @@ class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuit
         }
 
         val rootPath = generateDjmRootPath()
-        val djm1 = createDJM(job, rootPath = rootPath)
-        val djm2 = createDJM(job, rootPath = rootPath)
+        val djm1 = createDJM(job)
+        val djm2 = createDJM(job)
         sleep(1000)
         job.isWorkItemConflictDetected.get().shouldBeFalse()
 
@@ -94,10 +93,9 @@ class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuit
         val job2 = LastUsedWorkShareJob()
         val job3 = LastUsedWorkShareJob()
 
-        val rootPath = generateDjmRootPath()
-        val djm1 = createDJM(job1, rootPath = rootPath)
-        val djm2 = createDJM(job2, rootPath = rootPath)
-        val djm3 = createDJM(job3, rootPath = rootPath)
+        val djm1 = createDJM(job1)
+        val djm2 = createDJM(job2)
+        val djm3 = createDJM(job3)
 
         await().pollDelay(100, TimeUnit.MILLISECONDS)
                 .atMost(15, TimeUnit.SECONDS)
@@ -150,9 +148,9 @@ class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuit
         val job3 = LastUsedWorkShareJob()
 
         val rootPath = generateDjmRootPath()
-        val djm1 = createDJM(job1, rootPath = rootPath)
-        val djm2 = createDJM(job2, rootPath = rootPath)
-        val djm3 = createDJM(job3, rootPath = rootPath)
+        val djm1 = createDJM(job1)
+        val djm2 = createDJM(job2)
+        val djm3 = createDJM(job3)
 
         await().pollDelay(100, TimeUnit.MILLISECONDS)
                 .atMost(15, TimeUnit.SECONDS)

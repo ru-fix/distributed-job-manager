@@ -190,7 +190,7 @@ Manager also periodically removes not relevant (which isn't in any `workers/*/av
 Full ZK tree you can see below:
 
 ```
-job-manager
+distributed-job-manager
   └ alive //alive workers that can run jobs
     └ 20 //worker with id 20
     └ 3  //worker with id 3
