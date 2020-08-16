@@ -5,13 +5,13 @@ object Vers {
     const val asciidoctor = "1.6.0"
 
     //Dependencies
-    const val kotlin = "1.3.50"
+    const val kotlin = "1.3.72"
 
     const val slf4j = "1.7.30"
 
     const val aggregating_profiler = "1.6.6"
-    const val jfix_zookeeper = "1.1.1"
-    const val jfix_stdlib = "3.0.5"
+    const val jfix_zookeeper = "1.1.7"
+    const val jfix_stdlib = "3.0.10"
     const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
