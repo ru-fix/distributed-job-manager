@@ -1,45 +1,20 @@
-package ru.fix.distributed.job.manager.model;
+package ru.fix.distributed.job.manager.model
 
-import ru.fix.distributed.job.manager.JobId;
+import ru.fix.distributed.job.manager.JobId
 
-import java.util.Objects;
-
-public class WorkItem {
-
-    private String id;
-    private JobId jobId;
-
-    public WorkItem(String id, JobId jobId) {
-        Objects.requireNonNull(id);
-        Objects.requireNonNull(jobId);
-        this.id = id;
-        this.jobId = jobId;
+data class WorkItem(
+        val id: String,
+        val jobId: JobId
+) {
+    init {
+        require(PATTERN.matches(id)) { "WorkItem '$id' does not match pattern $PATTERN" }
     }
 
-    public String getId() {
-        return id;
+    override fun toString(): String {
+        return "WorkItem[job=" + jobId.id + ", id=" + id + "]"
     }
 
-    public JobId getJobId() {
-        return jobId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WorkItem workItem = (WorkItem) o;
-        return Objects.equals(id, workItem.id) &&
-                Objects.equals(jobId, workItem.jobId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, jobId);
-    }
-
-    @Override
-    public String toString() {
-        return "WorkItem[job=" + jobId.getId() + ", id=" + id + "]";
+    companion object {
+        private val PATTERN = "[a-zA-Z0-9_-[.]]+".toRegex()
     }
 }

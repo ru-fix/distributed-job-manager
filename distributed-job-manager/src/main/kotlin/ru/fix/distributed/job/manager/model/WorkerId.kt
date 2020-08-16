@@ -1,49 +1,20 @@
-package ru.fix.distributed.job.manager.model;
+package ru.fix.distributed.job.manager.model
 
-import org.jetbrains.annotations.NotNull;
+data class WorkerId(val id: String) : Comparable<WorkerId> {
 
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-public class WorkerId implements Comparable<WorkerId> {
-
-    private String id;
-
-    public WorkerId(String id) {
-        Objects.requireNonNull(id);
-        this.id = id;
+    override fun compareTo(other: WorkerId): Int {
+        return id.compareTo(other.id)
     }
 
-    public static Set<WorkerId> setOf(String...ids){
-        return Arrays.stream(ids).map(WorkerId::new).collect(Collectors.toSet());
+    override fun toString(): String {
+        return "Worker[$id]"
     }
 
-    public String getId() {
-        return id;
-    }
+    companion object {
+        private val PATTERN = "[a-zA-Z0-9_-[.]]+".toRegex()
 
-    @Override
-    public int compareTo(@NotNull WorkerId o) {
-        return this.id.compareTo(o.getId());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WorkerId that = (WorkerId) o;
-        return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Worker[" + id + "]";
+        fun setOf(vararg ids: String): Set<WorkerId> {
+            return ids.map { WorkerId(it) }.toSet()
+        }
     }
 }

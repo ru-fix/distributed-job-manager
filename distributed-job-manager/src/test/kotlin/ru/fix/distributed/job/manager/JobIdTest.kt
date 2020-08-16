@@ -6,9 +6,11 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import org.junit.jupiter.api.Test
 
 class JobIdTest {
+
     @Test
     fun `JobId with correct symbols can be created`() {
         JobId("foo-is_a56")
+        JobId(".withDot")
     }
 
     @Test
@@ -17,9 +19,9 @@ class JobIdTest {
         shouldThrow<Exception> { JobId("with:colon") }
         shouldThrow<Exception> { JobId("with/slash") }
         shouldThrow<Exception> { JobId("with\\backslash") }
-        shouldThrow<Exception> { JobId(".withDot") }
         shouldThrow<Exception> { JobId(" withSpacePrefix") }
         shouldThrow<Exception> { JobId("with space") }
+        shouldThrow<Exception> { JobId("with]") }
     }
 
     @Test
