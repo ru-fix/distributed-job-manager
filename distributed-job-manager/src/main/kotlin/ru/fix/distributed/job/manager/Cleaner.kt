@@ -49,7 +49,7 @@ internal class Cleaner(
     }
 
     private fun cleanWorkPool(transaction: ZkTransaction) {
-        workPoolSubTree.checkAndUpdateVersion(transaction)
+        workPoolSubTree.readVersionThenCheckAndUpdateIfTxMutatesState(transaction)
         logger.trace { "cleanWorkPool zk tree before cleaning: ${zkPrinter.print(paths.rootPath)}" }
         val actualJobs: MutableSet<String> = HashSet()
         val aliveWorkersPath: String = paths.aliveWorkers()

@@ -9,7 +9,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.fix.aggregating.profiler.PrefixedProfiler;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
@@ -222,9 +221,10 @@ class Worker implements AutoCloseable {
                 WORKER_REGISTRATION_RETRIES_COUNT,
                 transaction -> {
 
-                    int workPoolVersion = workPoolSubTree.checkAndUpdateVersion(transaction);
+                    int workPoolVersion = workPoolSubTree.readVersionThenCheckAndUpdateIfTxMutatesState(transaction);
 
-                    int workerVersion = transaction.checkAndUpdateVersion(paths.workerVersion());
+                    int workerVersion = transaction.readVersionThenCheckAndUpdateInTransactionIfItMutatesZkState(
+                            paths.workerVersion());
 
                     log.info("Registering worker {} (worker version {}, work-pool version {})",
                             workerId, workerVersion, workPoolVersion);
@@ -325,7 +325,7 @@ class Worker implements AutoCloseable {
                     WORK_POOL_UPDATE_RETRIES_COUNT,
                     transaction -> {
 
-                        workPoolSubTree.checkAndUpdateVersion(transaction);
+                        workPoolSubTree.readVersionThenCheckAndUpdateIfTxMutatesState(transaction);
 
                         boolean workPoolsPathExists = null != transaction.checkPath(workPoolsPath);
                         boolean availableJobPathExists = null != transaction.checkPath(availableJobPath);

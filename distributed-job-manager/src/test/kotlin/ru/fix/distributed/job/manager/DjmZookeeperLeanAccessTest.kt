@@ -24,13 +24,13 @@ class DjmZookeeperLeanAccessTest : DjmTestSuite() {
     fun `when djm cluster is calm only lock nodes are updated in zookeeper`() {
         val jobWithFrequentButConstantWorkPool = object : DistributedJob {
             override val jobId = JobId("jobWithFrequentButConstantWorkPool")
-            override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(100))
+            override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(1000))
             override fun run(context: DistributedJobContext) {}
-            override fun getWorkPool() = WorkPool.of((1..21).map { "item-$it" }.toSet())
+            override fun getWorkPool() = WorkPool.of((1..10).map { "item-$it" }.toSet())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
         }
-        repeat(6) {
+        repeat(5) {
             createDJM(jobWithFrequentButConstantWorkPool)
         }
 
@@ -59,7 +59,9 @@ class DjmZookeeperLeanAccessTest : DjmTestSuite() {
         zkLocksChanged.set(false)
         zkOtherPathsChaged.set(false)
 
-        sleep(2000)
+        logger.info("Start of calm period")
+        sleep(3000)
+        logger.info("End of calm period")
         zkLocksChanged.get().shouldBeTrue()
         zkOtherPathsChaged.get().shouldBeFalse()
 
