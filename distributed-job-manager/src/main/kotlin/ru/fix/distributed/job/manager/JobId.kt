@@ -9,7 +9,7 @@ import java.util.*
 class JobId(val id: String) {
     companion object {
         const val JOB_ID_MAX_LENGTH = 255
-        private val PATTERN = "[a-zA-Z0-9_-]+".toRegex()
+        private val PATTERN = "[a-zA-Z0-9._-]+".toRegex()
     }
 
     init {

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.*
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 //Prevent log messages from different tests to mix
 @Execution(ExecutionMode.SAME_THREAD)
-class DistributedJobLaunchingTest : DjmTestSuite() {
+class DJMLaunchingTest : DjmTestSuite() {
     companion object : Logging
 
     @Test
@@ -197,6 +197,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
 
         logRecorder.close()
     }
+
     @Test
     fun `when work pool changes, new work share passed to job launch context`() {
         val jobReceivedWorkPool = AtomicReference<Set<String>>()
@@ -414,7 +415,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
     }
 
     @Test
-    fun `DJM follows assignment strategy`() {
+    fun `djm follows assignment strategy`() {
         val workItems = (1..10).map { it.toString() }.toSet()
 
         class JobForCustomAssignmnetStrategy : DistributedJob {

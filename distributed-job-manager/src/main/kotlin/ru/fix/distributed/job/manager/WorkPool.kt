@@ -11,7 +11,7 @@ class WorkPool(items: Set<String>) {
 
     companion object {
         const val WORK_POOL_ITEM_MAX_LENGTH = 255
-        private val PATTERN = "[a-zA-Z0-9_-]+".toRegex()
+        private val PATTERN = "[a-zA-Z0-9._-]+".toRegex()
 
         @JvmStatic
         fun of(items: Set<String>): WorkPool {

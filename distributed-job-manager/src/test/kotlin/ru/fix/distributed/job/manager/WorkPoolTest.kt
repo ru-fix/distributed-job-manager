@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 class WorkPoolTest {
     @Test
     fun `WorkPool with correct symbols can be created`() {
-        WorkPool(setOf("foo-is_a56"))
+        WorkPool(setOf("foo-is_a5.6"))
     }
 
     @Test

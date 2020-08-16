@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 class JobIdTest {
     @Test
     fun `JobId with correct symbols can be created`() {
-        JobId("foo-is_a56")
+        JobId("foo-is_a5.6")
     }
 
     @Test
