@@ -8,7 +8,7 @@ import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.distributed.job.manager.model.JobDisableConfig
-import ru.fix.distributed.job.manager.model.resolveJobId
+import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty

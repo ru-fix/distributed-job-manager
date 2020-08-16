@@ -10,7 +10,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
  * */
 class JobDescriptor(private val job: DistributedJob) {
 
-    val jobId: JobId = resolveJobId(job)
+    val jobId: JobId = JobIdResolver.resolveJobId(job)
 
     fun run(context: DistributedJobContext) = job.run(context)
 
@@ -25,14 +25,16 @@ class JobDescriptor(private val job: DistributedJob) {
     fun getWorkPoolCheckPeriod(): Long = job.getWorkPoolCheckPeriod()
 }
 
-fun resolveJobId(job: DistributedJob): JobId {
-    val jobIdByGetter = job.jobId
-    if (jobIdByGetter != null) {
-        return jobIdByGetter
+object JobIdResolver {
+    fun resolveJobId(job: DistributedJob): JobId {
+        val jobIdByGetter = job.jobId
+        if (jobIdByGetter != null) {
+            return jobIdByGetter
+        }
+        val jobIdAnnotation = job.javaClass.getAnnotation(DistributedJobId::class.java)
+        if (jobIdAnnotation != null) {
+            return JobId(jobIdAnnotation.value)
+        }
+        return JobId(job.javaClass.name.replace('.', '-').replace('$', '_'))
     }
-    val jobIdAnnotation = job.javaClass.getAnnotation(DistributedJobId::class.java)
-    if (jobIdAnnotation != null) {
-        return JobId(jobIdAnnotation.value)
-    }
-    return JobId(job.javaClass.name.replace('.', '-').replace('$', '_'))
 }

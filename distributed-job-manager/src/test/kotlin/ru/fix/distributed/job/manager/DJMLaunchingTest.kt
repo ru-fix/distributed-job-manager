@@ -163,7 +163,7 @@ class DJMLaunchingTest : DjmTestSuite() {
         val logRecorder = Log4jLogRecorder()
 
         val jobIsStarted = AtomicBoolean()
-        val damageWorkPool = AtomicBoolean()
+        val workPool = AtomicReference<String>("valid-work-pool")
 
         val jobWithInvalidWorkPool = object : DistributedJob {
             override val jobId = JobId("jobWithInvalidWorkPool")
@@ -171,11 +171,7 @@ class DJMLaunchingTest : DjmTestSuite() {
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
             }
-
-            override fun getWorkPool(): WorkPool {
-                return WorkPool.of("invalid/symbol/ы")
-            }
-
+            override fun getWorkPool() = WorkPool.of(workPool.get())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
         }
@@ -183,7 +179,7 @@ class DJMLaunchingTest : DjmTestSuite() {
         val djm = createDJM(jobWithInvalidWorkPool)
 
         await().atMost(10, SECONDS).until { jobIsStarted.get() }
-        damageWorkPool.set(true)
+        workPool.set("invalid/work/pool/ы")
 
         sleep(1000)
         jobIsStarted.set(false)

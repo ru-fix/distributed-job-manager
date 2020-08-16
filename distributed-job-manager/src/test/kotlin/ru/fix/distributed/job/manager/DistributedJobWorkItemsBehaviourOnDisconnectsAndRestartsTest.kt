@@ -49,7 +49,6 @@ class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuit
             override fun getWorkPoolCheckPeriod() = 0L
         }
 
-        val rootPath = generateDjmRootPath()
         val djm1 = createDJM(job)
         val djm2 = createDJM(job)
         sleep(1000)
@@ -147,7 +146,6 @@ class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuit
         val job2 = LastUsedWorkShareJob()
         val job3 = LastUsedWorkShareJob()
 
-        val rootPath = generateDjmRootPath()
         val djm1 = createDJM(job1)
         val djm2 = createDJM(job2)
         val djm3 = createDJM(job3)
