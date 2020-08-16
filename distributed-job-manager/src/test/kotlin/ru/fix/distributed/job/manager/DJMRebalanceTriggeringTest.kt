@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.CONCURRENT)
-class DistributedJobManagerRebalanceTest : DjmTestSuite() {
+class DJMRebalanceTriggeringTest : DjmTestSuite() {
     companion object : Logging
 
     val nodeExecutedWorkItem = ConcurrentHashMap<String, String>()
@@ -79,19 +79,5 @@ class DistributedJobManagerRebalanceTest : DjmTestSuite() {
         nodeExecutedWorkItem.shouldContainExactly(snapshot)
     }
 
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM follows assignment strategy`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `Assignment strategy that assign same workItem to different workers rise an exception`() {
-        sleep(1000)
-        TODO()
-    }
 }
 

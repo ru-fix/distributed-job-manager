@@ -11,6 +11,10 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.aggregating.profiler.NoopProfiler
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.IllegalStateException
@@ -408,6 +412,48 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                 }
 
         djm.close()
+    }
+
+    @Test
+    fun `DJM follows assignment strategy`() {
+        val workItems = (1..10).map { it.toString() }.toSet()
+
+        class JobForCustomAssignmnetStrategy : DistributedJob {
+            val receivedWorkShare = AtomicReference<Set<String>>()
+            override val jobId = JobId("jobForCustomAssignmnetStrategy")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                receivedWorkShare.set(context.workShare)
+            }
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+
+        val everythingToSingleWorker = object : AssignmentStrategy {
+            override fun reassignAndBalance(
+                    availability: Availability,
+                    prevAssignment: AssignmentState,
+                    currentAssignment: AssignmentState,
+                    itemsToAssign: MutableSet<WorkItem>) {
+
+                for (item in itemsToAssign) {
+                    val workerId = availability[item.jobId]!!.minBy { it.id }
+                    currentAssignment.addWorkItem(workerId, item)
+                }
+            }
+        }
+
+        val jobs = (1..3).map { JobForCustomAssignmnetStrategy() }
+        for(job in jobs){
+            createDJM(job, assignmentStrategy = everythingToSingleWorker)
+        }
+
+        await().pollInterval(100, MILLISECONDS).atMost(1, MINUTES).until {
+            val receivedShares = jobs.mapNotNull { it.receivedWorkShare.get() }
+            receivedShares.size == 1 &&
+                    receivedShares.single() == workItems
+        }
     }
 }
 

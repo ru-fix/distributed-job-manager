@@ -7,6 +7,8 @@ import org.netcrusher.tcp.TcpCrusher
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import ru.fix.zookeeper.testing.ZKTestingServer
@@ -42,11 +44,13 @@ open class DjmTestSuite {
     private val djmCrushers = ConcurrentHashMap<DistributedJobManager, TcpCrusher>()
 
     fun createDJM(job: DistributedJob,
-                  profiler: Profiler = NoopProfiler()) =
-            createDJM(listOf(job), profiler)
+                  profiler: Profiler = NoopProfiler(),
+                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT) =
+            createDJM(listOf(job), profiler, assignmentStrategy)
 
     fun createDJM(jobs: List<DistributedJob>,
-                  profiler: Profiler = NoopProfiler()): DistributedJobManager {
+                  profiler: Profiler = NoopProfiler(),
+                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT): DistributedJobManager {
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
 
@@ -57,6 +61,7 @@ open class DjmTestSuite {
                 DistributedJobManagerSettings(
                         nodeId = generateNodeId(),
                         rootPath = djmZkRootPath,
+                        assignmentStrategy = assignmentStrategy,
                         timeToWaitTermination = DynamicProperty.of(10000),
                         lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
                                 lockAcquirePeriod = Duration.ofSeconds(15),
