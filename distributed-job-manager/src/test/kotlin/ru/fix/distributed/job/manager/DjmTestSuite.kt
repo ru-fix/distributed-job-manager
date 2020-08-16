@@ -38,7 +38,8 @@ open class DjmTestSuite {
 
     @AfterEach
     fun afterEach() {
-        server.client
+        closeAllDjms()
+        server.close()
     }
 
     private val djmCrushers = ConcurrentHashMap<DistributedJobManager, TcpCrusher>()

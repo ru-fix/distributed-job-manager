@@ -107,7 +107,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         sleep(3000)
         jobIsStarted.get().shouldBe(false)
 
-        djm.close()
+        closeDjm(djm)
 
         logRecorder.getContent().shouldNotContain("ERROR")
         logRecorder.close()
@@ -151,7 +151,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         sleep(1000)
         jobIsStarted.get().shouldBe(false)
 
-        djm.close()
+        closeDjm(djm)
 
         logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkItem]")
 
@@ -191,7 +191,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         sleep(1000)
         jobIsStarted.get().shouldBe(false)
 
-        djm.close()
+        closeDjm(djm)
 
         logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkPool]")
 
@@ -223,8 +223,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         workPool.set(setOf("work-item-2"))
 
         await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-2") }
-
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -232,7 +231,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         val logRecorder = Log4jLogRecorder()
         val djm = createDJM(emptyList(), NoopProfiler())
         logRecorder.getContent().shouldContain("WARN No job instance provided")
-        djm.close()
+        closeDjm(djm)
         logRecorder.close()
     }
 
@@ -263,7 +262,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
 
         logRecorder.getContent().contains("First failed invocation")
 
-        djm.close()
+        closeDjm(djm)
         logRecorder.close()
     }
 
@@ -303,7 +302,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                     it.shouldBeInRange(80..120)
                 }
         jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -328,7 +327,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         jobWithRate100ms.invocationCounter.set(0)
         sleep(1000)
         jobWithRate100ms.invocationCounter.get().shouldBeInRange(8..12)
-        djm.close()
+        closeDjm(djm)
     }
 
 
@@ -354,7 +353,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                 .atMost(1, MINUTES).until {
                     jobWithSingleThreadStrategy.receivedWorkPool.get() == workItems
                 }
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -383,7 +382,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                             workShares.all { it.size == 1 }
                 }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -411,7 +410,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                             workShares.all { it.size == 2 }
                 }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
