@@ -1,33 +1,22 @@
 package ru.fix.distributed.job.manager
 
-import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.maps.shouldContainAll
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.maps.shouldContainKey
-import org.apache.curator.framework.recipes.cache.CuratorCache
-import org.apache.curator.framework.recipes.cache.CuratorCacheListener
 import org.apache.logging.log4j.kotlin.Logging
-import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
-import java.time.Duration
-import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ThreadLocalRandom
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 
 
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.CONCURRENT)
-class DJMRebalanceTriggeringTest : DjmTestSuite() {
+class DJMRebalanceTriggeringTest : DJMTestSuite() {
     companion object : Logging
 
     val nodeExecutedWorkItem = ConcurrentHashMap<String, String>()

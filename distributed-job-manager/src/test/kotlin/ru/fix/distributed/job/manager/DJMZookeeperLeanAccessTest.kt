@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.CONCURRENT)
-class DjmZookeeperLeanAccessTest : DjmTestSuite() {
+class DJMZookeeperLeanAccessTest : DJMTestSuite() {
     companion object : Logging
 
     @Test

@@ -3,26 +3,23 @@ package ru.fix.distributed.job.manager
 import io.kotest.matchers.booleans.shouldBeFalse
 import org.apache.logging.log4j.kotlin.Logging
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
-import java.time.Duration
-import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.CONCURRENT)
-class DistributedJobWorkItemsBehaviourOnDisconnectsAndRestartsTest : DjmTestSuite() {
+class DJMWorkItemsBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
     companion object : Logging
 
     @Test

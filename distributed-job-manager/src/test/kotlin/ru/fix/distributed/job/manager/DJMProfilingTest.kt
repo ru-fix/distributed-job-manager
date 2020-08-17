@@ -11,7 +11,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-class DJMProfilingTest : DjmTestSuite() {
+class DJMProfilingTest : DJMTestSuite() {
 
     @Test
     fun `djm profiles how many time it took to start and to close DJM instance`() {
