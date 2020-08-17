@@ -8,11 +8,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class WorkerId implements Comparable<WorkerId> {
-
     private String id;
 
     public WorkerId(String id) {
         Objects.requireNonNull(id);
+        if()
+
         this.id = id;
     }
 

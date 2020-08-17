@@ -55,6 +55,7 @@ public class DistributedJobManager implements AutoCloseable {
                                  Collection<DistributedJob> userDefinedJobs,
                                  Profiler profiler,
                                  DistributedJobManagerSettings settings) throws Exception {
+
         this.nodeId = settings.getNodeId();
         this.settings = settings;
         log.info("Starting DJM with id {} at {}", nodeId, settings.getRootPath());
