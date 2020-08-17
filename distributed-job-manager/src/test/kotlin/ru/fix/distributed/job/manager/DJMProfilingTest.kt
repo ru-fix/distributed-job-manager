@@ -37,7 +37,7 @@ class DJMProfilingTest : DJMTestSuite() {
                     latencyAvg.shouldBeGreaterThanOrEqual(0)
                 }
 
-        djm.close()
+        closeDjm(djm)
 
         val closeReport = reporter.buildReportAndReset()
         println("Close report: $initReport")
@@ -84,7 +84,7 @@ class DJMProfilingTest : DJMTestSuite() {
 
         awaitFor { it.latencyMax >= 800L }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -130,6 +130,6 @@ class DJMProfilingTest : DJMTestSuite() {
 
                     fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
                 }
-        djm.close()
+        closeDjm(djm)
     }
 }
