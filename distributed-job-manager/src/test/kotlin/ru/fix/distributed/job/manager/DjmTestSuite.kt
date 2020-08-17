@@ -73,24 +73,29 @@ open class DjmTestSuite {
                   assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT): DistributedJobManager {
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
-
-        val djm = DistributedJobManager(
-                curator,
-                jobs,
-                profiler,
-                DistributedJobManagerSettings(
-                        nodeId = generateNodeId(),
-                        rootPath = djmZkRootPath,
-                        assignmentStrategy = assignmentStrategy,
-                        timeToWaitTermination = DynamicProperty.of(10000),
-                        lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
-                                lockAcquirePeriod = Duration.ofSeconds(15),
-                                expirationPeriod = Duration.ofSeconds(5),
-                                lockCheckAndProlongInterval = Duration.ofSeconds(5)
-                        ))
-                ))
-        djmConnections[djm] = DjmZkConnector(curator, tcpCrusher)
-        return djm
+        try {
+            val djm = DistributedJobManager(
+                    curator,
+                    jobs,
+                    profiler,
+                    DistributedJobManagerSettings(
+                            nodeId = generateNodeId(),
+                            rootPath = djmZkRootPath,
+                            assignmentStrategy = assignmentStrategy,
+                            timeToWaitTermination = DynamicProperty.of(10000),
+                            lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
+                                    lockAcquirePeriod = Duration.ofSeconds(15),
+                                    expirationPeriod = Duration.ofSeconds(5),
+                                    lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                            ))
+                    ))
+            djmConnections[djm] = DjmZkConnector(curator, tcpCrusher)
+            return djm
+        } catch (exc: Exception) {
+            curator.close()
+            tcpCrusher.close()
+            throw exc
+        }
     }
 
     fun disconnectDjm(djm: DistributedJobManager){
@@ -106,9 +111,9 @@ open class DjmTestSuite {
     }
 
     fun closeDjm(djm: DistributedJobManager){
-        val connection = djmConnections.remove(djm)!!
+        val connector = djmConnections.remove(djm)!!
         djm.close()
-        connection.close()
+        connector.close()
     }
 
     fun closeAllDjms(){
