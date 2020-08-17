@@ -1,5 +1,6 @@
 package ru.fix.distributed.job.manager.model;
 
+import ru.fix.distributed.job.manager.IdentityValidator;
 import ru.fix.distributed.job.manager.JobId;
 
 import java.util.Objects;
@@ -10,7 +11,7 @@ public class WorkItem {
     private JobId jobId;
 
     public WorkItem(String id, JobId jobId) {
-        Objects.requireNonNull(id);
+        IdentityValidator.validate(IdentityValidator.IdentityType.WorkItem, id);
         Objects.requireNonNull(jobId);
         this.id = id;
         this.jobId = jobId;
