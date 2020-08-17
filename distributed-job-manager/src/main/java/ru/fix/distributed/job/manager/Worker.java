@@ -349,6 +349,7 @@ class Worker implements AutoCloseable {
 
     private void reconfigureExecutors(Map<JobDescriptor, Integer> workPooledMultiJobThreadCounts) {
         int threadsCount = workPooledMultiJobThreadCounts.values().stream().mapToInt(v -> v).sum();
+        threadsCount = Math.max(threadsCount, 1);
         log.trace("Pool size now is {}", threadsCount);
         threadPoolSize.set(threadsCount);
     }
