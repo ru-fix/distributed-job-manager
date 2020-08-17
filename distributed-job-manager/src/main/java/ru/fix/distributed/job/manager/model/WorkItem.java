@@ -14,7 +14,7 @@ public class WorkItem {
         Objects.requireNonNull(id);
         Objects.requireNonNull(jobId);
         if (!PATTERN.matches(id)) {
-            throw new IllegalArgumentException("WorkItem's id '$id' does not match pattern " + PATTERN);
+            throw new IllegalArgumentException("WorkItem's id " + id + " does not match pattern " + PATTERN);
         }
         this.id = id;
         this.jobId = jobId;
