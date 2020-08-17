@@ -7,6 +7,7 @@ import ru.fix.distributed.job.manager.model.resolveJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -22,7 +23,7 @@ open class StubbedMultiJob @JvmOverloads constructor(
     val localWorkPool: Set<String>
         get() = localWorkPoolReference.get() ?: emptySet()
 
-    val allWorkPools: MutableSet<Set<String>> = Collections.synchronizedSet(HashSet<Set<String>>())
+    val allWorkItems: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     fun updateWorkPool(newWorkPool: Set<String>) {
         workPool = newWorkPool
@@ -48,7 +49,7 @@ open class StubbedMultiJob @JvmOverloads constructor(
     override fun run(context: DistributedJobContext) {
         logger.trace("{} Run distributed test job {} / {}", this, jobId, context.workShare)
         localWorkPoolReference.set(context.workShare)
-        allWorkPools.add(context.workShare)
+        allWorkItems.addAll(context.workShare)
     }
 
 

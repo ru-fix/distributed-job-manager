@@ -7,7 +7,7 @@ import java.util.*
  */
 class JobId(val id: String) {
     companion object {
-        private val PATTERN = "[a-zA-Z0-9_-]+".toRegex()
+        private val PATTERN = "[a-zA-Z0-9_-[.]]+".toRegex()
     }
 
     init {

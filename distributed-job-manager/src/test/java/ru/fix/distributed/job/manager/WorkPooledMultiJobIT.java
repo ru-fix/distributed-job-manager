@@ -10,7 +10,6 @@ import ru.fix.distributed.job.manager.model.JobDescriptor;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -204,13 +203,10 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 new StubbedMultiJob(10, getWorkItems(10), 3600_000, 0, false)
         ); // don't pass too big value here
         try (
-                DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob))
+                DistributedJobManager ignored = createNewJobManager(Collections.singletonList(testJob))
         ) {
             await().atMost(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS).untilAsserted(() -> {
-                Set<String> workPoolFromAllThreads = testJob.getAllWorkPools()
-                        .stream()
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toSet());
+                Set<String> workPoolFromAllThreads = testJob.getAllWorkItems();
 
                 assertThat("Single distributed job should has all work item" + printDjmZkTree(),
                         workPoolFromAllThreads, equalTo(testJob.getWorkPool().getItems()));

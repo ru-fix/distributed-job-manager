@@ -1,17 +1,21 @@
 package ru.fix.distributed.job.manager.model;
 
+import kotlin.text.Regex;
 import ru.fix.distributed.job.manager.JobId;
 
 import java.util.Objects;
 
 public class WorkItem {
-
-    private String id;
-    private JobId jobId;
+    private static final Regex PATTERN = new Regex("[a-zA-Z0-9_-[.]]+");
+    private final String id;
+    private final JobId jobId;
 
     public WorkItem(String id, JobId jobId) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(jobId);
+        if (!PATTERN.matches(id)) {
+            throw new IllegalArgumentException("WorkItem's id " + id + " does not match pattern " + PATTERN);
+        }
         this.id = id;
         this.jobId = jobId;
     }

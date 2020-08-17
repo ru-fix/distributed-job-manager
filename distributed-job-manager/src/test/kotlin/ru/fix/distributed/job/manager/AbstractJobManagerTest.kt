@@ -39,7 +39,7 @@ internal abstract class AbstractJobManagerTest {
 
     fun printDjmZkTree(): String = printZkTree(JOB_MANAGER_ZK_ROOT_PATH)
 
-    fun printZkTree(path: String): String = ZkTreePrinter(zkTestingServer.client).print(path)
+    fun printZkTree(path: String): String = ZkTreePrinter(zkTestingServer.client).print(path, false)
 
     fun defaultZkClient(): CuratorFramework {
         return zkTestingServer.createClient(60000, 15000)
