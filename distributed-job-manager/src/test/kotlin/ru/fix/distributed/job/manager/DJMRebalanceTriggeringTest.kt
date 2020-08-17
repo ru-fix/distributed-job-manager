@@ -26,15 +26,16 @@ class DJMRebalanceTriggeringTest : DJMTestSuite() {
         (1..30).forEach { add("item$it") }
     }
 
-    inner class DynamicWorkPoolJob(val node: String)  : DistributedJob {
+    inner class DynamicWorkPoolJob(val node: String) : DistributedJob {
 
         override val jobId = JobId("dynamicWorkPoolJob")
         override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(100))
         override fun run(context: DistributedJobContext) {
-            for(item in context.workShare) {
+            for (item in context.workShare) {
                 nodeExecutedWorkItem[item] = node
             }
         }
+
         override fun getWorkPool(): WorkPool = WorkPool.of(workPool)
         override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
         override fun getWorkPoolCheckPeriod(): Long = 50
@@ -42,32 +43,33 @@ class DJMRebalanceTriggeringTest : DJMTestSuite() {
 
     @Test
     fun `Change in Job WorkPool triggers rebalance`() {
-        for(node in 1..3) {
+        for (node in 1..3) {
             createDJM(DynamicWorkPoolJob("node-$node"))
         }
-        sleep(1000)
-
+        sleep(2000)
         val snapshot = HashMap(nodeExecutedWorkItem)
 
         workPool.add("item42")
-        await().atMost(1, TimeUnit.MINUTES).until {
-            nodeExecutedWorkItem.containsKey("item42")
-        }
+        sleep(3000)
 
-        nodeExecutedWorkItem.shouldContainAll(snapshot)
+        await().pollInterval(100, TimeUnit.MILLISECONDS).atMost(1, TimeUnit.MINUTES).until {
+            nodeExecutedWorkItem.containsKey("item42") &&
+                    snapshot.keys.all {
+                        nodeExecutedWorkItem.containsKey(it)
+                    }
+        }
     }
+
 
     @Test
     fun `Check WorkPool period small, no change in WorkPool then should be no change to zk and no rebalance is triggered`() {
-        for(node in 1..3) {
+        for (node in 1..3) {
             createDJM(DynamicWorkPoolJob("node-$node"))
         }
-        sleep(1000)
-
+        sleep(2000)
         val snapshot = HashMap(nodeExecutedWorkItem)
 
-        sleep(1000)
-
+        sleep(2000)
         nodeExecutedWorkItem.shouldContainExactly(snapshot)
     }
 
