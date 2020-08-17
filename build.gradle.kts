@@ -194,8 +194,8 @@ subprojects {
         withType<Test> {
             useJUnitPlatform()
 
-            //some tests measure rate and delays, overloading cpu with concurrent tests
-            //lead to unstable build
+            // some tests measure rate and delays,
+            // overloading cpu with concurrent tests lead to unstable build
             maxParallelForks = 1
 
             testLogging {
