@@ -20,7 +20,7 @@ import java.util.ArrayDeque
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 @Execution(ExecutionMode.CONCURRENT)
-class DistributedJobDisconnectsAndRestartsChaosTest : DJMTestSuite() {
+class DJMDisconnectsAndRestartsChaosTest : DJMTestSuite() {
     companion object : Logging
 
     class WorkItemInvocations {
