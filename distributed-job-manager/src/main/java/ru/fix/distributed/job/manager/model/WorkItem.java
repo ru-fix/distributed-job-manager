@@ -13,7 +13,9 @@ public class WorkItem {
     public WorkItem(String id, JobId jobId) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(jobId);
-        assert PATTERN.matches(id);
+        if (!PATTERN.matches(id)) {
+            throw new IllegalArgumentException("Work item's id should matches pattern " + PATTERN);
+        }
         this.id = id;
         this.jobId = jobId;
     }

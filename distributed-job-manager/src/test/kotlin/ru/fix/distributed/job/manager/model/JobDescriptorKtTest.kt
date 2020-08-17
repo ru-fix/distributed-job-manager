@@ -17,7 +17,7 @@ internal class JobDescriptorKtTest {
     @Test
     fun `if id not provided, use javaClass's name for job id`() {
         resolveJobId(TestJobWithoutJobId()).id shouldBe
-                "ru-fix-distributed-job-manager-model-JobDescriptorKtTest_TestJobWithoutJobId"
+                "ru.fix.distributed.job.manager.model.JobDescriptorKtTest_TestJobWithoutJobId"
     }
 
     @Test

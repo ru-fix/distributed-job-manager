@@ -34,5 +34,5 @@ fun resolveJobId(job: DistributedJob): JobId {
     if (jobIdAnnotation != null) {
         return JobId(jobIdAnnotation.value)
     }
-    return JobId(job.javaClass.name.replace('.', '-').replace('$', '_'))
+    return JobId(job.javaClass.name.replace('$', '_'))
 }

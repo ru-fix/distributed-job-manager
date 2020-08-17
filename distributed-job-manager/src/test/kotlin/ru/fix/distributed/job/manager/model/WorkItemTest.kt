@@ -17,13 +17,13 @@ internal class WorkItemTest {
 
     @Test
     fun `WorkItem with incorrect symbols can not be created`() {
-        shouldThrow<AssertionError> { WorkItem("withCyrillicSymbol-ы", jobId) }
-        shouldThrow<AssertionError> { WorkItem("with:colon", jobId) }
-        shouldThrow<AssertionError> { WorkItem("with/slash", jobId) }
-        shouldThrow<AssertionError> { WorkItem("with\\backslash", jobId) }
-        shouldThrow<AssertionError> { WorkItem(" withSpacePrefix", jobId) }
-        shouldThrow<AssertionError> { WorkItem("with space", jobId) }
-        shouldThrow<AssertionError> { WorkItem("with]", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("withCyrillicSymbol-ы", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("with:colon", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("with/slash", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("with\\backslash", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem(" withSpacePrefix", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("with space", jobId) }
+        shouldThrow<IllegalArgumentException> { WorkItem("with]", jobId) }
     }
 
     @Test
