@@ -1,6 +1,7 @@
 package ru.fix.distributed.job.manager.model;
 
 import org.jetbrains.annotations.NotNull;
+import ru.fix.distributed.job.manager.IdentityValidator;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -11,9 +12,7 @@ public class WorkerId implements Comparable<WorkerId> {
     private String id;
 
     public WorkerId(String id) {
-        Objects.requireNonNull(id);
-        if()
-
+        IdentityValidator.validate(IdentityValidator.IdentityType.WorkerId, id);
         this.id = id;
     }
 

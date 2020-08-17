@@ -10,9 +10,6 @@ package ru.fix.distributed.job.manager
 class WorkPool(items: Set<String>) {
 
     companion object {
-        const val WORK_POOL_ITEM_MAX_LENGTH = 255
-        private val PATTERN = "[a-zA-Z0-9._-]+".toRegex()
-
         @JvmStatic
         fun of(items: Set<String>): WorkPool {
             return WorkPool(items)
@@ -31,10 +28,7 @@ class WorkPool(items: Set<String>) {
 
     init {
         for (item in items) {
-            require(item.length <= WORK_POOL_ITEM_MAX_LENGTH) {
-                "Item '$item' is bigger than $WORK_POOL_ITEM_MAX_LENGTH"
-            }
-            require(PATTERN.matches(item)) { "Item '$item' does not match pattern $PATTERN" }
+            IdentityValidator.validate(IdentityValidator.IdentityType.WorkItem, item)
         }
     }
 
