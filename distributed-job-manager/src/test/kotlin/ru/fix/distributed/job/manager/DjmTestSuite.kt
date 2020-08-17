@@ -40,7 +40,6 @@ open class DjmTestSuite {
 
     @AfterEach
     fun afterEach() {
-        server.client.close()
         closeAllDjms()
         server.close()
     }
