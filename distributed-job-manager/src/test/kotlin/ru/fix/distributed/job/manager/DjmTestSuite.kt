@@ -1,5 +1,7 @@
 package ru.fix.distributed.job.manager
 
+import org.apache.curator.framework.CuratorFramework
+import org.apache.logging.log4j.kotlin.Logging
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
@@ -19,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 open class DjmTestSuite {
 
-    companion object {
+    companion object: Logging {
         private val lastNodeId = AtomicInteger(1)
         fun generateNodeId() = lastNodeId.incrementAndGet().toString()
 
@@ -38,11 +40,29 @@ open class DjmTestSuite {
 
     @AfterEach
     fun afterEach() {
+        server.client.close()
         closeAllDjms()
         server.close()
     }
 
-    private val djmCrushers = ConcurrentHashMap<DistributedJobManager, TcpCrusher>()
+    class DjmZkConnector(val curator: CuratorFramework, val tcpCrusher: TcpCrusher) {
+        val isOpen: Boolean get() = tcpCrusher.isOpen
+
+        fun close() {
+            curator.close()
+            tcpCrusher.close()
+        }
+
+        fun disconnect() {
+            tcpCrusher.close()
+        }
+
+        fun connect() {
+            tcpCrusher.open()
+        }
+    }
+
+    private val djmConnections = ConcurrentHashMap<DistributedJobManager, DjmZkConnector>()
 
     fun createDJM(job: DistributedJob,
                   profiler: Profiler = NoopProfiler(),
@@ -70,34 +90,32 @@ open class DjmTestSuite {
                                 lockCheckAndProlongInterval = Duration.ofSeconds(5)
                         ))
                 ))
-        djmCrushers[djm] = tcpCrusher
+        djmConnections[djm] = DjmZkConnector(curator, tcpCrusher)
         return djm
     }
 
     fun disconnectDjm(djm: DistributedJobManager){
-        djmCrushers[djm]!!.close()
+        djmConnections[djm]!!.disconnect()
     }
 
     fun connectDjm(djm: DistributedJobManager){
-        djmCrushers[djm]!!.open()
+        djmConnections[djm]!!.connect()
     }
 
     fun isConnectedDjm(djm: DistributedJobManager): Boolean {
-        return djmCrushers[djm]!!.isOpen
+        return djmConnections[djm]!!.isOpen
     }
 
     fun closeDjm(djm: DistributedJobManager){
+        val connection = djmConnections.remove(djm)!!
         djm.close()
-        djmCrushers.compute(djm){_, crusher ->
-            crusher!!.close()
-            null
-        }
+        connection.close()
     }
 
     fun closeAllDjms(){
-        djmCrushers.keys().toList().forEach (this::closeDjm)
+        djmConnections.keys().toList().forEach (this::closeDjm)
     }
 
-    val djms: List<DistributedJobManager> get() = djmCrushers.keys().toList()
+    val djms: List<DistributedJobManager> get() = djmConnections.keys().toList()
 }
 

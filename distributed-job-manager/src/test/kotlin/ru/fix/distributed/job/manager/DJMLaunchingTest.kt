@@ -97,7 +97,6 @@ class DJMLaunchingTest : DjmTestSuite() {
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
             }
-
             override fun getWorkPool(): WorkPool = WorkPool(emptySet())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
@@ -107,10 +106,10 @@ class DJMLaunchingTest : DjmTestSuite() {
         sleep(3000)
         jobIsStarted.get().shouldBe(false)
 
-        closeDjm(djm)
-
         logRecorder.getContent().shouldNotContain("ERROR")
         logRecorder.close()
+
+        closeDjm(djm)
     }
 
 
@@ -220,6 +219,7 @@ class DJMLaunchingTest : DjmTestSuite() {
         workPool.set(setOf("work-item-2"))
 
         await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-2") }
+
         closeDjm(djm)
     }
 
