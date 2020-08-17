@@ -2,11 +2,11 @@ package ru.fix.distributed.job.manager.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.fix.distributed.job.manager.IdentityValidator;
 import ru.fix.distributed.job.manager.JobId;
 import ru.fix.distributed.job.manager.WorkPool;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
 
-import static ru.fix.distributed.job.manager.WorkPool.WORK_POOL_ITEM_MAX_LENGTH;
 
 /**
  * @author a.petrov
@@ -40,16 +40,16 @@ public class WorkPoolUtils {
     /**
      * Check WorkPool item for maximum length.
      * <p>
-     * It uses {@link WorkPool#WORK_POOL_ITEM_MAX_LENGTH}
+     * It uses {@link ru.fix.distributed.job.manager.IdentityValidator#MAX_SIZE}
      * as maximum length constraint.
      *
      * @param jobId        Job ID, which owns WorkPool. Used for error logging.
      * @param workPoolItem WorkPool item to check.
      */
     private static void checkMaxLength(JobId jobId, String workPoolItem) {
-        if (workPoolItem.length() > WORK_POOL_ITEM_MAX_LENGTH) {
+        if (workPoolItem.length() > IdentityValidator.MAX_SIZE) {
             log.error("WorkPool item \"{}\" of job \"{}\" is too long. Maximal length is {}, actual is {}.",
-                    workPoolItem, jobId, WORK_POOL_ITEM_MAX_LENGTH, workPoolItem.length());
+                    workPoolItem, jobId, IdentityValidator.MAX_SIZE, workPoolItem.length());
         }
     }
 

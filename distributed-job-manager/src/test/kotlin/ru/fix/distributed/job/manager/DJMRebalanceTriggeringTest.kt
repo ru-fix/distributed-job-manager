@@ -4,6 +4,7 @@ import io.kotest.matchers.maps.shouldContainAll
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.maps.shouldContainKey
 import org.apache.logging.log4j.kotlin.Logging
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
@@ -11,6 +12,7 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 
 @ExperimentalStdlibApi
@@ -48,9 +50,10 @@ class DJMRebalanceTriggeringTest : DJMTestSuite() {
         val snapshot = HashMap(nodeExecutedWorkItem)
 
         workPool.add("item42")
+        await().atMost(1, TimeUnit.MINUTES).until {
+            nodeExecutedWorkItem.containsKey("item42")
+        }
 
-        sleep(1000)
-        nodeExecutedWorkItem.shouldContainKey("item42")
         nodeExecutedWorkItem.shouldContainAll(snapshot)
     }
 
