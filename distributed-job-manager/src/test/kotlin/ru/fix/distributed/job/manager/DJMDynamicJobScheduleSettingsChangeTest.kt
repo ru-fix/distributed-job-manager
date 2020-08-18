@@ -8,7 +8,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-internal class DjmDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
+internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
 
     @Test
     fun `delayed Job should start immediately if implicit initial delay changes from big to small`() {
