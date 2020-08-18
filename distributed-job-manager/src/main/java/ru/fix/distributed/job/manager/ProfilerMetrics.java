@@ -1,8 +1,5 @@
 package ru.fix.distributed.job.manager;
 
-import ru.fix.aggregating.profiler.PrefixedProfiler;
-import ru.fix.aggregating.profiler.Profiler;
-
 /**
  * @author Kamil Asfandiyarov
  */

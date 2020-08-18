@@ -6,9 +6,8 @@ import ru.fix.distributed.job.manager.JobId;
 import java.util.Objects;
 
 public class WorkItem {
-
-    private String id;
-    private JobId jobId;
+    private final String id;
+    private final JobId jobId;
 
     public WorkItem(String id, JobId jobId) {
         IdentityValidator.validate(IdentityValidator.IdentityType.WorkItem, id);

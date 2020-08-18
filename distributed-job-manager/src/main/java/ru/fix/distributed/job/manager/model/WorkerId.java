@@ -9,7 +9,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class WorkerId implements Comparable<WorkerId> {
-    private String id;
+
+    private final String id;
 
     public WorkerId(String id) {
         IdentityValidator.validate(IdentityValidator.IdentityType.WorkerId, id);
