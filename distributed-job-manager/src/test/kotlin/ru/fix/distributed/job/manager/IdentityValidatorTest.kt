@@ -20,7 +20,6 @@ class IdentityValidatorTest {
         shouldThrow<Exception> { validate(JobId,"with:colon") }
         shouldThrow<Exception> { validate(JobId,"with/slash") }
         shouldThrow<Exception> { validate(JobId,"with\\backslash") }
-        shouldThrow<Exception> { validate(JobId,".withDot") }
         shouldThrow<Exception> { validate(JobId," withSpacePrefix") }
         shouldThrow<Exception> { validate(JobId,"with space") }
     }
