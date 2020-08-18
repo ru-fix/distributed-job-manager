@@ -82,7 +82,7 @@ class DJMDisconnectsAndRestartsChaosTest : DJMTestSuite() {
 
     fun performRandomAction() {
         for (attempt in 1..10) {
-            when (val action = ChaosAction.rand()) {
+            when (ChaosAction.rand()) {
                 ChaosAction.Disconnect -> {
                     val connectedDjms = djms.filter { isConnectedDjm(it) }
                     if (connectedDjms.size >= 2) {

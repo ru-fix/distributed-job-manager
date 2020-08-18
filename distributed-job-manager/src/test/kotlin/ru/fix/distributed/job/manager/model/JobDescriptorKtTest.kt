@@ -4,6 +4,7 @@ import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.annotation.DistributedJobId
+import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 

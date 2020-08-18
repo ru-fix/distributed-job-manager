@@ -40,7 +40,7 @@ class DJMZookeeperLeanAccessTest : DJMTestSuite() {
         val zkListener = CuratorCache.build(server.client, djmZkRootPath).apply { start() }
         zkListener.listenable().addListener(CuratorCacheListener { type: CuratorCacheListener.Type,
                                                                    oldData: ChildData?,
-                                                                   newData: ChildData? ->
+                                                                   _: ChildData? ->
             if (oldData != null) {
                 val path = oldData.path
                         .removePrefix("/")
