@@ -10,7 +10,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="ru.fix" level="debug"/>
+        <Logger name="ru.fix" level="info"/>
+        <Logger name="ru.fix.zookeeper.lock" level="warn"/>
         <Logger name="org.apache.zookeeper" level="warn"/>
         <Logger name="org.apache.curator" level="warn"/>
         <Root level="info">

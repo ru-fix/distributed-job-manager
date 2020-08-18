@@ -5,7 +5,7 @@ import org.awaitility.Awaitility.await
 import org.hamcrest.MatcherAssert
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import ru.fix.distributed.job.manager.model.resolveJobId
+import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.AtomicProperty
 import java.time.Duration
 import java.util.concurrent.TimeUnit

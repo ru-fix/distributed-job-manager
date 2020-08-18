@@ -11,6 +11,10 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.aggregating.profiler.NoopProfiler
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.IllegalStateException
@@ -25,7 +29,7 @@ import java.util.concurrent.atomic.*
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 //Prevent log messages from different tests to mix
 @Execution(ExecutionMode.SAME_THREAD)
-class DistributedJobLaunchingTest : DjmTestSuite() {
+class DJMLaunchingTest : DJMTestSuite() {
     companion object : Logging
 
     @Test
@@ -93,7 +97,6 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
             }
-
             override fun getWorkPool(): WorkPool = WorkPool(emptySet())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
@@ -103,10 +106,10 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         sleep(3000)
         jobIsStarted.get().shouldBe(false)
 
-        djm.close()
-
         logRecorder.getContent().shouldNotContain("ERROR")
         logRecorder.close()
+
+        closeDjm(djm)
     }
 
 
@@ -147,9 +150,45 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         sleep(1000)
         jobIsStarted.get().shouldBe(false)
 
-        djm.close()
+        closeDjm(djm)
 
         logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkItem]")
+
+        logRecorder.close()
+    }
+
+    @Test
+    fun `job with incorrect symbols in WorkPool stops launching`() {
+        val logRecorder = Log4jLogRecorder()
+
+        val jobIsStarted = AtomicBoolean()
+        val workPool = AtomicReference<String>("valid-work-pool")
+
+        val jobWithInvalidWorkPool = object : DistributedJob {
+            override val jobId = JobId("jobWithInvalidWorkPool")
+            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withDelay(1000))
+            override fun run(context: DistributedJobContext) {
+                jobIsStarted.set(true)
+            }
+            override fun getWorkPool() = WorkPool.of(workPool.get())
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 100
+        }
+
+        val djm = createDJM(jobWithInvalidWorkPool)
+
+        await().atMost(10, SECONDS).until { jobIsStarted.get() }
+        workPool.set("invalid/work/pool/ы")
+
+        sleep(1000)
+        jobIsStarted.set(false)
+
+        sleep(1000)
+        jobIsStarted.get().shouldBe(false)
+
+        closeDjm(djm)
+
+        logRecorder.getContent().shouldContain("ERROR Failed to access job WorkPool JobId[jobWithInvalidWorkPool]")
 
         logRecorder.close()
     }
@@ -181,7 +220,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
 
         await().atMost(10, SECONDS).until { jobReceivedWorkPool.get() == setOf("work-item-2") }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -189,7 +228,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         val logRecorder = Log4jLogRecorder()
         val djm = createDJM(emptyList(), NoopProfiler())
         logRecorder.getContent().shouldContain("WARN No job instance provided")
-        djm.close()
+        closeDjm(djm)
         logRecorder.close()
     }
 
@@ -220,7 +259,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
 
         logRecorder.getContent().contains("First failed invocation")
 
-        djm.close()
+        closeDjm(djm)
         logRecorder.close()
     }
 
@@ -260,7 +299,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                     it.shouldBeInRange(80..120)
                 }
         jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -285,7 +324,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
         jobWithRate100ms.invocationCounter.set(0)
         sleep(1000)
         jobWithRate100ms.invocationCounter.get().shouldBeInRange(8..12)
-        djm.close()
+        closeDjm(djm)
     }
 
 
@@ -311,7 +350,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                 .atMost(1, MINUTES).until {
                     jobWithSingleThreadStrategy.receivedWorkPool.get() == workItems
                 }
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -340,7 +379,7 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                             workShares.all { it.size == 1 }
                 }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -368,126 +407,49 @@ class DistributedJobLaunchingTest : DjmTestSuite() {
                             workShares.all { it.size == 2 }
                 }
 
-        djm.close()
+        closeDjm(djm)
     }
 
-    @Disabled("TODO")
     @Test
-    fun `during disconnect of DJM1, DJM2 does not steal WorkItem that currently under work by DJM1`() {
-        sleep(1000)
-        TODO()
+    fun `djm follows assignment strategy`() {
+        val workItems = (1..10).map { it.toString() }.toSet()
 
+        class JobForCustomAssignmnetStrategy : DistributedJob {
+            val receivedWorkShare = AtomicReference<Set<String>>()
+            override val jobId = JobId("jobForCustomAssignmnetStrategy")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
+            override fun run(context: DistributedJobContext) {
+                receivedWorkShare.set(context.workShare)
+            }
+            override fun getWorkPool() = WorkPool.of(workItems)
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+
+        val everythingToSingleWorker = object : AssignmentStrategy {
+            override fun reassignAndBalance(
+                    availability: Availability,
+                    prevAssignment: AssignmentState,
+                    currentAssignment: AssignmentState,
+                    itemsToAssign: MutableSet<WorkItem>) {
+
+                for (item in itemsToAssign) {
+                    val workerId = availability[item.jobId]!!.minBy { it.id }
+                    currentAssignment.addWorkItem(workerId, item)
+                }
+            }
+        }
+
+        val jobs = (1..3).map { JobForCustomAssignmnetStrategy() }
+        for(job in jobs){
+            createDJM(job, assignmentStrategy = everythingToSingleWorker)
+        }
+
+        await().pollInterval(100, MILLISECONDS).atMost(1, MINUTES).until {
+            val receivedShares = jobs.mapNotNull { it.receivedWorkShare.get() }
+            receivedShares.size == 1 &&
+                    receivedShares.single() == workItems
+        }
     }
-
-    @Disabled("TODO")
-    @Test
-    fun `when DJM3 disconnects, WorkItems rebalanced between DJM1 and DJM2`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `when DJM3 shutdowns, WorkItems rebalanced between DJM1 and DJM2`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `series of random DJMs disconnects, shutdowns, launches, WorkPool changes and restarts does not affect correct WorkItem launching and schedulling`() {
-        sleep(1000)
-        TODO("same workItem running only by single thread within the cluster")
-        TODO("all workItem runs by schedule as expected with small disturbances")
-
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `series of DJMs restarts one by one does not affect correct WorkItem launching and schedulling`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `series of DJMs restarts two by two does not affect correct WorkItem launching and schedulling`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `series of DJMs restarts three by three does not affect correct WorkItem launching and schedulling`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `Change in Job WorkPool triggers rebalance`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `Check WorkPool period small, no change in WorkPool then should be no change to zk and no rebalance is triggered`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `If WorkPool and number of DJMs does not change, no rebalance is triggered `() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM shutdown triggers rebalance in cluster `() {
-        sleep(1000)
-        TODO()
-    }
-
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM set of available jobs changes triggers rebalance in cluster `() {
-        sleep(1000)
-        TODO()
-
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM follows assignment strategy`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `Assignment strategy that assign same workItem to different workers rise an exception`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM does not allow two jobs with same ID`() {
-        sleep(1000)
-        TODO()
-    }
-
-    @Disabled("TODO")
-    @Test
-    fun `DJM does not allow incorrect symbols in WorkPool`() {
-        sleep(1000)
-        TODO()
-    }
-
-
 }
 

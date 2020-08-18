@@ -12,8 +12,8 @@ internal class AvailableWorkPoolSubTree(
 ) {
     companion object : Logging
 
-    fun checkAndUpdateVersion(transaction: ZkTransaction): Int =
-            transaction.checkAndUpdateVersion(paths.availableWorkPoolVersion())
+    fun readVersionThenCheckAndUpdateIfTxMutatesState(transaction: ZkTransaction): Int =
+            transaction.readVersionThenCheckAndUpdateInTransactionIfItMutatesZkState(paths.availableWorkPoolVersion())
 
     fun pruneOutDatedJobs(transaction: ZkTransaction, actualJobs: Set<String>) {
         for (jobIdFromZk in currentJobsFromZk()) {

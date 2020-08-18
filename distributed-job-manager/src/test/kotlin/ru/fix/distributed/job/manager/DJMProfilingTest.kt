@@ -11,7 +11,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-class DistributedJobManagerProfilingTest : DjmTestSuite() {
+class DJMProfilingTest : DJMTestSuite() {
 
     @Test
     fun `djm profiles how many time it took to start and to close DJM instance`() {
@@ -37,7 +37,7 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
                     latencyAvg.shouldBeGreaterThanOrEqual(0)
                 }
 
-        djm.close()
+        closeDjm(djm)
 
         val closeReport = reporter.buildReportAndReset()
         println("Close report: $initReport")
@@ -84,7 +84,7 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
 
         awaitFor { it.latencyMax >= 800L }
 
-        djm.close()
+        closeDjm(djm)
     }
 
     @Test
@@ -130,6 +130,6 @@ class DistributedJobManagerProfilingTest : DjmTestSuite() {
 
                     fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
                 }
-        djm.close()
+        closeDjm(djm)
     }
 }

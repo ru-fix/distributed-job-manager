@@ -4,22 +4,17 @@ import java.util.*
 
 /**
  * Unique identifies Job type within the cluster.
+ * Job id is a latin string `[a-zA-Z0-9._-]+`
  */
 class JobId(val id: String) {
-    companion object {
-        private val PATTERN = "[a-zA-Z0-9_-[.]]+".toRegex()
-    }
-
     init {
-        require(PATTERN.matches(id)) { "JobId '$id' does not match pattern $PATTERN" }
+        IdentityValidator.validate(IdentityValidator.IdentityType.JobId, id)
     }
 
     override fun equals(other: Any?) =
-            this === other || this.id.equals((other as? JobId)?.id)
+            this === other || this.id == (other as? JobId)?.id
 
-    override fun hashCode() =
-            Objects.hash(id)
+    override fun hashCode() = Objects.hash(id)
 
-    override fun toString() =
-            "JobId[$id]"
+    override fun toString() = "JobId[$id]"
 }

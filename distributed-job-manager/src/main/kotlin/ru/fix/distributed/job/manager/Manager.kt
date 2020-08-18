@@ -163,6 +163,12 @@ class Manager(
         leaderLatch.close()
         cleaner.close()
 
+        rebalanceExecutor.shutdown()
+        if(!rebalanceExecutor.awaitTermination(1, TimeUnit.MINUTES)){
+            logger.error("Failed to await rebalance executor termination")
+            rebalanceExecutor.shutdownNow()
+        }
+
         logger.info { "DJM manager was closed. Took ${System.currentTimeMillis() - managerStopTime} ms" }
     }
 

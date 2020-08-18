@@ -27,6 +27,7 @@ internal class Rebalancer(
      * rebalance current available work-items between current alive workers using given [assignmentStrategy]
      */
     fun reassignAndBalanceTasks() {
+        logger.info("Rebalance nodes by DJM nodeId=$nodeId")
         if (curatorFramework.state != CuratorFrameworkState.STARTED) {
             logger.error("Ignore reassignAndBalanceTasks: curatorFramework is not started")
             return
@@ -38,7 +39,7 @@ internal class Rebalancer(
         logger.trace { "nodeId=$nodeId tree before rebalance: \n ${zkPrinter.print(paths.rootPath)}" }
         try {
             ZkTransaction.tryCommit(curatorFramework, ASSIGNMENT_COMMIT_RETRIES_COUNT) { transaction ->
-                transaction.checkAndUpdateVersion(paths.assignmentVersion())
+                transaction.readVersionThenCheckAndUpdateInTransactionIfItMutatesZkState(paths.assignmentVersion())
                 transaction.assignWorkPools(getZookeeperGlobalState())
             }
         } catch (e: Exception) {

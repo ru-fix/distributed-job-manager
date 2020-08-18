@@ -28,7 +28,7 @@ internal class CuratorCacheTest : AbstractJobManagerTest() {
         val workPooledCache = CuratorCache.build(zkTestingServer.client, path)
         val allChangedEventsReachedSemaphore = Semaphore(0)
         val curatorCacheListener = CuratorCacheListener { type, _, _ ->
-            when (type) {
+            when (type!!) {
                 CuratorCacheListener.Type.NODE_CHANGED -> {
                     if (changeEventsTriggered.incrementAndGet() == eventsCount) {
                         allChangedEventsReachedSemaphore.release()

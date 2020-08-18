@@ -194,7 +194,9 @@ subprojects {
         withType<Test> {
             useJUnitPlatform()
 
-            maxParallelForks = 10
+            // some tests measure rate and delays,
+            // overloading cpu with concurrent tests lead to unstable build
+            maxParallelForks = 1
 
             testLogging {
                 events(TestLogEvent.FAILED)
