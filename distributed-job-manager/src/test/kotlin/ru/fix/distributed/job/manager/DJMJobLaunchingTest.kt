@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.*
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 //Prevent log messages from different tests to mix
 @Execution(ExecutionMode.SAME_THREAD)
-class DJMLaunchingTest : DJMTestSuite() {
+class DJMJobLaunchingTest : DJMTestSuite() {
     companion object : Logging
 
     @Test

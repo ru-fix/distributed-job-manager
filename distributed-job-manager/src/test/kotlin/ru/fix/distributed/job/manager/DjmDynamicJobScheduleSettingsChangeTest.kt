@@ -1,187 +1,75 @@
-package ru.fix.distributed.job.manager;
+package ru.fix.distributed.job.manager
 
-import org.apache.curator.framework.CuratorFramework;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import ru.fix.dynamic.property.api.AtomicProperty;
-import ru.fix.dynamic.property.api.DynamicProperty;
-import ru.fix.stdlib.concurrency.threads.Schedule;
+import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.Test
+import ru.fix.dynamic.property.api.AtomicProperty
+import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.stdlib.concurrency.threads.Schedule
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
-import static org.mockito.Mockito.*;
-
-class WorkPooledMultiJobSharingIT extends AbstractJobManagerTest {
-
-    @SuppressWarnings("unchecked")
-    private final Consumer<Set<String>> monitor = mock(Consumer.class);
+internal class DjmDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
 
     @Test
-    void shouldRunAllWorkItemsInSingleWorker() throws Exception {
-        try (CuratorFramework curator = defaultZkClient();
-             DistributedJobManager ignored = createNewJobManager(
-                     Collections.singleton(
-                             new SingleThreadMultiJob(
-                                     Schedule.withDelay(DynamicProperty.of(100L)),
-                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
-                             )
-                     ),
-                     curator
-             )
-        ) {
-            verify(monitor, timeout(10_000)).accept(anySet());
-        }
-    }
-
-    @Test
-    @Timeout(20)
-    void delayedJobShouldStartAccordingToNewScheduleSettings() throws Exception {
+    fun `delayed Job should start immediately if implicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and implicit 1h initial delay
-        AtomicProperty<Long> delay = new AtomicProperty<>(TimeUnit.HOURS.toMillis(1));
-        try (CuratorFramework curator = defaultZkClient();
-             DistributedJobManager ignored = createNewJobManager(
-                     Collections.singleton(
-                             new SingleThreadMultiJob(
-                                     Schedule.withDelay(delay),
-                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
-                             )
-                     ),
-                     curator
-             )
-        ) {
-            // initial 1h delay continues still, job not started
-            verify(monitor, after(3000).never()).accept(anySet());
+        val jobWithBigDelayAndImplicitBigInitialDelay = object: DistributedJob{
+            val launched = AtomicBoolean()
+            val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
 
-            // change schedule delay setting of the job with implicit start delay settings,
-            // so the job should start in moments
-            delay.set(TimeUnit.SECONDS.toMillis(1L));
+            override val jobId = JobId("jobWithBigDelayAndImplicitBigInitialDelay")
+            override fun getSchedule(): DynamicProperty<Schedule> = schedule
+            override fun run(context: DistributedJobContext) { launched.set(true) }
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
 
-            verify(monitor, timeout(5_000)).accept(anySet());
+        val djm = createDJM(jobWithBigDelayAndImplicitBigInitialDelay)
+
+        // initial 1h delay continues still, job not started
+        await().during(3, TimeUnit.SECONDS).until {
+            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == false
+        }
+
+        // change schedule delay setting of the job with implicit start delay settings,
+        // so the job should start in moments
+        jobWithBigDelayAndImplicitBigInitialDelay.schedule.set(Schedule.withDelay(TimeUnit.SECONDS.toMillis(1L)))
+
+        await().atMost(10, TimeUnit.SECONDS).until {
+            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == true
         }
     }
 
     @Test
-    @Timeout(20)
-    void delayedJobShouldStartAccordingToNewInitialDelaySetting() throws Exception {
+    fun `delayed Job should start immediately if explicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and explicit 1h initial delay
-        long delay1H = TimeUnit.HOURS.toMillis(1);
-        AtomicProperty<Long> startDelay = new AtomicProperty<>(delay1H);
-        try (CuratorFramework curator = defaultZkClient();
-             DistributedJobManager ignored = createNewJobManager(
-                     Collections.singleton(
-                             new CustomInitialDelayImplJob(
-                                     Schedule.withDelay(DynamicProperty.of(delay1H)),
-                                     startDelay,
-                                     new HashSet<>(Arrays.asList("1", "2", "3", "4"))
-                             )
-                     ),
-                     curator
-             )
-        ) {
-            // initial 1h delay continues still, job not started
-            verify(monitor, after(3000).never()).accept(anySet());
+        val jobWithExplicitBigInitialDelay = object: DistributedJob{
+            val launched = AtomicBoolean()
+            val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
+            val initialDelay = AtomicProperty<Long>(TimeUnit.HOURS.toMillis(1))
 
-            // change start delay setting, so the job should start immediately
-            startDelay.set(0L);
-
-            verify(monitor, timeout(5_000)).accept(anySet());
-        }
-    }
-
-    private class SingleThreadMultiJob implements DistributedJob {
-
-        private final DynamicProperty<Schedule> schedule;
-        private final Set<String> workerPool;
-
-        SingleThreadMultiJob(DynamicProperty<Schedule> schedule, Set<String> workerPool) {
-            this.schedule = schedule;
-            this.workerPool = workerPool;
+            override val jobId = JobId("jobWithExplicitBigInitialDelay")
+            override fun getSchedule(): DynamicProperty<Schedule> = schedule
+            override fun getInitialJobDelay(): DynamicProperty<Long> = initialDelay
+            override fun run(context: DistributedJobContext) { launched.set(true) }
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-        @Override
-        public WorkPool getWorkPool() {
-            return WorkPool.of(workerPool);
+        val djm = createDJM(jobWithExplicitBigInitialDelay)
+
+        // initial 1h delay continues still, job not started
+        await().during(3, TimeUnit.SECONDS).until {
+            jobWithExplicitBigInitialDelay.launched.get() == false
         }
 
-        @Override
-        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return WorkPoolRunningStrategies.getSingleThreadStrategy();
-        }
+        // change start delay setting, so the job should start immediately
+        jobWithExplicitBigInitialDelay.initialDelay.set(0)
 
-        @Override
-        public DynamicProperty<Schedule> getSchedule() {
-            return schedule;
-        }
-
-        @Override
-        public JobId getJobId() {
-            return new JobId("job-id");
-        }
-
-        @Override
-        public void run(DistributedJobContext context) {
-            monitor.accept(context.getWorkShare());
-        }
-
-        @Override
-        public long getWorkPoolCheckPeriod() {
-            return 0L;
-        }
-
-    }
-
-    private class CustomInitialDelayImplJob implements DistributedJob {
-
-        private final DynamicProperty<Schedule> schedule;
-        private final DynamicProperty<Long> startDelay;
-        private final Set<String> workerPool;
-
-        CustomInitialDelayImplJob(DynamicProperty<Schedule> schedule,
-                                  DynamicProperty<Long> startDelay,
-                                  Set<String> workerPool) {
-            this.schedule = schedule;
-            this.startDelay = startDelay;
-            this.workerPool = workerPool;
-        }
-
-        @Override
-        public WorkPool getWorkPool() {
-            return WorkPool.of(workerPool);
-        }
-
-        @Override
-        public WorkPoolRunningStrategy getWorkPoolRunningStrategy() {
-            return WorkPoolRunningStrategies.getSingleThreadStrategy();
-        }
-
-        @Override
-        public DynamicProperty<Schedule> getSchedule() {
-            return schedule;
-        }
-
-        @Override
-        public DynamicProperty<Long> getInitialJobDelay() {
-            return startDelay;
-        }
-
-        @Override
-        public JobId getJobId() {
-            return new JobId("job-id");
-        }
-
-        @Override
-        public void run(DistributedJobContext context) {
-            monitor.accept(context.getWorkShare());
-        }
-
-        @Override
-        public long getWorkPoolCheckPeriod() {
-            return 0L;
+        await().atMost(10, TimeUnit.SECONDS).until {
+            jobWithExplicitBigInitialDelay.launched.get() == true
         }
     }
 }

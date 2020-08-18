@@ -13,7 +13,7 @@ import ru.fix.zookeeper.testing.ZKTestingServer
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
 
-
+@Deprecated("DJMTestSuite provides richer api", replaceWith = ReplaceWith("DJMTestSuite"))
 internal abstract class AbstractJobManagerTest {
 
     companion object {
@@ -69,5 +69,4 @@ internal abstract class AbstractJobManagerTest {
                 )
         )
     }
-
 }
