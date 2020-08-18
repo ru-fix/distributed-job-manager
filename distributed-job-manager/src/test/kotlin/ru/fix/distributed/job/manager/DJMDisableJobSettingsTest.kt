@@ -9,24 +9,38 @@ import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty
+import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
 
 
-internal class JobManagerSettingsIT : DJMTestSuite() {
+class DJMDisableJobSettingsTest : DJMTestSuite() {
 
     companion object {
         private val defaultJobRunTimeout = Duration.ofSeconds(2)
     }
 
+    open class FrequentJob(jobId: Int): DistributedJob{
+        val launched = AtomicBoolean()
+
+        override val jobId = JobId("FrequentJob-$jobId")
+        override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(500))
+        override fun run(context: DistributedJobContext) { launched.set(true) }
+        override fun getWorkPool() = WorkPool.of("1", "2")
+        override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+        override fun getWorkPoolCheckPeriod(): Long = 0
+    }
+
     @Test
     fun `WHEN disableAllJobsProperty changed THEN jobs running accordingly`() {
-        val job1 = spy(createStubbedJob(1))
-        val job2 = spy(createStubbedJob(2))
+        val job1 = spy(FrequentJob(1))
+        val job2 = spy(FrequentJob(2))
         val settingsEditor = JobManagerSettingsEditor()
+
         settingsEditor.setDisableAllJobProperty(true)
+
         createDjm(
                 settingsEditor = settingsEditor,
                 jobs = listOf(job1, job2)
@@ -55,8 +69,8 @@ internal class JobManagerSettingsIT : DJMTestSuite() {
 
     @Test
     fun `WHEN jobs disable switches changed THEN jobs running accordingly`() {
-        val job1 = spy(createStubbedJob(1))
-        val job2 = spy(createStubbedJob(2))
+        val job1 = spy(FrequentJob(1))
+        val job2 = spy(FrequentJob(2))
         val settingsEditor = JobManagerSettingsEditor()
         settingsEditor.disableConcreteJob(job1)
         createDjm(
@@ -87,8 +101,8 @@ internal class JobManagerSettingsIT : DJMTestSuite() {
 
     @Test
     fun `WHEN disableAllJobsProperty is true THEN jobs switches don't matter`() {
-        val job1 = spy(createStubbedJob(1))
-        val job2 = spy(createStubbedJob(2))
+        val job1 = spy(FrequentJob(1))
+        val job2 = spy(FrequentJob(2))
         val settingsEditor = JobManagerSettingsEditor().apply {
             setDisableAllJobProperty(true)
             enableConcreteJob(job1)
@@ -105,20 +119,10 @@ internal class JobManagerSettingsIT : DJMTestSuite() {
         }
     }
 
-    private fun createStubbedJob(
-            jobId: Int = 1,
-            workItems: Set<String> = setOf("1", "2"),
-            delay: Long = 500,
-            workPoolCheckPeriod: Long = 0
-    ): StubbedMultiJob = StubbedMultiJob(
-            jobId, workItems, delay, workPoolCheckPeriod
-    )
-
-
     private fun createDjm(
             settingsEditor: JobManagerSettingsEditor = JobManagerSettingsEditor(),
             jobs: Collection<DistributedJob>,
-            curatorFramework: CuratorFramework = server.createClient(60000, 15000),
+            curatorFramework: CuratorFramework = server.client,
             profiler: Profiler = NoopProfiler()
     ) = DistributedJobManager(
             curatorFramework,
@@ -129,22 +133,15 @@ internal class JobManagerSettingsIT : DJMTestSuite() {
 }
 
 private class JobManagerSettingsEditor(
-        val nodeId: String = "1",
-        val rootPath: String = "DistributedJobConfigIT",
-        val assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
         initialTimeToWaitTermination: Long = 180_000,
         initialJobDisableConfig: JobDisableConfig = JobDisableConfig()
 ) {
-    private val timeToWaitTermination: AtomicProperty<Long> = AtomicProperty(initialTimeToWaitTermination)
     private val jobDisableConfig: AtomicProperty<JobDisableConfig> = AtomicProperty(initialJobDisableConfig)
 
     fun toSettings() = DistributedJobManagerSettings(
-            nodeId = nodeId,
-            rootPath = rootPath,
-            assignmentStrategy = assignmentStrategy,
-            timeToWaitTermination = timeToWaitTermination,
-            jobDisableConfig = jobDisableConfig
-    )
+            nodeId = "1",
+            rootPath = DJMDisableJobSettingsTest.javaClass.simpleName,
+            jobDisableConfig = jobDisableConfig)
 
     fun setDisableAllJobProperty(disableAll: Boolean) {
         jobDisableConfig.set(jobDisableConfig.get().copy(disableAllJobs = disableAll))
