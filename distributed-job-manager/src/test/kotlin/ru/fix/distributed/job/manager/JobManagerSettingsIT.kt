@@ -15,7 +15,7 @@ import ru.fix.dynamic.property.api.AtomicProperty
 import java.time.Duration
 
 
-internal class JobManagerSettingsIT : AbstractJobManagerTest() {
+internal class JobManagerSettingsIT : DJMTestSuite() {
 
     companion object {
         private val defaultJobRunTimeout = Duration.ofSeconds(2)
@@ -118,7 +118,7 @@ internal class JobManagerSettingsIT : AbstractJobManagerTest() {
     private fun createDjm(
             settingsEditor: JobManagerSettingsEditor = JobManagerSettingsEditor(),
             jobs: Collection<DistributedJob>,
-            curatorFramework: CuratorFramework = zkTestingServer.createClient(60000, 15000),
+            curatorFramework: CuratorFramework = server.createClient(60000, 15000),
             profiler: Profiler = NoopProfiler()
     ) = DistributedJobManager(
             curatorFramework,

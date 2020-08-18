@@ -3,73 +3,94 @@ package ru.fix.distributed.job.manager
 import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility.await
 import org.hamcrest.MatcherAssert
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.AtomicProperty
+import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-internal class ManagerCleaningTest : AbstractJobManagerTest() {
+class ManagerCleaningTest : DJMTestSuite() {
 
     @Test
-    @Throws(Exception::class)
     fun `WHEN last djm with available job closed THEN removing job from workPool`() {
+        class JobForCleaning(id: String) : DistributedJob{
+            override val jobId = JobId("JobForCleaning-$id")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(100))
+            override fun run(context: DistributedJobContext) {}
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod(): Long = 0
+        }
+        val job1 = JobForCleaning("1")
+        val job2 = JobForCleaning("2")
+        val job3 = JobForCleaning("3")
+
         val workPoolCleanPeriod = AtomicProperty(500L)
         val cleaningPerformTimeoutMs: Long = 1000
         val closingDjmTimeoutMs: Long = 1500
-        val job1: DistributedJob = StubbedMultiJob(1, setOf("all"))
-        val job2: DistributedJob = StubbedMultiJob(2, setOf("all"))
-        val job3: DistributedJob = StubbedMultiJob(3, setOf("all"))
-        val curator1 = defaultZkClient()
-        val jobManager1 = createNewJobManager(
-                curatorFramework = curator1,
+
+        val jobManager1 = createDJM(
                 jobs = listOf(job1, job2),
                 workPoolCleanPeriod = workPoolCleanPeriod
         )
-        val curator2 = defaultZkClient()
-        val jobManager2 = createNewJobManager(
-                curatorFramework = curator2,
+        val jobManager2 = createDJM(
                 jobs = listOf(job2, job3),
                 workPoolCleanPeriod = workPoolCleanPeriod
         )
-        assertTrue(curator2.children.forPath(paths.availableWorkPool()).contains(resolveJobId(job1).id))
-        jobManager1.close()
-        curator1.close()
+
+        await().atMost(1, TimeUnit.MINUTES).until {
+            server.client.children
+                    .forPath(djmZkPathsManager.availableWorkPool())
+                    .contains(resolveJobId(job1).id)
+        }
+        closeDjm(jobManager1)
+
         awaitCleaningJob(
                 atLeast = 0,
                 atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                jobIdForRemoval = resolveJobId(job1).id, curator = curator2)
-        val curator3 = defaultZkClient()
-        val jobManager3 = createNewJobManager(
-                curatorFramework = curator3,
+                jobIdForRemoval = resolveJobId(job1).id, curator = server.client)
+
+        val jobManager3 = createDJM(
                 jobs = listOf(job1, job2),
                 workPoolCleanPeriod = workPoolCleanPeriod
         )
-        assertTrue(curator3.children.forPath(paths.availableWorkPool()).contains(resolveJobId(job1).id))
+        await().atMost(1, TimeUnit.MINUTES).until {
+            server.client.children
+                    .forPath(djmZkPathsManager.availableWorkPool())
+                    .contains(resolveJobId(job1).id)
+        }
+
         val oldCleanPeriodMs = workPoolCleanPeriod.set(7000L)
         await().pollDelay(Duration.ofMillis(oldCleanPeriodMs)).untilAsserted {}
-        jobManager2.close()
-        curator2.close()
+
+        closeDjm(jobManager2)
+
         awaitCleaningJob(
                 atLeast = workPoolCleanPeriod.get() - closingDjmTimeoutMs - oldCleanPeriodMs,
                 atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
-                jobIdForRemoval = resolveJobId(job3).id, curator = curator3)
-        jobManager3.close()
-        curator3.close()
+                jobIdForRemoval = resolveJobId(job3).id, curator = server.client)
+
+        closeDjm(jobManager3)
     }
 
-    private fun awaitCleaningJob(atLeast: Long, atMost: Long, jobIdForRemoval: String, curator: CuratorFramework) {
+    private fun awaitCleaningJob(
+            atLeast: Long,
+            atMost: Long,
+            jobIdForRemoval: String,
+            curator: CuratorFramework) {
         await()
                 .atLeast(atLeast, TimeUnit.MILLISECONDS)
                 .atMost(atMost, TimeUnit.MILLISECONDS)
                 .untilAsserted {
-                    val jobsFromZkWorkPool = curator.children.forPath(paths.availableWorkPool())
+                    val jobsFromZkWorkPool = curator.children
+                            .forPath(djmZkPathsManager.availableWorkPool())
+
                     MatcherAssert.assertThat(
                             "cleaning wasn't performed during period." + printDjmZkTree(),
                             !jobsFromZkWorkPool.contains(jobIdForRemoval)
                     )
                 }
     }
-
 }

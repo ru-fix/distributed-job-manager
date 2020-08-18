@@ -17,7 +17,7 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
          * Delay between launching task for removing not relevant jobs from `work-pool` subtree.
          * Minor process. Default value is three hours
          * */
-        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(10_800_000),
+        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(3*60*60*1000),
 
         val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig()),
 

@@ -7,25 +7,25 @@ import org.apache.curator.utils.ZKPaths
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
-import ru.fix.distributed.job.manager.AbstractJobManagerTest
+import ru.fix.distributed.job.manager.DJMTestSuite
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-internal class CuratorCacheTest : AbstractJobManagerTest() {
+internal class CuratorCacheTest : DJMTestSuite() {
 
     @Test
     fun `not all nodes are cached, because initialized event ignored`() {
-        val path = ZKPaths.makePath(JOB_MANAGER_ZK_ROOT_PATH, "cache")
+        val path = ZKPaths.makePath("/curator/cache", "cache")
         val eventsCount = 3000
         val createEventsTriggered = AtomicInteger()
         val changeEventsTriggered = AtomicInteger()
 
-        zkTestingServer.client.create().creatingParentsIfNeeded().forPath(path)
+        server.client.create().creatingParentsIfNeeded().forPath(path)
         (1..eventsCount).forEach {
-            zkTestingServer.client.create().forPath(ZKPaths.makePath(path, it.toString()))
+            server.client.create().forPath(ZKPaths.makePath(path, it.toString()))
         }
-        val workPooledCache = CuratorCache.build(zkTestingServer.client, path)
+        val workPooledCache = CuratorCache.build(server.client, path)
         val allChangedEventsReachedSemaphore = Semaphore(0)
         val curatorCacheListener = CuratorCacheListener { type, _, _ ->
             when (type!!) {
@@ -46,7 +46,7 @@ internal class CuratorCacheTest : AbstractJobManagerTest() {
         workPooledCache.start()
 
         (1..eventsCount).forEach {
-            zkTestingServer.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
+            server.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
         }
         assertEquals(eventsCount + 1, createEventsTriggered.get())
         allChangedEventsReachedSemaphore.tryAcquire(2, TimeUnit.SECONDS)
@@ -55,16 +55,16 @@ internal class CuratorCacheTest : AbstractJobManagerTest() {
 
     @Test
     fun `all nodes are cached when initialized event handled`() {
-        val path = ZKPaths.makePath(JOB_MANAGER_ZK_ROOT_PATH, "cache1")
+        val path = ZKPaths.makePath("/curator/cache", "cache1")
         val eventsCount = 3000
         val createEventsTriggered = AtomicInteger()
         val changeEventsTriggered = AtomicInteger()
 
-        zkTestingServer.client.create().creatingParentsIfNeeded().forPath(path)
+        server.client.create().creatingParentsIfNeeded().forPath(path)
         (1..eventsCount).forEach {
-            zkTestingServer.client.create().forPath(ZKPaths.makePath(path, it.toString()))
+            server.client.create().forPath(ZKPaths.makePath(path, it.toString()))
         }
-        val workPooledCache = CuratorCache.build(zkTestingServer.client, path)
+        val workPooledCache = CuratorCache.build(server.client, path)
         val initSemaphore = Semaphore(0)
         val allChangedEventsReachedSemaphore = Semaphore(0)
 
@@ -94,11 +94,10 @@ internal class CuratorCacheTest : AbstractJobManagerTest() {
         initSemaphore.acquire()
 
         (1..eventsCount).forEach {
-            zkTestingServer.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
+            server.client.setData().forPath(ZKPaths.makePath(path, it.toString()), byteArrayOf())
         }
         assertEquals(eventsCount + 1, createEventsTriggered.get())
         allChangedEventsReachedSemaphore.tryAcquire(2, TimeUnit.SECONDS)
         assertEquals(eventsCount, changeEventsTriggered.get())
     }
-
 }

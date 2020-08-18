@@ -3,7 +3,7 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 
-class ZkPathsManager {
+public class ZkPathsManager {
     private static final String ALIVE = "alive";
     private static final String LEADER_LATCH = "leader-latch";
     private static final String LOCKS = "locks";
