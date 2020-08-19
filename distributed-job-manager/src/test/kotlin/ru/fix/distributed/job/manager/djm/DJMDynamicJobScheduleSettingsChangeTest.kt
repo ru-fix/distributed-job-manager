@@ -1,7 +1,8 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
+import ru.fix.distributed.job.manager.*
 import ru.fix.dynamic.property.api.AtomicProperty
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
@@ -13,7 +14,7 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
     @Test
     fun `delayed Job should start immediately if implicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and implicit 1h initial delay
-        val jobWithBigDelayAndImplicitBigInitialDelay = object: DistributedJob{
+        val jobWithBigDelayAndImplicitBigInitialDelay = object: DistributedJob {
             val launched = AtomicBoolean()
             val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
 
@@ -44,7 +45,7 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
     @Test
     fun `delayed Job should start immediately if explicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and explicit 1h initial delay
-        val jobWithExplicitBigInitialDelay = object: DistributedJob{
+        val jobWithExplicitBigInitialDelay = object: DistributedJob {
             val launched = AtomicBoolean()
             val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
             val initialDelay = AtomicProperty<Long>(TimeUnit.HOURS.toMillis(1))

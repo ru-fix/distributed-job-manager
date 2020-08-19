@@ -1,4 +1,4 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
@@ -6,6 +6,7 @@ import org.awaitility.Awaitility
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
 import ru.fix.aggregating.profiler.ProfiledCallReport
+import ru.fix.distributed.job.manager.*
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.concurrent.ConcurrentHashMap

@@ -1,9 +1,10 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility.await
 import org.hamcrest.MatcherAssert
 import org.junit.jupiter.api.Test
+import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.AtomicProperty
 import ru.fix.dynamic.property.api.DynamicProperty
@@ -11,11 +12,11 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-class ManagerCleaningTest : DJMTestSuite() {
+class DJMManagerCleaningTest : DJMTestSuite() {
 
     @Test
     fun `WHEN last djm with available job closed THEN removing job from workPool`() {
-        class JobForCleaning(id: String) : DistributedJob{
+        class JobForCleaning(id: String) : DistributedJob {
             override val jobId = JobId("JobForCleaning-$id")
             override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {}

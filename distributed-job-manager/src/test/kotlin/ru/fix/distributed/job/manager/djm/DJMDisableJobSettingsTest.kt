@@ -1,4 +1,4 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import com.nhaarman.mockitokotlin2.*
 import org.apache.curator.framework.CuratorFramework
@@ -6,6 +6,7 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
+import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
 import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
@@ -22,7 +23,7 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         private val defaultJobRunTimeout = Duration.ofSeconds(2)
     }
 
-    open class FrequentJob(jobId: Int): DistributedJob{
+    open class FrequentJob(jobId: Int): DistributedJob {
         val launched = AtomicBoolean()
 
         override val jobId = JobId("FrequentJob-$jobId")

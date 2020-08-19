@@ -1,4 +1,4 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.ints.shouldBeInRange
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.aggregating.profiler.NoopProfiler
+import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.Availability
 import ru.fix.distributed.job.manager.model.WorkItem
