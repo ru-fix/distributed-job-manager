@@ -74,7 +74,8 @@ open class DJMTestSuite {
     fun createDJM(jobs: List<DistributedJob>,
                   profiler: Profiler = NoopProfiler(),
                   assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
-                  workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L)): DistributedJobManager {
+                  workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L),
+                  nodeId: String = generateNodeId()): DistributedJobManager {
 
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
@@ -84,7 +85,7 @@ open class DJMTestSuite {
                     jobs,
                     profiler,
                     DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
+                            nodeId = nodeId,
                             rootPath = djmZkRootPath,
                             assignmentStrategy = assignmentStrategy,
                             timeToWaitTermination = DynamicProperty.of(10000),

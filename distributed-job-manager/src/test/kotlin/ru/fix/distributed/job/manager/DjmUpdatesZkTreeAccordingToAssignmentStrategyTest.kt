@@ -1,6 +1,5 @@
 package ru.fix.distributed.job.manager
 
-import org.apache.curator.framework.CuratorFramework
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -15,7 +14,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.generateAvailability
 import java.time.Duration
 
-internal class DistributedJobManagerTest : AbstractJobManagerTest() {
+class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
 
     private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
@@ -82,16 +81,15 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     @Test
-    @Throws(Exception::class)
     fun `evenly spread when start 3 servers with different work pools`() {
         createDjmWithEvenlySpread("worker-0", listOf(distributedJobs()[0]))
         createDjmWithEvenlySpread("worker-1", listOf(distributedJobs()[1]))
         createDjmWithEvenlySpread("worker-2", listOf(distributedJobs()[2]))
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
-        val assignedState = readAssignedState(zkTestingServer.createClient(60000, 15000))
+        val assignedState = readAssignedState()
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-0"), mutableSetOf(WorkerId("worker-0"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-1"), mutableSetOf(WorkerId("worker-1"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"), mutableSetOf(WorkerId("worker-2"))))
@@ -103,16 +101,15 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                djmZkPathsManager.assignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-1")
         ))
         createDjmWithEvenlySpread("worker-2", distributedJobs())
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-5")
         ))
 
-        val curatorFramework = zkTestingServer.createClient(60000, 15000)
-        val assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
+        val assignedState = readAssignedState()
+        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState())))
     }
 
     @Test
@@ -122,11 +119,10 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-1", listOf(distributedJobs()[1]))
         createDjmWithRendezvous("worker-2", listOf(distributedJobs()[2]))
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
 
-        val curatorFramework = zkTestingServer.createClient(60000, 15000)
-        val assignedState = readAssignedState(curatorFramework)
+        val assignedState = readAssignedState()
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-0"), mutableSetOf(WorkerId("worker-0"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-1"), mutableSetOf(WorkerId("worker-1"))))
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"), mutableSetOf(WorkerId("worker-2"))))
@@ -139,53 +135,49 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         createDjmWithRendezvous("worker-1", distributedJobs())
         createDjmWithRendezvous("worker-2", distributedJobs())
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
         ))
 
         val nodes = listOf(
-                paths.assignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
-                paths.assignedWorkItem("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
-                paths.assignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
+                djmZkPathsManager.assignedWorkItem("worker-1", "distr-job-id-1", "distr-job-id-1.work-item-0"),
+                djmZkPathsManager.assignedWorkItem("worker-1", "distr-job-id-0", "distr-job-id-0.work-item-0"),
+                djmZkPathsManager.assignedWorkItem("worker-1", "distr-job-id-2", "distr-job-id-2.work-item-1"),
 
-                paths.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
-                paths.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-2"),
-                paths.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
+                djmZkPathsManager.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-5"),
+                djmZkPathsManager.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-2"),
+                djmZkPathsManager.assignedWorkItem("worker-0", "distr-job-id-1", "distr-job-id-1.work-item-3"),
 
-                paths.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
-                paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
-                paths.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0"),
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-4"),
+                djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-1", "distr-job-id-1.work-item-1")
         )
 
-        val curator = zkTestingServer.createClient(60000, 15000)
         for (node in nodes) {
-            assertNotNull(curator.checkExists().forPath(node))
+            assertNotNull(server.client.checkExists().forPath(node))
         }
     }
 
     @Test
-    @Disabled("It's hard to get moment, when 3 workers alive and last third worker already have assigned paths")
-    @Throws(Exception::class)
     fun `start 3 workers and destroy one of them`() {
         createDjmWithEvenlySpread("worker-0", distributedJobs())
         createDjmWithEvenlySpread("worker-1", distributedJobs())
-        val destroyed = createDjmWithEvenlySpread("worker-2", distributedJobs())
+        val doomedDjm = createDjmWithEvenlySpread("worker-2", distributedJobs())
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
                 .pollDelay(Duration.ofMillis(200))
                 .until { workersAlive("worker-2", "worker-1", "worker-0") }
 
-        val curatorFramework = zkTestingServer.createClient(60000, 15000)
-        var assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
+        var assignedState = readAssignedState()
+        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState())))
 
-        destroyed.close()
+        closeDjm(doomedDjm)
         Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
+                .atMost(Duration.ofSeconds(20))
                 .pollDelay(Duration.ofMillis(200))
-                .until { readAssignedState(curatorFramework).size == 2 }
+                .until { readAssignedState().size == 2 }
 
-        assignedState = readAssignedState(curatorFramework)
-        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState(curatorFramework))))
+        assignedState = readAssignedState()
+        assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState())))
     }
 
     @Test
@@ -234,23 +226,23 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
             }
         }
 
-        createNewJobManager(nodeId = "worker-0", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
-        createNewJobManager(nodeId = "worker-1", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
-        createNewJobManager(nodeId = "worker-2", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
-        createNewJobManager(nodeId = "worker-3", jobs = listOf<DistributedJob>(smsJob, ussdJob, rebillJob), strategy = customStrategy)
+        createDJM(nodeId = "worker-0", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
+        createDJM(nodeId = "worker-1", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
+        createDJM(nodeId = "worker-2", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
+        createDJM(nodeId = "worker-3", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
+
         awaitPathInit(listOf(
-                paths.assignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
+                djmZkPathsManager.assignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
         ))
 
-        val curatorFramework = zkTestingServer.createClient(60000, 15000)
-        val assignedState = readAssignedState(curatorFramework)
+        val assignedState = readAssignedState()
         assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"),
                 mutableSetOf(WorkerId("worker-0"), WorkerId("worker-1"), WorkerId("worker-2"), WorkerId("worker-3")))
         )
     }
 
     private fun pathsExists(itemPaths: List<String>): Boolean {
-        val curator = zkTestingServer.createClient(60000, 15000)
+        val curator = server.client
         itemPaths.forEach {
             if (curator.checkExists().forPath(it) == null) {
                 return false
@@ -260,10 +252,9 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
     }
 
     private fun workersAlive(vararg workers: String): Boolean {
-        val curator = zkTestingServer.createClient(60000, 15000)
         workers.forEach {
-            val path = ZkPathsManager(JOB_MANAGER_ZK_ROOT_PATH).aliveWorker(it)
-            if (curator.checkExists().forPath(path) == null) {
+            val path = djmZkPathsManager.aliveWorker(it)
+            if (server.client.checkExists().forPath(path) == null) {
                 return false
             }
         }
@@ -283,23 +274,24 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
                 ))
     }
 
-    private fun readAvailableState(curatorFramework: CuratorFramework): AssignmentState {
+    private fun readAvailableState(): AssignmentState {
+        val curatorFramework = server.client
         val availableState = AssignmentState()
         val workersRoots = curatorFramework.children
-                .forPath(paths.allWorkers())
+                .forPath(djmZkPathsManager.allWorkers())
 
         for (worker in workersRoots) {
-            if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) == null) {
+            if (curatorFramework.checkExists().forPath(djmZkPathsManager.aliveWorker(worker)) == null) {
                 continue
             }
 
             val availableJobIds = curatorFramework.children
-                    .forPath(paths.availableJobs(worker))
+                    .forPath(djmZkPathsManager.availableJobs(worker))
 
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
-                        .forPath(paths.availableWorkPool(availableJobId))
+                        .forPath(djmZkPathsManager.availableWorkPool(availableJobId))
 
                 for (workItem in workItemsForAvailableJobList) {
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))
@@ -310,19 +302,20 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         return availableState
     }
 
-    private fun readAssignedState(curatorFramework: CuratorFramework): AssignmentState {
+    private fun readAssignedState(): AssignmentState {
+        val curatorFramework = server.client
         val assignedState = AssignmentState()
 
-        val workersRoots = curatorFramework.children.forPath(paths.allWorkers())
+        val workersRoots = curatorFramework.children.forPath(djmZkPathsManager.allWorkers())
 
         for (worker in workersRoots) {
             val assignedJobIds = curatorFramework.children
-                    .forPath(paths.assignedJobs(worker))
+                    .forPath(djmZkPathsManager.assignedJobs(worker))
 
             val assignedWorkPool = HashSet<WorkItem>()
             for (assignedJobId in assignedJobIds) {
                 val assignedJobWorkItems = curatorFramework.children
-                        .forPath(paths.assignedWorkPool(worker, assignedJobId))
+                        .forPath(djmZkPathsManager.assignedWorkPool(worker, assignedJobId))
 
                 for (workItem in assignedJobWorkItems) {
                     assignedWorkPool.add(WorkItem(workItem, JobId(assignedJobId)))
@@ -333,14 +326,12 @@ internal class DistributedJobManagerTest : AbstractJobManagerTest() {
         return assignedState
     }
 
-    @Throws(Exception::class)
     private fun createDjmWithEvenlySpread(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
-        return createNewJobManager(nodeId = nodeId, jobs = jobs, strategy = AssignmentStrategies.EVENLY_SPREAD)
+        return createDJM(nodeId = nodeId, jobs = jobs, assignmentStrategy = AssignmentStrategies.EVENLY_SPREAD)
     }
 
-    @Throws(Exception::class)
     private fun createDjmWithRendezvous(nodeId: String, jobs: List<DistributedJob>): DistributedJobManager {
-        return createNewJobManager(nodeId = nodeId, jobs = jobs, strategy = AssignmentStrategies.RENDEZVOUS)
+        return createDJM(nodeId = nodeId, jobs = jobs, assignmentStrategy = AssignmentStrategies.RENDEZVOUS)
     }
 
     private fun createWorkPool(jobId: String, workItemsNumber: Int): WorkPool {
