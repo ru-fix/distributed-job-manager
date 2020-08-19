@@ -1,10 +1,10 @@
-package ru.fix.distributed.job.manager
+package ru.fix.distributed.job.manager.djm
 
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.Availability
 import ru.fix.distributed.job.manager.model.WorkItem
@@ -12,7 +12,10 @@ import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AbstractAssignmentStrategy
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.generateAvailability
+import ru.fix.dynamic.property.api.DynamicProperty
+import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
 
@@ -183,15 +186,9 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
     @Test
     @Throws(Exception::class)
     fun `custom assigment strategy on 4 workers with identical work pool`() {
-        val smsJob = StubbedMultiJob(
-                0, createWorkPool("distr-job-id-0", 3).items, 50000L
-        )
-        val ussdJob = StubbedMultiJob(
-                1, createWorkPool("distr-job-id-1", 1).items, 50000L
-        )
-        val rebillJob = StubbedMultiJob(
-                2, createWorkPool("distr-job-id-2", 7).items, 50000L
-        )
+        val smsJob = JobWithBigDelay(0, createWorkPool("distr-job-id-0", 3))
+        val ussdJob = JobWithBigDelay(1, createWorkPool("distr-job-id-1", 1))
+        val rebillJob = JobWithBigDelay(2, createWorkPool("distr-job-id-2", 7))
 
         val customStrategy = object : AbstractAssignmentStrategy() {
             override fun reassignAndBalance(
@@ -261,17 +258,22 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
         return true
     }
 
+    class JobWithBigDelay(identity: Int, private val workPool: WorkPool): DistributedJob{
+        override val jobId = JobId(identity.toString())
+        override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(TimeUnit.HOURS.toMillis(1)))
+        override fun run(context: DistributedJobContext) { }
+        override fun getWorkPool(): WorkPool = workPool
+        override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+        override fun getWorkPoolCheckPeriod(): Long = 0
+    }
+
+
     private fun distributedJobs(): List<DistributedJob> {
         return listOf<DistributedJob>(
-                StubbedMultiJob(
-                        0, createWorkPool("distr-job-id-0", 1).items, 50000L
-                ),
-                StubbedMultiJob(
-                        1, createWorkPool("distr-job-id-1", 6).items, 50000L
-                ),
-                StubbedMultiJob(
-                        2, createWorkPool("distr-job-id-2", 2).items, 50000L
-                ))
+                JobWithBigDelay(0, createWorkPool("distr-job-id-0", 1)),
+                JobWithBigDelay(1, createWorkPool("distr-job-id-1", 6)),
+                JobWithBigDelay(2, createWorkPool("distr-job-id-2", 2))
+        )
     }
 
     private fun readAvailableState(): AssignmentState {
