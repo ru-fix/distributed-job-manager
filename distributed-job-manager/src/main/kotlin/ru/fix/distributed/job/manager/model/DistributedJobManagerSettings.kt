@@ -4,6 +4,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
+import java.util.concurrent.TimeUnit
 
 data class DistributedJobManagerSettings @JvmOverloads constructor(
         val nodeId: String,
@@ -12,12 +13,12 @@ data class DistributedJobManagerSettings @JvmOverloads constructor(
         /**
          * Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
          * */
-        val timeToWaitTermination: DynamicProperty<Long>,
+        val timeToWaitTermination: DynamicProperty<Long> = DynamicProperty.of(TimeUnit.MINUTES.toMillis(15)),
         /**
          * Delay between launching task for removing not relevant jobs from `work-pool` subtree.
          * Minor process. Default value is three hours
          * */
-        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(10_800_000),
+        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of( TimeUnit.HOURS.toMillis(3)),
 
         val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig()),
 

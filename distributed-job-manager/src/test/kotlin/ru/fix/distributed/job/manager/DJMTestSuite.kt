@@ -14,6 +14,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import ru.fix.zookeeper.testing.ZKTestingServer
+import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -31,11 +32,13 @@ open class DJMTestSuite {
 
     lateinit var server: ZKTestingServer
     lateinit var djmZkRootPath: String
+    lateinit var djmZkPathsManager: ZkPathsManager
 
     @BeforeEach
     fun beforeEach() {
         server = ZKTestingServer().start()
         djmZkRootPath = generateDjmRootPath()
+        djmZkPathsManager = ZkPathsManager(djmZkRootPath)
     }
 
     @AfterEach
@@ -70,7 +73,10 @@ open class DJMTestSuite {
 
     fun createDJM(jobs: List<DistributedJob>,
                   profiler: Profiler = NoopProfiler(),
-                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT): DistributedJobManager {
+                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
+                  workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L),
+                  nodeId: String = generateNodeId()): DistributedJobManager {
+
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
         try {
@@ -79,10 +85,11 @@ open class DJMTestSuite {
                     jobs,
                     profiler,
                     DistributedJobManagerSettings(
-                            nodeId = generateNodeId(),
+                            nodeId = nodeId,
                             rootPath = djmZkRootPath,
                             assignmentStrategy = assignmentStrategy,
                             timeToWaitTermination = DynamicProperty.of(10000),
+                            workPoolCleanPeriod = workPoolCleanPeriod,
                             lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
                                     lockAcquirePeriod = Duration.ofSeconds(15),
                                     expirationPeriod = Duration.ofSeconds(5),
@@ -121,5 +128,9 @@ open class DJMTestSuite {
     }
 
     val djms: List<DistributedJobManager> get() = djmConnections.keys().toList()
+
+    fun printDjmZkTree(): String = printZkTree(djmZkRootPath)
+
+    fun printZkTree(path: String): String = ZkTreePrinter(server.client).print(path, true)
 }
 
