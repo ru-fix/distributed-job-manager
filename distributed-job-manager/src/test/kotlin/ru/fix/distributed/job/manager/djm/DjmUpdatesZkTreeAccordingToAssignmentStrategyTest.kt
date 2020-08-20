@@ -88,6 +88,7 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
         createDjmWithEvenlySpread("worker-0", listOf(distributedJobs()[0]))
         createDjmWithEvenlySpread("worker-1", listOf(distributedJobs()[1]))
         createDjmWithEvenlySpread("worker-2", listOf(distributedJobs()[2]))
+
         awaitPathInit(listOf(
                 djmZkPathsManager.assignedWorkItem("worker-2", "distr-job-id-2", "distr-job-id-2.work-item-0")
         ))
@@ -259,7 +260,7 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
     }
 
     class JobWithBigDelay(identity: Int, private val workPool: WorkPool): DistributedJob{
-        override val jobId = JobId(identity.toString())
+        override val jobId = JobId("distr-job-id-" + identity)
         override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(TimeUnit.HOURS.toMillis(1)))
         override fun run(context: DistributedJobContext) { }
         override fun getWorkPool(): WorkPool = workPool
@@ -344,7 +345,7 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
 
     private fun awaitPathInit(itemPaths: List<String>) {
         Awaitility.await()
-                .atMost(Duration.ofSeconds(3))
+                .atMost(Duration.ofSeconds(10))
                 .pollDelay(Duration.ofMillis(200))
                 .until { pathsExists(itemPaths) }
     }
