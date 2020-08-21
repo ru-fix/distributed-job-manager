@@ -7,13 +7,8 @@ import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
-import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 import static ru.fix.distributed.job.manager.StubbedMultiJobKt.awaitSingleJobIsDistributedBetweenWorkers;
 
 /**
@@ -96,25 +91,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     }
 
     @Test
-    public void shouldMinimizeWorkerMultiThreadFactoryJobExecution() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(
-                new StubbedMultiJob(10, getWorkItems(10), 3600_000, 0, false)
-        ); // don't pass too big value here
-        try (
-                DistributedJobManager ignored = createNewJobManager(Collections.singletonList(testJob))
-        ) {
-            await().atMost(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS).untilAsserted(() -> {
-                Set<String> workPoolFromAllThreads = testJob.getAllWorkItems();
-
-                assertThat("Single distributed job should has all work item" + printDjmZkTree(),
-                        workPoolFromAllThreads, equalTo(testJob.getWorkPool().getItems()));
-            });
-            // 3 times, because one thread per work item
-            verify(testJob, timeout(1_000).times(3)).run(any());
-        }
-    }
-
-    @Test
     public void shouldUpdateWorkPool() throws Exception {
         StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
         StubbedMultiJob testJobOnWorker2 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);
@@ -172,49 +148,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             awaitSingleJobIsDistributedBetweenWorkers(50, testJobOnWorker1, testJobOnWorker2);
         }
-    }
-
-    //    @Test
-    public void shouldAddAndRemoveDistributedJob() throws Exception {
-        final String[] nodeIds = {"added-worker-1", "added-worker-2"};
-
-        CuratorFramework curator1 = defaultZkClient();
-        DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator1);
-        CuratorFramework curator2 = defaultZkClient();
-        DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator2);
-
-        jobManager1.close();
-        curator1.close();
-
-        Set<String> totalWorkPoolForFirstJob = getWorkItems(1);
-        await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
-
-            List<String> workPoolForFirstJobOnSecondWorker = curator2.getChildren()
-                    .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1).getId()));
-
-            assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
-                    workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printDjmZkTree(),
-                    workPoolForFirstJobOnSecondWorker.size() == totalWorkPoolForFirstJob.size()
-                            && workPoolForFirstJobOnSecondWorker.containsAll(totalWorkPoolForFirstJob)
-            );
-        });
-
-        jobManager2.close();
-        curator2.close();
-    }
-
-    private DistributedJobManager createNewJobManager(
-            String nodeId,
-            CuratorFramework curatorFramework
-    ) {
-        return createNewJobManager(
-                Arrays.asList(
-                        new StubbedMultiJob(1, getWorkItems(1)),
-                        new StubbedMultiJob(2, getWorkItems(2)),
-                        new StubbedMultiJob(3, getWorkItems(3))),
-                curatorFramework,
-                nodeId
-        );
     }
 
     private Set<String> getWorkItems(int jobId) {
