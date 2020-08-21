@@ -70,4 +70,41 @@ class AssignmentStateTest {
         state.getLessBusyWorkerWithJobId(JobId("j1"), WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wA"))
     }
 
+    @Test
+    fun `lessBusyWorker for empty assignmentState returns worker from availability`(){
+        val state = assignmentState {  }
+        state.getLessBusyWorker(WorkerId.setOf("wA")).shouldBe(WorkerId("wA"))
+    }
+
+    @Test
+    fun `getLessBusyWorkerWithJobId for empty assignmentState returns worker from availability`(){
+        val state = assignmentState {  }
+        state.getLessBusyWorkerWithJobId(JobId("j1"), WorkerId.setOf("wA")).shouldBe(WorkerId("wA"))
+    }
+
+    @Test
+    fun `getMostBusyWorkerWithJobId for empty assignmentState returns worker from availability`(){
+        val state = assignmentState {  }
+        state.getMostBusyWorkerWithJobId(JobId("j1"), WorkerId.setOf("wA")).shouldBe(WorkerId("wA"))
+    }
+
+    @Test
+    fun `mostBusyWorker for empty assignmentState returns worker from availability`(){
+        val state = assignmentState {  }
+        state.getMostBusyWorker(WorkerId.setOf("wA")).shouldBe(WorkerId("wA"))
+    }
+
+    @Test
+    fun `mostBusyWorker considers worker from availability even if they are absent in assignmetnState`(){
+        val state = assignmentState {
+            "wA" {
+                "j1"("0")
+            }
+            "wB"{
+                "j1"("1", "2")
+            }
+        }
+        state.getMostBusyWorker(WorkerId.setOf("wA", "wB")).shouldBe(WorkerId("wB"))
+        state.getMostBusyWorker(WorkerId.setOf("wA", "wB", "wC")).shouldBe(WorkerId("wB"))
+    }
 }
