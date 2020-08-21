@@ -7,13 +7,8 @@ import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
-import static ru.fix.distributed.job.manager.StubbedMultiJob.getJobId;
 import static ru.fix.distributed.job.manager.StubbedMultiJobKt.awaitSingleJobIsDistributedBetweenWorkers;
 
 /**
@@ -153,22 +148,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
 
             awaitSingleJobIsDistributedBetweenWorkers(50, testJobOnWorker1, testJobOnWorker2);
         }
-    }
-
-
-
-    private DistributedJobManager createNewJobManager(
-            String nodeId,
-            CuratorFramework curatorFramework
-    ) {
-        return createNewJobManager(
-                Arrays.asList(
-                        new StubbedMultiJob(1, getWorkItems(1)),
-                        new StubbedMultiJob(2, getWorkItems(2)),
-                        new StubbedMultiJob(3, getWorkItems(3))),
-                curatorFramework,
-                nodeId
-        );
     }
 
     private Set<String> getWorkItems(int jobId) {
