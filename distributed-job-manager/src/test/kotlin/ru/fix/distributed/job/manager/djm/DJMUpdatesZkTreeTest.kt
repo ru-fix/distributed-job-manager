@@ -3,6 +3,8 @@ package ru.fix.distributed.job.manager.djm
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.nulls.shouldNotBeNull
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.AssignmentState
@@ -14,7 +16,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
 import java.util.concurrent.TimeUnit
 
-class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
+class DJMUpdatesZkTreeTest : DJMTestSuite() {
 
     class JobForZkTreeCheck(jobId: String, private val workPool: WorkPool) : DistributedJob {
         override val jobId = JobId(jobId)
@@ -26,7 +28,7 @@ class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
     }
 
     @Test
-    fun `evenly spread when start 3 servers with different job set`() {
+    fun `assignments for evenly spread when start 3 servers with different job set`() {
         val job1 = JobForZkTreeCheck(
                 "job-1",
                 WorkPool.of("job-1-item-1", "job-1-item-2", "job-1-item-3"))
@@ -73,7 +75,7 @@ class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
     }
 
     @Test
-    fun `start 3 workers and destroy one of them`() {
+    fun `assignments for 3 workers before and after destroying one of them`() {
         val job1 = JobForZkTreeCheck(
                 "job-1",
                 WorkPool.of("job-1-item-1", "job-1-item-2", "job-1-item-3"))
@@ -122,6 +124,19 @@ class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
         )
     }
 
+    @Test
+    fun `djm adds new available work pool`() {
+        createDJM(
+                nodeId = "worker-1",
+                jobs = listOf(JobForZkTreeCheck("job-1", WorkPool.of("job-1-item-1"))))
+
+        await().atMost(30, TimeUnit.SECONDS).until {
+            server.client.checkExists()
+                    .forPath(
+                            djmZkPathsManager.availableWorkItem("job-1", "job-1-item-1")
+                    ) != null
+        }
+    }
 
 
     private fun readAssignedState(): AssignmentState {
@@ -146,4 +161,6 @@ class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
         }
         return assignedState
     }
+
+
 }

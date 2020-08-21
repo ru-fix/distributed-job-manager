@@ -3,8 +3,6 @@ package ru.fix.distributed.job.manager;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.*;
@@ -25,20 +23,6 @@ import static ru.fix.distributed.job.manager.StubbedMultiJobKt.awaitSingleJobIsD
 public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
     private static final int DEFAULT_TIMEOUT_SEC = 15;
 
-    private static final Logger logger = LoggerFactory.getLogger(WorkPooledMultiJobIT.class);
-
-    @Test
-    public void shouldAddNewAvailableWorkPool() throws Exception {
-        final String nodeId = "common-worker-1";
-        try (
-                CuratorFramework curator = defaultZkClient();
-                DistributedJobManager jobManager1 = createNewJobManager(nodeId, curator)
-        ) {
-            await().atMost(30, TimeUnit.SECONDS).untilAsserted(() ->
-                    assertNodeExists(paths.availableWorkItem(getJobId(1).getId(), "work-item-1.1"), curator)
-            );
-        }
-    }
 
     @Test
     public void shouldDistributeCommonJobs() throws Exception {
@@ -97,29 +81,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
                 assertThat(assertionMessage, !secondWorkPool.isEmpty());
                 assertThat(assertionMessage, mergedWorkPool, equalTo(getWorkItems(1)));
             });
-        }
-    }
-
-    @Test
-    public void shouldRunDistributedJob() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
-        try (
-                CuratorFramework curator = defaultZkClient();
-                DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob), curator)
-        ) {
-            verify(testJob, timeout(10_000)).run(any());
-        }
-    }
-
-    @Test
-    public void shouldRunDistributedJob_whichThrowsException() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(new StubbedMultiJob(1, getWorkItems(1)));
-        doThrow(new IllegalStateException("Exception in job :#)))")).when(testJob).run(any());
-        try (
-                CuratorFramework curator = defaultZkClient();
-                DistributedJobManager jobManager = createNewJobManager(Collections.singletonList(testJob), curator)
-        ) {
-            verify(testJob, timeout(10_000).times(10)).run(any());
         }
     }
 
