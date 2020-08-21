@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-open class DJMTestSuite {
+abstract class DJMTestSuite {
 
     companion object: Logging {
         private val lastNodeId = AtomicInteger(1)
