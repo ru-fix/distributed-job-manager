@@ -11,30 +11,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
-    @Test
-    fun `work pool single thread strategy passes several WorkItems to single job run`() {
-        val workItems = (1..10).map { it.toString() }.toSet()
-
-        val jobWithSingleThreadStrategy = object : DistributedJob {
-            val receivedWorkPool = AtomicReference<Set<String>>()
-
-            override val jobId = JobId("jobWithSingleThreadStrategy")
-            override fun getSchedule(): DynamicProperty<Schedule> = DynamicProperty.of(Schedule.withRate(10))
-            override fun run(context: DistributedJobContext) {
-                receivedWorkPool.set(context.workShare)
-            }
-
-            override fun getWorkPool() = WorkPool.of(workItems)
-            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
-            override fun getWorkPoolCheckPeriod(): Long = 0
-        }
-        val djm = createDJM(jobWithSingleThreadStrategy)
-        await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(1, TimeUnit.MINUTES).until {
-                    jobWithSingleThreadStrategy.receivedWorkPool.get() == workItems
-                }
-        closeDjm(djm)
-    }
 
     @Test
     fun `work pool thread per workItem strategy passes single WorkItem to job run and run all work items in parallel`() {
@@ -70,7 +46,7 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
         val job = object : DistributedJob {
             val runCalls = ConcurrentLinkedDeque<Set<String>>()
 
-            override val jobId = JobId("job-1")
+            override val jobId = JobId("job-with-single-thread-strategy")
             override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {
                 runCalls.add(context.workShare)
@@ -95,7 +71,7 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
             val runCalls = ConcurrentLinkedDeque<Set<String>>()
             val threadLatch = CountDownLatch(3)
 
-            override val jobId = JobId("job-1")
+            override val jobId = JobId("job-with-thread-per-work-item")
             override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(100))
             override fun run(context: DistributedJobContext) {
                 threadLatch.countDown()
@@ -113,7 +89,8 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
             val calls = job.runCalls.toList()
             calls.size > 3 * 3 &&
                     calls.all { it.size == 1 } &&
-                    calls.flatten().groupBy { it }.all { it.value.toSet().size == 1 }
+                    calls.flatten().groupBy { it }.all { it.value.toSet().size == 1 } &&
+                    calls.flatten().groupBy { it }.keys.toSet() == setOf("item-1", "item-2", "item-3")
 
         }
     }
