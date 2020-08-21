@@ -155,34 +155,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
-    //    @Test
-    public void shouldAddAndRemoveDistributedJob() throws Exception {
-        final String[] nodeIds = {"added-worker-1", "added-worker-2"};
 
-        CuratorFramework curator1 = defaultZkClient();
-        DistributedJobManager jobManager1 = createNewJobManager(nodeIds[0], curator1);
-        CuratorFramework curator2 = defaultZkClient();
-        DistributedJobManager jobManager2 = createNewJobManager(nodeIds[1], curator2);
-
-        jobManager1.close();
-        curator1.close();
-
-        Set<String> totalWorkPoolForFirstJob = getWorkItems(1);
-        await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
-
-            List<String> workPoolForFirstJobOnSecondWorker = curator2.getChildren()
-                    .forPath(paths.assignedWorkPool(nodeIds[1], getJobId(1).getId()));
-
-            assertThat(String.format("the only alive worker should have all work-pool of job, but it has %s instead of %s",
-                    workPoolForFirstJobOnSecondWorker, totalWorkPoolForFirstJob) + printDjmZkTree(),
-                    workPoolForFirstJobOnSecondWorker.size() == totalWorkPoolForFirstJob.size()
-                            && workPoolForFirstJobOnSecondWorker.containsAll(totalWorkPoolForFirstJob)
-            );
-        });
-
-        jobManager2.close();
-        curator2.close();
-    }
 
     private DistributedJobManager createNewJobManager(
             String nodeId,

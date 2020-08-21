@@ -8,7 +8,6 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
 

@@ -1,9 +1,7 @@
 package ru.fix.distributed.job.manager.djm
 
 import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
-import io.kotest.matchers.nulls.shouldNotBeNull
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
@@ -144,6 +142,33 @@ class DJMUpdatesZkTreeTest : DJMTestSuite() {
                     .forPath(
                             djmZkPathsManager.availableWorkItem("job-1", "job-1-item-1")
                     ) != null
+        }
+    }
+
+    @Test
+    fun `djm1 shutdowns, all workItems assigned to djm2`(){
+        val workPool = WorkPool.of("item-1", "item-2", "item-3")
+
+        val djm1 = createDJM(
+                jobs = listOf(
+                        JobForZkTreeCheck("job-1", workPool)),
+                nodeId = "worker-1")
+
+        val djm2 = createDJM(
+                jobs = listOf(
+                        JobForZkTreeCheck("job-1", workPool)),
+                nodeId = "worker-2")
+
+        sleep(1000)
+        closeDjm(djm1)
+
+        sleep(1000)
+
+        await().atMost(30, TimeUnit.SECONDS).until{
+            val workPoolForJobOnSecondWorker = server.client.getChildren()
+                    .forPath(djmZkPathsManager.assignedWorkPool("worker-2", "job-1"));
+
+            workPoolForJobOnSecondWorker.sorted() == workPool.items.sorted()
         }
     }
 
