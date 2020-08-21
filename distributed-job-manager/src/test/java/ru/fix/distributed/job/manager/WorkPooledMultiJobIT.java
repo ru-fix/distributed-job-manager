@@ -95,24 +95,7 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
-    @Test
-    public void shouldMinimizeWorkerMultiThreadFactoryJobExecution() throws Exception {
-        StubbedMultiJob testJob = Mockito.spy(
-                new StubbedMultiJob(10, getWorkItems(10), 3600_000, 0, false)
-        ); // don't pass too big value here
-        try (
-                DistributedJobManager ignored = createNewJobManager(Collections.singletonList(testJob))
-        ) {
-            await().atMost(DEFAULT_TIMEOUT_SEC, TimeUnit.SECONDS).untilAsserted(() -> {
-                Set<String> workPoolFromAllThreads = testJob.getAllWorkItems();
 
-                assertThat("Single distributed job should has all work item" + printDjmZkTree(),
-                        workPoolFromAllThreads, equalTo(testJob.getWorkPool().getItems()));
-            });
-            // 3 times, because one thread per work item
-            verify(testJob, timeout(1_000).times(3)).run(any());
-        }
-    }
 
     @Test
     public void shouldUpdateWorkPool() throws Exception {
