@@ -82,7 +82,10 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * or return null if availableWorkers are empty
      */
     public WorkerId getLessBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId lessBusyWorker = null;
+        WorkerId lessBusyWorker = availableWorkers.stream()
+                .filter(workerId -> !this.containsKey(workerId))
+                .findFirst()
+                .orElse(null);
         int minLocalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
         int minGlobalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
 
@@ -117,7 +120,11 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * or null, if assignment state or availableWorkers are empty
      */
     public WorkerId getLessBusyWorker(Set<WorkerId> availableWorkers) {
-        WorkerId lessBusyWorker = null;
+        WorkerId lessBusyWorker = availableWorkers.stream()
+                .filter(workerId -> !this.containsKey(workerId))
+                .findFirst()
+                .orElse(null);
+
         int minWorkPool = Integer.MAX_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {
@@ -143,7 +150,10 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * or return null if availableWorkers are empty
      */
     public WorkerId getMostBusyWorkerWithJobId(JobId jobId, Set<WorkerId> availableWorkers) {
-        WorkerId mostBusyWorker = null;
+        WorkerId mostBusyWorker = availableWorkers.stream()
+                .filter(workerId -> !this.containsKey(workerId))
+                .findFirst()
+                .orElse(null);
         int maxLocalWorkPoolSizeOnWorker = Integer.MIN_VALUE;
         int maxGlobalWorkPoolSizeOnWorker = Integer.MAX_VALUE;
 
@@ -178,7 +188,11 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
      * *  or null, if assignment state or availableWorkers are empty
      */
     public WorkerId getMostBusyWorker(Set<WorkerId> availableWorkers) {
-        WorkerId mostBusyWorker = null;
+        WorkerId mostBusyWorker = availableWorkers.stream()
+                .filter(workerId -> !this.containsKey(workerId))
+                .findFirst()
+                .orElse(null);
+
         int maxWorkPoolSize = Integer.MIN_VALUE;
 
         for (Map.Entry<WorkerId, HashSet<WorkItem>> worker : entrySet()) {

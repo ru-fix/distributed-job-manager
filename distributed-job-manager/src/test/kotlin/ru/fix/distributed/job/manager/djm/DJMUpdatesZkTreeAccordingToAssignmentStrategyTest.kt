@@ -17,71 +17,7 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
-
-    private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
-
-        override fun reassignAndBalance(
-                availability: Availability,
-                prevAssignment: AssignmentState,
-                currentAssignment: AssignmentState,
-                itemsToAssign: MutableSet<WorkItem>
-        ) {
-            for ((key, value) in availability) {
-                val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
-
-                value.forEach { workerId -> currentAssignment.putIfAbsent(workerId, HashSet<WorkItem>()) }
-
-                for (item in itemsToAssignForJob) {
-                    if (prevAssignment.containsWorkItem(item)) {
-                        val workerFromPrevious = prevAssignment.getWorkerOfWorkItem(item)
-                        currentAssignment.addWorkItem(workerFromPrevious, item)
-                    } else {
-                        val lessBusyWorker = currentAssignment
-                                .getLessBusyWorker(value)
-                        currentAssignment.addWorkItem(lessBusyWorker, item)
-                    }
-                }
-
-            }
-        }
-    }
-
-    // Strategy assign work items on workers, which doesn't contains of any work item of ussd job
-    private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
-
-        override fun reassignAndBalance(
-                availability: Availability,
-                prevAssignment: AssignmentState,
-                currentAssignment: AssignmentState,
-                itemsToAssign: MutableSet<WorkItem>
-        ) {
-            for ((key, value) in availability) {
-                val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
-                val availableWorkers = HashSet(value)
-
-                value.forEach { workerId ->
-                    currentAssignment.putIfAbsent(workerId, HashSet<WorkItem>())
-
-                    // ignore worker, where ussd job was launched
-                    if (currentAssignment.containsAnyWorkItemOfJob(workerId, JobId("distr-job-id-1"))) {
-                        availableWorkers.remove(workerId)
-                    }
-                }
-
-                for (item in itemsToAssignForJob) {
-                    if (currentAssignment.containsWorkItem(item)) {
-                        continue
-                    }
-
-                    val lessBusyWorker = currentAssignment
-                            .getLessBusyWorker(availableWorkers)
-                    currentAssignment.addWorkItem(lessBusyWorker, item)
-                    itemsToAssign.remove(item)
-                }
-            }
-        }
-    }
+class DJMUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
 
     @Test
     fun `evenly spread when start 3 servers with different work pools`() {
@@ -184,60 +120,6 @@ class DjmUpdatesZkTreeAccordingToAssignmentStrategyTest : DJMTestSuite() {
         assertTrue(assignedState.isBalancedForEachJob(generateAvailability(readAvailableState())))
     }
 
-    @Test
-    @Throws(Exception::class)
-    fun `custom assigment strategy on 4 workers with identical work pool`() {
-        val smsJob = JobWithBigDelay(0, createWorkPool("distr-job-id-0", 3))
-        val ussdJob = JobWithBigDelay(1, createWorkPool("distr-job-id-1", 1))
-        val rebillJob = JobWithBigDelay(2, createWorkPool("distr-job-id-2", 7))
-
-        val customStrategy = object : AbstractAssignmentStrategy() {
-            override fun reassignAndBalance(
-                    availability: Availability,
-                    prevAssignment: AssignmentState,
-                    currentAssignment: AssignmentState,
-                    itemsToAssign: MutableSet<WorkItem>
-            ) {
-                ussdAssignmentStrategy.reassignAndBalance(
-                        Availability.of(mutableMapOf(JobId("distr-job-id-1") to availability[JobId("distr-job-id-1")]!!)),
-                        prevAssignment,
-                        currentAssignment,
-                        itemsToAssign
-                )
-                availability.remove(JobId("distr-job-id-1"))
-
-                smsAssignmentStrategy.reassignAndBalance(
-                        Availability.of(mutableMapOf(JobId("distr-job-id-0") to availability[JobId("distr-job-id-0")]!!)),
-                        prevAssignment,
-                        currentAssignment,
-                        itemsToAssign
-                )
-                availability.remove(JobId("distr-job-id-0"))
-
-                // reassign items of other jobs using evenly spread strategy
-                AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
-                        availability,
-                        prevAssignment,
-                        currentAssignment,
-                        itemsToAssign
-                )
-            }
-        }
-
-        createDJM(nodeId = "worker-0", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
-        createDJM(nodeId = "worker-1", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
-        createDJM(nodeId = "worker-2", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
-        createDJM(nodeId = "worker-3", jobs = listOf(smsJob, ussdJob, rebillJob), assignmentStrategy = customStrategy)
-
-        awaitPathInit(listOf(
-                djmZkPathsManager.assignedWorkItem("worker-3", "distr-job-id-0", "distr-job-id-0.work-item-2")
-        ))
-
-        val assignedState = readAssignedState()
-        assertTrue(assignedState.isBalancedByJobId(JobId("distr-job-id-2"),
-                mutableSetOf(WorkerId("worker-0"), WorkerId("worker-1"), WorkerId("worker-2"), WorkerId("worker-3")))
-        )
-    }
 
     private fun pathsExists(itemPaths: List<String>): Boolean {
         val curator = server.client

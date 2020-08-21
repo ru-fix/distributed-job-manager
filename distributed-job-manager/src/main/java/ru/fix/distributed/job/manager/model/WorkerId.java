@@ -27,6 +27,7 @@ public class WorkerId implements Comparable<WorkerId> {
 
     @Override
     public int compareTo(@NotNull WorkerId o) {
+        Objects.requireNonNull(o);
         return this.id.compareTo(o.getId());
     }
 
