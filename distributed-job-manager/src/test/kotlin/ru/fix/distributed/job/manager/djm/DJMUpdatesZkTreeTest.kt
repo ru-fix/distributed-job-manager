@@ -103,8 +103,17 @@ class DJMUpdatesZkTreeTest : DJMTestSuite() {
 
         sleep(1000)
         var assignedState = readAssignedState()
-        assignedState.isBalanced.shouldBeTrue()
-
+        assignedState.values.flatten().shouldContainExactlyInAnyOrder(
+                WorkItem("job-1-item-1", JobId("job-1")),
+                WorkItem("job-1-item-2", JobId("job-1")),
+                WorkItem("job-1-item-3", JobId("job-1")),
+                WorkItem("job-2-item-1", JobId("job-2")),
+                WorkItem("job-3-item-1", JobId("job-3")),
+                WorkItem("job-3-item-2", JobId("job-3")),
+                WorkItem("job-3-item-3", JobId("job-3")),
+                WorkItem("job-3-item-4", JobId("job-3")),
+                WorkItem("job-3-item-5", JobId("job-3"))
+        )
         closeDjm(doomedDjm)
 
         sleep(2000)
