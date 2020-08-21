@@ -328,10 +328,6 @@ class DJMJobLaunchingTest : DJMTestSuite() {
         closeDjm(djm)
     }
 
-
-
-
-
     @Test
     fun `djm follows assignment strategy`() {
         val workItems = (1..10).map { it.toString() }.toSet()

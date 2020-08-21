@@ -95,8 +95,6 @@ public class WorkPooledMultiJobIT extends AbstractJobManagerTest {
         }
     }
 
-
-
     @Test
     public void shouldUpdateWorkPool() throws Exception {
         StubbedMultiJob testJobOnWorker1 = new StubbedMultiJob(10, getWorkItems(10), 100, 3000);

@@ -12,34 +12,6 @@ import java.util.concurrent.atomic.AtomicReference
 
 class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
 
-    @Test
-    fun `work pool thread per workItem strategy passes single WorkItem to job run and run all work items in parallel`() {
-        val workItems = (1..10).map { it.toString() }.toSet()
-
-        val jobWithThreadPerWorkItem = object : DistributedJob {
-            val receivedWorkShare = ConcurrentLinkedDeque<Set<String>>()
-
-            override val jobId = JobId("jobWithThreadPerWorkItem")
-            override fun getSchedule() = DynamicProperty.of(Schedule.withRate(100))
-            override fun run(context: DistributedJobContext) {
-                receivedWorkShare.add(context.workShare)
-            }
-
-            override fun getWorkPool() = WorkPool.of(workItems)
-            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getThreadPerWorkItemStrategy()
-            override fun getWorkPoolCheckPeriod(): Long = 0
-        }
-
-        val djm = createDJM(jobWithThreadPerWorkItem)
-        await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(1, TimeUnit.MINUTES).until {
-                    val workShares = jobWithThreadPerWorkItem.receivedWorkShare.toList()
-                    workShares.flatten().toSet().size == 10 &&
-                            workShares.all { it.size == 1 }
-                }
-
-        closeDjm(djm)
-    }
 
     @Test
     fun `single thread strategy launches all WorkItems with single run call`() {
@@ -66,7 +38,7 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
     }
 
     @Test
-    fun `thread per launch strategy launches all WorkItems in different threads`() {
+    fun `thread per workItem strategy passes single WorkItem to job run and run all items in parallel`() {
         val job = object : DistributedJob {
             val runCalls = ConcurrentLinkedDeque<Set<String>>()
             val threadLatch = CountDownLatch(3)
