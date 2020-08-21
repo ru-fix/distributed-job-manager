@@ -95,7 +95,7 @@ class DJMWorkItemsBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
         val djm3 = createDJM(job3)
 
         await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(15, TimeUnit.SECONDS)
+                .atMost(30, TimeUnit.SECONDS)
                 .until {
                     job1.lastUsedWorkShare.get().isNotEmpty() &&
                             job2.lastUsedWorkShare.get().isNotEmpty() &&
@@ -109,7 +109,7 @@ class DJMWorkItemsBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
         disconnectDjm(djm3)
 
         await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(15, TimeUnit.SECONDS)
+                .atMost(30, TimeUnit.SECONDS)
                 .until {
                     job1.lastUsedWorkShare.get().isNotEmpty() &&
                             job2.lastUsedWorkShare.get().isNotEmpty() &&
