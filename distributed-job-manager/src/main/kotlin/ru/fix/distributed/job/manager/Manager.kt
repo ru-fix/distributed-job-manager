@@ -16,7 +16,8 @@ import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
 /**
- * Only single manager is active on the cluster.
+ * Only single manager is active in the cluster.
+ * Listen via zookeeper for workers count change or job workPool updates.
  * Manages job assignments on cluster by modifying assignment section of zookeeper tree.
  *
  * @author Kamil Asfandiyarov

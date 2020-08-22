@@ -2,6 +2,7 @@ package ru.fix.distributed.job.manager.djm
 
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Test
 import ru.fix.aggregating.profiler.AggregatingProfiler
@@ -133,4 +134,29 @@ class DJMProfilingTest : DJMTestSuite() {
                 }
         closeDjm(djm)
     }
+
+    @Test
+    fun `DJM logs start and stop information to log`(){
+        val logRecorder = Log4jLogRecorder()
+
+        val nothingJob = object : DistributedJob {
+            override val jobId = JobId("nothingJob")
+            override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(1000))
+            override fun run(context: DistributedJobContext) {}
+            override fun getWorkPool() = WorkPool.singleton()
+            override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
+            override fun getWorkPoolCheckPeriod() = 0L
+        }
+        val djm = createDJM(nothingJob)
+
+        logRecorder.getContent().shouldContain("Starting DJM")
+        logRecorder.getContent().shouldContain("DJM with id .* started".toRegex())
+
+        closeDjm(djm)
+        logRecorder.getContent().shouldContain("Closing DJM")
+        logRecorder.getContent().shouldContain("DJM closed")
+
+        logRecorder.close()
+    }
+
 }

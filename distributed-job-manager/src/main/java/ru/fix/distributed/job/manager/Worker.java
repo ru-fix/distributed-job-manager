@@ -505,7 +505,6 @@ class Worker implements AutoCloseable {
     @Override
     public void close() throws Exception {
         isWorkerShutdown = true;
-        long closingStart = System.currentTimeMillis();
 
         // shutdown cache to stop updates
         CuratorCache curatorCache = workPooledCache;
@@ -554,8 +553,7 @@ class Worker implements AutoCloseable {
 
         lockManager.close();
 
-        log.info("Distributed job manager closing completed. Closing took {} ms.",
-                System.currentTimeMillis() - closingStart);
+
     }
 
     private void shutdownAllJobExecutions() {
