@@ -78,27 +78,27 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         val djm = createDJM(
                 jobs = listOf(job1, job2),
                 jobDisableConfig = settingsEditor.jobDisableConfig
-        ).use {
-            await().atMost(defaultJobRunTimeout).untilAsserted {
-                verify(job1, never()).run(any())
-                verify(job2, times(1)).run(any())
-            }
-            settingsEditor.disableConcreteJob(job2)
-            await().pollDelay(defaultJobRunTimeout).untilAsserted {
-                verify(job1, never()).run(any())
-                verify(job2, times(1)).run(any())
-            }
-            settingsEditor.enableConcreteJob(job1)
-            await().atMost(defaultJobRunTimeout).untilAsserted {
-                verify(job1, times(1)).run(any())
-                verify(job2, times(1)).run(any())
-            }
-            settingsEditor.enableConcreteJob(job2)
-            await().atMost(defaultJobRunTimeout).untilAsserted {
-                verify(job1, atLeast(2)).run(any())
-                verify(job2, atLeast(2)).run(any())
-            }
+        )
+        await().atMost(defaultJobRunTimeout).untilAsserted {
+            verify(job1, never()).run(any())
+            verify(job2, times(1)).run(any())
         }
+        settingsEditor.disableConcreteJob(job2)
+        await().pollDelay(defaultJobRunTimeout).untilAsserted {
+            verify(job1, never()).run(any())
+            verify(job2, times(1)).run(any())
+        }
+        settingsEditor.enableConcreteJob(job1)
+        await().atMost(defaultJobRunTimeout).untilAsserted {
+            verify(job1, times(1)).run(any())
+            verify(job2, times(1)).run(any())
+        }
+        settingsEditor.enableConcreteJob(job2)
+        await().atMost(defaultJobRunTimeout).untilAsserted {
+            verify(job1, atLeast(2)).run(any())
+            verify(job2, atLeast(2)).run(any())
+        }
+
     }
 
     @Test
@@ -113,12 +113,12 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         val djm = createDJM(
                 jobs = listOf(job1, job2),
                 jobDisableConfig = settingsEditor.jobDisableConfig
-        ).use {
-            await().pollDelay(defaultJobRunTimeout).untilAsserted {
-                verify(job1, never()).run(any())
-                verify(job2, never()).run(any())
-            }
+        )
+        await().pollDelay(defaultJobRunTimeout).untilAsserted {
+            verify(job1, never()).run(any())
+            verify(job2, never()).run(any())
         }
+
     }
 
     fun createDJM(jobs: List<DistributedJob>, jobDisableConfig: DynamicProperty<JobDisableConfig>) =
