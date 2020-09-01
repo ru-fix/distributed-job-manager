@@ -9,6 +9,7 @@ import org.netcrusher.tcp.TcpCrusher
 import ru.fix.aggregating.profiler.NoopProfiler
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 abstract class DJMTestSuite {
 
-    companion object: Logging {
+    companion object : Logging {
         private val lastNodeId = AtomicInteger(1)
         fun generateNodeId() = lastNodeId.incrementAndGet().toString()
 
@@ -74,28 +75,31 @@ abstract class DJMTestSuite {
     fun createDJM(jobs: List<DistributedJob>,
                   profiler: Profiler = NoopProfiler(),
                   assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
-                  workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of(1000L),
-                  nodeId: String = generateNodeId()): DistributedJobManager {
+                  nodeId: String = generateNodeId(),
+                  settings: DynamicProperty<DistributedJobManagerSettings> = DynamicProperty.of(
+                          DistributedJobManagerSettings(
+                                  timeToWaitTermination = 10000,
+                                  workPoolCleanPeriod = 1000,
+                                  lockManagerConfig = PersistentExpiringLockManagerConfig(
+                                          lockAcquirePeriod = Duration.ofSeconds(15),
+                                          expirationPeriod = Duration.ofSeconds(5),
+                                          lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                                  ),
+                                  jobDisableConfig = JobDisableConfig())
+                  )
+    ): DistributedJobManager {
 
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
         try {
             val djm = DistributedJobManager(
                     curator,
+                    nodeId,
+                    djmZkRootPath,
+                    assignmentStrategy,
                     jobs,
                     profiler,
-                    DistributedJobManagerSettings(
-                            nodeId = nodeId,
-                            rootPath = djmZkRootPath,
-                            assignmentStrategy = assignmentStrategy,
-                            timeToWaitTermination = DynamicProperty.of(10000),
-                            workPoolCleanPeriod = workPoolCleanPeriod,
-                            lockManagerConfig = DynamicProperty.of(PersistentExpiringLockManagerConfig(
-                                    lockAcquirePeriod = Duration.ofSeconds(15),
-                                    expirationPeriod = Duration.ofSeconds(5),
-                                    lockCheckAndProlongInterval = Duration.ofSeconds(5)
-                            ))
-                    ))
+                    settings)
             djmConnections[djm] = DjmZkConnector(curator, tcpCrusher)
             return djm
         } catch (exc: Exception) {
@@ -105,11 +109,11 @@ abstract class DJMTestSuite {
         }
     }
 
-    fun disconnectDjm(djm: DistributedJobManager){
+    fun disconnectDjm(djm: DistributedJobManager) {
         djmConnections[djm]!!.disconnect()
     }
 
-    fun connectDjm(djm: DistributedJobManager){
+    fun connectDjm(djm: DistributedJobManager) {
         djmConnections[djm]!!.connect()
     }
 
@@ -117,14 +121,14 @@ abstract class DJMTestSuite {
         return djmConnections[djm]!!.isOpen
     }
 
-    fun closeDjm(djm: DistributedJobManager){
+    fun closeDjm(djm: DistributedJobManager) {
         val connector = djmConnections.remove(djm)!!
         djm.close()
         connector.close()
     }
 
-    fun closeAllDjms(){
-        djmConnections.keys().toList().forEach (this::closeDjm)
+    fun closeAllDjms() {
+        djmConnections.keys().toList().forEach(this::closeDjm)
     }
 
     val djms: List<DistributedJobManager> get() = djmConnections.keys().toList()

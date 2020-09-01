@@ -163,15 +163,15 @@ class CustomAssignmentStrategy : AssignmentStrategy {
 fun main() {
     DistributedJobManager(
             CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
+            "my-app-instance-1",
+            "zk/root/path",
+            CustomAssignmentStrategy(),
             listOf(SmsJob(), UssdJob(), RebillJob()),
             AggregatingProfiler(),
-            DistributedJobManagerSettings(
-                    nodeId = "my-app-instance-1",
-                    rootPath = "zk/root/path",
-                    assignmentStrategy = CustomAssignmentStrategy(),
-                    timeToWaitTermination = DynamicProperty.of(180_000L),
-                    workPoolCleanPeriod = DynamicProperty.of(1_000L)
-            )
+            DynamicProperty.of(DistributedJobManagerSettings(
+                    timeToWaitTermination = 180_000L,
+                    workPoolCleanPeriod = 1_000L))
+
     )
 }
 
