@@ -1,29 +1,31 @@
 package ru.fix.distributed.job.manager.model
 
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
-import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import java.util.concurrent.TimeUnit
 
 data class DistributedJobManagerSettings @JvmOverloads constructor(
-        val nodeId: String,
-        val rootPath: String,
-        val assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
+
         /**
-         * Time to wait for tasks to be completed when the application is closed and when tasks are redistributed
+         * Time to wait for tasks to complete or redistributed when the DJM instance is closing
          * */
-        val timeToWaitTermination: DynamicProperty<Long> = DynamicProperty.of(TimeUnit.MINUTES.toMillis(15)),
+        val timeToWaitTermination: Long = TimeUnit.MINUTES.toMillis(15),
         /**
-         * Delay between launching task for removing not relevant jobs from `work-pool` subtree.
+         * How often cleaning process checks for obsolete not relevant jobs
+         * in ZooKeeper `work-pool` subtree.
+         * Obsolete jobs appears when new version of application with different set of jobs is starts in the cluster.
          * Minor process. Default value is three hours
          * */
-        val workPoolCleanPeriod: DynamicProperty<Long> = DynamicProperty.of( TimeUnit.HOURS.toMillis(3)),
+        val workPoolCleanPeriod: Long = TimeUnit.HOURS.toMillis(3),
 
-        val jobDisableConfig: DynamicProperty<JobDisableConfig> = DynamicProperty.of(JobDisableConfig()),
+        /**
+         * Disabled Job work items continue to distribute and assign but job stop launching.
+         */
+        val jobDisableConfig: JobDisableConfig = JobDisableConfig(),
 
-        val lockManagerConfig: DynamicProperty<PersistentExpiringLockManagerConfig> =
-                DynamicProperty.of(PersistentExpiringLockManagerConfig())
+        /**
+         * Policy for persistent locks used to prevent parallel execution of same work item wihin DJM cluster.
+         */
+        val lockManagerConfig: PersistentExpiringLockManagerConfig = PersistentExpiringLockManagerConfig()
 )
 
 data class JobDisableConfig(

@@ -9,7 +9,9 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 import org.apache.logging.log4j.kotlin.Logging
 import ru.fix.aggregating.profiler.Profiler
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.AtomicProperty
+import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.events.ReducingEventAccumulator
 import ru.fix.stdlib.concurrency.threads.NamedExecutors
 import java.util.concurrent.Semaphore
@@ -25,11 +27,12 @@ import java.util.concurrent.TimeUnit
  */
 class Manager(
         curatorFramework: CuratorFramework,
+        private val nodeId: String,
+        private val paths: ZkPathsManager,
+        private val assignmentStrategy: AssignmentStrategy,
         profiler: Profiler,
-        settings: DistributedJobManagerSettings
+        settings: DynamicProperty<DistributedJobManagerSettings>
 ) : AutoCloseable {
-    private val paths = ZkPathsManager(settings.rootPath)
-    private val nodeId = settings.nodeId
 
     private val aliveWorkersCache = CuratorCache
             .bridgeBuilder(curatorFramework, paths.aliveWorkers())
@@ -46,10 +49,18 @@ class Manager(
     private val currentState = AtomicProperty(State.IS_NOT_LEADER)
 
     private val cleaner = Cleaner(
-            profiler, paths, curatorFramework, currentState, settings.workPoolCleanPeriod, aliveWorkersCache
+            profiler,
+            paths,
+            curatorFramework,
+            currentState,
+            settings.map{it.workPoolCleanPeriod},
+            aliveWorkersCache
     )
     private val rebalancer = Rebalancer(
-            paths, curatorFramework, settings.assignmentStrategy, nodeId
+            paths,
+            curatorFramework,
+            assignmentStrategy,
+            nodeId
     )
 
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)

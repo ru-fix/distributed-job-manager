@@ -8,6 +8,9 @@ import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
+import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
+import ru.fix.dynamic.property.api.DynamicProperty;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -18,7 +21,7 @@ import java.util.stream.Collectors;
  * How to use: <br>
  * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
  * In {@link DistributedJobManager#DistributedJobManager(
- *CuratorFramework, Collection, Profiler, DistributedJobManagerSettings)}
+ * CuratorFramework, String, String, AssignmentStrategy, Collection, Profiler, DistributedJobManagerSettings)}
  * register list of jobs that could run on this server (JVM instance).
  * {@link DistributedJobManager} will balance workload between available servers for you.
  * </p>
@@ -38,8 +41,6 @@ import java.util.stream.Collectors;
  * <p>
  * ZK node tree managed by {@link DistributedJobManager} described in {@link ZkPathsManager}
  * <pre>
- *
- * @author Kamil Asfandiyarov
  */
 public class DistributedJobManager implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(DistributedJobManager.class);
@@ -47,17 +48,37 @@ public class DistributedJobManager implements AutoCloseable {
     private final Worker worker;
     private final Manager manager;
     private final String nodeId;
+    private final String rootPath;
     private final Profiler djmProfiler;
-    private final DistributedJobManagerSettings settings;
+    private final DynamicProperty<DistributedJobManagerSettings> settings;
 
-    public DistributedJobManager(CuratorFramework curatorFramework,
-                                 Collection<DistributedJob> userDefinedJobs,
-                                 Profiler profiler,
-                                 DistributedJobManagerSettings settings) throws Exception {
+    /**
+     *
+     * @param curatorFramework client to access ZooKeeper
+     * @param nodeId unique identifies DJM instance within DJM cluster. Providing non unique identifies
+     *               could lead to undetermined behaviour of DJM cluster.
+     * @param rootPath path within ZooKeeper where DJM will store it's state.
+     *                 All DJM instances within same cluster should share same rootPath.
+     * @param assignmentStrategy Specifies how to distribute job work items between DJM nodes,
+     *                           use {@link ru.fix.distributed.job.manager.strategy.AssignmentStrategies#DEFAULT}
+     * @param userDefinedJobs Job instances to launch within DJM cluster
+     * @param profiler records DJM metrics
+     * @param settings DJM configuration
+     */
+    public DistributedJobManager(
+            CuratorFramework curatorFramework,
+            String nodeId,
+            String rootPath,
+            AssignmentStrategy assignmentStrategy,
+            Collection<DistributedJob> userDefinedJobs,
+            Profiler profiler,
+            DynamicProperty<DistributedJobManagerSettings> settings) throws Exception {
 
-        this.nodeId = settings.getNodeId();
+
+        this.nodeId = nodeId;
+        this.rootPath = rootPath;
         this.settings = settings;
-        logger.info("Starting DJM with id {} at {}", nodeId, settings.getRootPath());
+        logger.info("Starting DJM with id {} at {}", nodeId, rootPath);
 
         this.djmProfiler = new PrefixedProfiler(
                 profiler,
@@ -66,16 +87,24 @@ public class DistributedJobManager implements AutoCloseable {
         );
 
         try(ProfiledCall initProfiledCall = djmProfiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
-            ZkPathsManager paths = new ZkPathsManager(settings.getRootPath());
+            ZkPathsManager paths = new ZkPathsManager(rootPath);
             paths.initPaths(curatorFramework);
 
             Collection<JobDescriptor> jobs = userDefinedJobs.stream()
                     .map(JobDescriptor::new).collect(Collectors.toList());
 
-            this.manager = new Manager(curatorFramework, djmProfiler, settings);
+            this.manager = new Manager(
+                    curatorFramework,
+                    nodeId,
+                    paths,
+                    assignmentStrategy,
+                    djmProfiler,
+                    settings);
 
             this.worker = new Worker(
                     curatorFramework,
+                    nodeId,
+                    paths,
                     jobs,
                     djmProfiler,
                     settings);
@@ -85,12 +114,12 @@ public class DistributedJobManager implements AutoCloseable {
 
             initProfiledCall.stop();
         }
-        logger.info("DJM with id {} at {} started.", nodeId, settings.getRootPath());
+        logger.info("DJM with id {} at {} started.", nodeId, rootPath);
     }
 
     @Override
     public void close() throws Exception {
-        logger.info("Closing DJM with id {} at {}", nodeId, settings.getRootPath());
+        logger.info("Closing DJM with id {} at {}", nodeId, rootPath);
         long closingStart = System.currentTimeMillis();
 
         djmProfiler.profiledCall(ProfilerMetrics.DJM_CLOSE).profileThrowable(() -> {
