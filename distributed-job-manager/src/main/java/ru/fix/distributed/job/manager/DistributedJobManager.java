@@ -18,29 +18,26 @@ import java.util.stream.Collectors;
 
 /**
  * <p>
- * How to use: <br>
- * Create single instance of {@link DistributedJobManager} for each server (JVM instances).
- * In {@link DistributedJobManager#DistributedJobManager(
- * CuratorFramework, String, String, AssignmentStrategy, Collection, Profiler, DistributedJobManagerSettings)}
- * register list of jobs that could run on this server (JVM instance).
- * {@link DistributedJobManager} will balance workload between available servers for you.
+ * Schedules and launches {@link DistributedJob} instances.
+ * Balance work load {@link WorkPool} between {@link DistributedJobManager} instances within cluster.
  * </p>
  * <p>
- * Each node instance register as worker and provide Executor to run Jobs. <br>
- * One of node will be selected as leader and became Manager.
- * Manager controls job assignment.
- * Node with Manager also starts local Worker so Node can work as worker and as a manager.
- * <br>
- * Every worker provides unique id and register as child node at /workers <br>
- * Every worker register available jobs classes that it can run in /workers/worker-id/available/job-id and /work-pool/job-id <br>
- * Avery worker listen to /workers/id/assigned. New schedulable job assignments will be added there by Manager. <br>
- * When new assigned job appears, worker acquire lock /jobs/job-id.lock and start launching it with given
- * delay.
- * When job disappears from worker /assigned path, worker stop executing job and release job lock.
+ * Create single instance of {@link DistributedJobManager} within each application instances.
+ * {@link DistributedJobManager#DistributedJobManager(CuratorFramework, String, String, AssignmentStrategy, Collection, Profiler, DynamicProperty)}
+ * All DJM instances should have same rootPath and different nodeId.
+ * Provide list of jobs that could run within this application instance/servers (JVM instance).
+ * {@link DistributedJobManager} will balance workload between available applications/servers for you.
  * </p>
  * <p>
- * ZK node tree managed by {@link DistributedJobManager} described in {@link ZkPathsManager}
- * <pre>
+ * Each DJM node instance behave as a Worker and provides threads to launch jobs {@link DistributedJob}. <br>
+ * One of DJM node instances within cluster will be selected as a leader and behave as a Manager.  <br>
+ * Manager controls job assignment for workers within cluster. <br>
+ * So within cluster of DJM nodes all nodes will work as a Workers and one node will work as a Manager and also as a Worker.  <br>
+ * Every worker provides unique id and register a child node at /workers zookeeper path <br>
+ * Every worker registers available jobs that it can run in /workers/worker-id/available/job-id and /work-pool/job-id  zookeeper paths <br>
+ * Avery worker listens to /workers/worker-id/assigned subtree.  <br>
+ * New schedulable job assignments will be added to this subtree by Manager. <br>
+ * </p>
  */
 public class DistributedJobManager implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(DistributedJobManager.class);

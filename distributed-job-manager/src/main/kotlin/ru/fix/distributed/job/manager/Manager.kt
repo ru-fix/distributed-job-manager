@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit
  * Listen via zookeeper for workers count change or job workPool updates.
  * Manages job assignments on cluster by modifying assignment section of zookeeper tree.
  *
- * @author Kamil Asfandiyarov
  * @see Worker
  */
 class Manager(
