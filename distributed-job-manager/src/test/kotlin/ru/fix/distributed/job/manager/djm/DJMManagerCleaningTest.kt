@@ -5,10 +5,13 @@ import org.awaitility.Awaitility.await
 import org.hamcrest.MatcherAssert
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
+import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
+import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.AtomicProperty
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
+import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -94,4 +97,22 @@ class DJMManagerCleaningTest : DJMTestSuite() {
                     )
                 }
     }
+
+
+    fun createDJM(jobs: List<DistributedJob>, workPoolCleanPeriod: DynamicProperty<Long>) =
+            createDJM(
+                    jobs = jobs,
+                    settings = workPoolCleanPeriod.map {
+                        DistributedJobManagerSettings(
+                                timeToWaitTermination = 10000,
+                                workPoolCleanPeriod = it,
+                                lockManagerConfig = PersistentExpiringLockManagerConfig(
+                                        lockAcquirePeriod = Duration.ofSeconds(15),
+                                        expirationPeriod = Duration.ofSeconds(5),
+                                        lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                                )
+                        )
+                    }
+            )
+
 }

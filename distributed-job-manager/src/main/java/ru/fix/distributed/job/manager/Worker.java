@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
-import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
 import ru.fix.dynamic.property.api.AtomicProperty;
@@ -51,8 +50,7 @@ class Worker implements AutoCloseable {
     private final ExecutorService assignmentUpdatesExecutor;
     private final ReschedulableScheduler checkWorkPoolScheduler;
     private final Profiler profiler;
-    private final DynamicProperty<Long> timeToWaitTermination;
-    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
+    private final DynamicProperty<DistributedJobManagerSettings> settings;
     /**
      * Acquires locks for job for workItems, prolongs them and releases
      */
@@ -62,16 +60,19 @@ class Worker implements AutoCloseable {
     private volatile boolean isWorkerShutdown = false;
 
     Worker(CuratorFramework curatorFramework,
+           String nodeId,
+           ZkPathsManager paths,
            Collection<JobDescriptor> jobs,
            Profiler profiler,
-           DistributedJobManagerSettings settings) {
+           DynamicProperty<DistributedJobManagerSettings> settings) {
         this.curatorFramework = curatorFramework;
-        this.paths = new ZkPathsManager(settings.getRootPath());
-        this.workerId = settings.getNodeId();
+        this.paths = paths;
+        this.workerId = nodeId;
+        this.settings = settings;
 
         assertAllJobsHasUniqueJobId(jobs);
         if (jobs.isEmpty()) {
-            log.warn("No job instance provided to DJM Worker " + settings.getNodeId());
+            log.warn("No job instance provided to DJM Worker " + nodeId);
         }
 
         this.availableJobs = jobs;
@@ -97,12 +98,9 @@ class Worker implements AutoCloseable {
                 threadPoolSize,
                 profiler);
 
-        this.timeToWaitTermination = settings.getTimeToWaitTermination();
-        this.jobDisableConfig = settings.getJobDisableConfig();
-
         this.lockManager = new PersistentExpiringLockManager(
                 curatorFramework,
-                settings.getLockManagerConfig(),
+                settings.map(DistributedJobManagerSettings::getLockManagerConfig),
                 profiler
         );
     }
@@ -429,7 +427,7 @@ class Worker implements AutoCloseable {
                 new HashSet<>(workPoolToExecute),
                 profiler,
                 lockManager,
-                jobDisableConfig,
+                settings.map(DistributedJobManagerSettings::getJobDisableConfig),
                 paths
         );
 
@@ -473,7 +471,7 @@ class Worker implements AutoCloseable {
     public void safelyTerminateJobs(Collection<ScheduledJobExecution> jobExecutions) {
         jobExecutions.forEach(ScheduledJobExecution::shutdown);
 
-        long totalTime = timeToWaitTermination.get();
+        long totalTime = settings.get().getTimeToWaitTermination();
         long startTime = System.currentTimeMillis();
         for (ScheduledJobExecution jobExecutionWrapper : jobExecutions) {
             log.info("wid={} safelyTerminateJobs shutdown {}",
@@ -525,7 +523,7 @@ class Worker implements AutoCloseable {
         jobReschedulableScheduler.shutdown();
 
         // await all executors completion
-        long timeToWait = timeToWaitTermination.get();
+        long timeToWait = settings.get().getTimeToWaitTermination();
 
         long executorPoolTerminationTime = awaitAndTerminate(jobReschedulableScheduler, timeToWait);
         timeToWait -= executorPoolTerminationTime;
