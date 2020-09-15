@@ -63,8 +63,7 @@ class Manager(
     )
 
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)
-    private val rebalanceAccumulator =
-            ReducingEventAccumulator.lastEventWinAccumulator<RebalanceTrigger>()
+    private val rebalanceAccumulator = ReducingEventAccumulator.createLastEventWinAccumulator<RebalanceTrigger>()
 
     fun start() {
         initCuratorCacheForManagerEvents(aliveWorkersCache, paths.aliveWorkers())
@@ -77,11 +76,11 @@ class Manager(
 
     private fun startRebalancingTask() {
         rebalanceExecutor.execute {
-            rebalanceAccumulator.receiveReducedEvents(
-                    stopCondition = { currentState.get() == State.SHUTDOWN }
-            ) {
-                if (currentState.get() == State.IS_LEADER) {
-                    rebalancer.reassignAndBalanceTasks()
+            while(!rebalanceAccumulator.isClosed() && currentState.get() != State.SHUTDOWN){
+                if(rebalanceAccumulator.extractAccumulatedValue() != null) {
+                    if (currentState.get() == State.IS_LEADER) {
+                        rebalancer.reassignAndBalanceTasks()
+                    }
                 }
             }
         }
@@ -169,6 +168,7 @@ class Manager(
 
         handleManagerEvent(ManagerEvent.SHUTDOWN)
 
+        rebalanceAccumulator.close()
         aliveWorkersCache.close()
         workPoolCache.close()
         leaderLatch.close()
