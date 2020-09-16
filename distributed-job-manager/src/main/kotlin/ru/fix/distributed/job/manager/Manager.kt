@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Only single manager is active in the cluster.
- * Listen via zookeeper for workers count change or job workPool updates.
+ * Listens via zookeeper for workers count change or job workPool updates.
  * Manages job assignments on cluster by modifying assignment section of zookeeper tree.
  *
  * @see Worker
@@ -32,6 +32,8 @@ class Manager(
         profiler: Profiler,
         settings: DynamicProperty<DistributedJobManagerSettings>
 ) : AutoCloseable {
+
+    companion object : Logging
 
     private val aliveWorkersCache = CuratorCache
             .bridgeBuilder(curatorFramework, paths.aliveWorkers())
@@ -46,7 +48,6 @@ class Manager(
     private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
     private val currentState = AtomicProperty(State.IS_NOT_LEADER)
-
     private val cleaner = Cleaner(
             profiler,
             paths,
@@ -55,14 +56,15 @@ class Manager(
             settings.map{it.workPoolCleanPeriod},
             aliveWorkersCache
     )
+
     private val rebalancer = Rebalancer(
             paths,
             curatorFramework,
             assignmentStrategy,
             nodeId
     )
-
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)
+
     private val rebalanceAccumulator = ReducingEventAccumulator.createLastEventWinAccumulator<RebalanceTrigger>()
 
     fun start() {
@@ -163,9 +165,6 @@ class Manager(
     }
 
     override fun close() {
-        val managerStopTime = System.currentTimeMillis()
-        logger.info("Closing DJM manager entity...")
-
         handleManagerEvent(ManagerEvent.SHUTDOWN)
 
         rebalanceAccumulator.close()
@@ -179,8 +178,6 @@ class Manager(
             logger.error("Failed to await rebalance executor termination")
             rebalanceExecutor.shutdownNow()
         }
-
-        logger.info { "DJM manager was closed. Took ${System.currentTimeMillis() - managerStopTime} ms" }
     }
 
     private enum class ManagerEvent {
@@ -194,6 +191,4 @@ class Manager(
     enum class State {
         IS_LEADER, IS_NOT_LEADER, SHUTDOWN
     }
-
-    companion object : Logging
 }

@@ -27,8 +27,9 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
- * Launches jobs, listen to changes in assignment section of zookeeper tree made by Master and starts / stops jobs
- * accordingly.
+ * Launches jobs,
+ * listens to changes in assignment section of zookeeper tree made by Master
+ * and starts / stops jobs accordingly.
  *
  * @author Kamil Asfandiyarov
  * @see ZkPathsManager
@@ -76,7 +77,6 @@ class Worker implements AutoCloseable {
         }
 
         this.availableJobs = jobs;
-
         this.profiler = profiler;
 
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
