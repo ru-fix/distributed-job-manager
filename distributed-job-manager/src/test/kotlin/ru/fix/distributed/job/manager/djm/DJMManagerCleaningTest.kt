@@ -6,7 +6,6 @@ import org.hamcrest.MatcherAssert
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings
-import ru.fix.distributed.job.manager.model.JobDisableConfig
 import ru.fix.distributed.job.manager.model.JobIdResolver.resolveJobId
 import ru.fix.dynamic.property.api.AtomicProperty
 import ru.fix.dynamic.property.api.DynamicProperty
@@ -31,9 +30,9 @@ class DJMManagerCleaningTest : DJMTestSuite() {
         val job2 = JobForCleaning("2")
         val job3 = JobForCleaning("3")
 
-        val workPoolCleanPeriod = AtomicProperty(500L)
-        val cleaningPerformTimeoutMs: Long = 1000
-        val closingDjmTimeoutMs: Long = 1500
+        val workPoolCleanPeriod = AtomicProperty(Duration.ofMillis(500L))
+        val cleaningPerformTimeout = Duration.ofSeconds(1)
+        val closingDjmTimeout = Duration.ofMillis(1500)
 
         val jobManager1 = createDJM(
                 jobs = listOf(job1, job2),
@@ -52,8 +51,8 @@ class DJMManagerCleaningTest : DJMTestSuite() {
         closeDjm(jobManager1)
 
         awaitCleaningJob(
-                atLeast = 0,
-                atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
+                atLeast = Duration.ZERO,
+                atMost = workPoolCleanPeriod.get() + cleaningPerformTimeout,
                 jobIdForRemoval = resolveJobId(job1).id, curator = server.client)
 
         val jobManager3 = createDJM(
@@ -66,27 +65,27 @@ class DJMManagerCleaningTest : DJMTestSuite() {
                     .contains(resolveJobId(job1).id)
         }
 
-        val oldCleanPeriodMs = workPoolCleanPeriod.set(7000L)
-        await().pollDelay(Duration.ofMillis(oldCleanPeriodMs)).untilAsserted {}
+        val oldCleanPeriod = workPoolCleanPeriod.set(Duration.ofSeconds(7))
+        await().pollDelay(oldCleanPeriod).untilAsserted {}
 
         closeDjm(jobManager2)
 
         awaitCleaningJob(
-                atLeast = workPoolCleanPeriod.get() - closingDjmTimeoutMs - oldCleanPeriodMs,
-                atMost = workPoolCleanPeriod.get() + cleaningPerformTimeoutMs,
+                atLeast = workPoolCleanPeriod.get() - closingDjmTimeout - oldCleanPeriod,
+                atMost = workPoolCleanPeriod.get() + cleaningPerformTimeout,
                 jobIdForRemoval = resolveJobId(job3).id, curator = server.client)
 
         closeDjm(jobManager3)
     }
 
     private fun awaitCleaningJob(
-            atLeast: Long,
-            atMost: Long,
+            atLeast: Duration,
+            atMost: Duration,
             jobIdForRemoval: String,
             curator: CuratorFramework) {
         await()
-                .atLeast(atLeast, TimeUnit.MILLISECONDS)
-                .atMost(atMost, TimeUnit.MILLISECONDS)
+                .atLeast(atLeast)
+                .atMost(atMost)
                 .untilAsserted {
                     val jobsFromZkWorkPool = curator.children
                             .forPath(djmZkPathsManager.availableWorkPool())
@@ -99,12 +98,12 @@ class DJMManagerCleaningTest : DJMTestSuite() {
     }
 
 
-    fun createDJM(jobs: List<DistributedJob>, workPoolCleanPeriod: DynamicProperty<Long>) =
+    fun createDJM(jobs: List<DistributedJob>, workPoolCleanPeriod: DynamicProperty<Duration>) =
             createDJM(
                     jobs = jobs,
                     settings = workPoolCleanPeriod.map {
                         DistributedJobManagerSettings(
-                                timeToWaitTermination = 10000,
+                                timeToWaitTermination = Duration.ofSeconds(10),
                                 workPoolCleanPeriod = it,
                                 lockManagerConfig = PersistentExpiringLockManagerConfig(
                                         lockAcquirePeriod = Duration.ofSeconds(15),

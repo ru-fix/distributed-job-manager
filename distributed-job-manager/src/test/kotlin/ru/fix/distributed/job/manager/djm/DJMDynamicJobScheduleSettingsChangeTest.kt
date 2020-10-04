@@ -26,11 +26,11 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-        val djm = createDJM(jobWithBigDelayAndImplicitBigInitialDelay)
+        createDJM(jobWithBigDelayAndImplicitBigInitialDelay)
 
         // initial 1h delay continues still, job not started
         await().during(3, TimeUnit.SECONDS).until {
-            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == false
+            !jobWithBigDelayAndImplicitBigInitialDelay.launched.get()
         }
 
         // change schedule delay setting of the job with implicit start delay settings,
@@ -38,7 +38,7 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
         jobWithBigDelayAndImplicitBigInitialDelay.schedule.set(Schedule.withDelay(TimeUnit.SECONDS.toMillis(1L)))
 
         await().atMost(10, TimeUnit.SECONDS).until {
-            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == true
+            jobWithBigDelayAndImplicitBigInitialDelay.launched.get()
         }
     }
 
@@ -59,18 +59,18 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-        val djm = createDJM(jobWithExplicitBigInitialDelay)
+        createDJM(jobWithExplicitBigInitialDelay)
 
         // initial 1h delay continues still, job not started
         await().during(3, TimeUnit.SECONDS).until {
-            jobWithExplicitBigInitialDelay.launched.get() == false
+            !jobWithExplicitBigInitialDelay.launched.get()
         }
 
         // change start delay setting, so the job should start immediately
         jobWithExplicitBigInitialDelay.initialDelay.set(0)
 
         await().atMost(10, TimeUnit.SECONDS).until {
-            jobWithExplicitBigInitialDelay.launched.get() == true
+            jobWithExplicitBigInitialDelay.launched.get()
         }
     }
 }

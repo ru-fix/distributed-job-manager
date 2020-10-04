@@ -43,7 +43,7 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
 
         settingsEditor.setDisableAllJobProperty(true)
 
-        val djm = createDJM(
+        createDJM(
                 jobs = listOf(job1, job2),
                 jobDisableConfig = settingsEditor.jobDisableConfig
         )
@@ -75,7 +75,7 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         val job2 = spy(FrequentJob(2))
         val settingsEditor = JobDisableConfigEditor()
         settingsEditor.disableConcreteJob(job1)
-        val djm = createDJM(
+        createDJM(
                 jobs = listOf(job1, job2),
                 jobDisableConfig = settingsEditor.jobDisableConfig
         )
@@ -110,7 +110,7 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
             enableConcreteJob(job1)
             setDisableJobDefaultValue(false)
         }
-        val djm = createDJM(
+        createDJM(
                 jobs = listOf(job1, job2),
                 jobDisableConfig = settingsEditor.jobDisableConfig
         )
@@ -126,8 +126,8 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
                     jobs = jobs,
                     settings = jobDisableConfig.map {
                         DistributedJobManagerSettings(
-                                timeToWaitTermination = 10000,
-                                workPoolCleanPeriod = 1000,
+                                timeToWaitTermination = Duration.ofSeconds(1),
+                                workPoolCleanPeriod = Duration.ofSeconds(1),
                                 lockManagerConfig = PersistentExpiringLockManagerConfig(
                                         lockAcquirePeriod = Duration.ofSeconds(15),
                                         expirationPeriod = Duration.ofSeconds(5),
