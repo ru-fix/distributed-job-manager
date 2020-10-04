@@ -13,6 +13,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
+import java.time.Duration
 
 class RebillJob : DistributedJob {
     override val jobId = JobId("rebill-job")
@@ -169,9 +170,9 @@ fun main() {
             listOf(SmsJob(), UssdJob(), RebillJob()),
             AggregatingProfiler(),
             DynamicProperty.of(DistributedJobManagerSettings(
-                    timeToWaitTermination = 180_000L,
-                    workPoolCleanPeriod = 1_000L))
-
+                    timeToWaitTermination = Duration.ofMinutes(3),
+                    workPoolCleanPeriod = Duration.ofHours(3)
+            ))
     )
 }
 

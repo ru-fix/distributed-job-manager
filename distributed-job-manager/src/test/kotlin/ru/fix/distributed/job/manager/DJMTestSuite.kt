@@ -78,8 +78,8 @@ abstract class DJMTestSuite {
                   nodeId: String = generateNodeId(),
                   settings: DynamicProperty<DistributedJobManagerSettings> = DynamicProperty.of(
                           DistributedJobManagerSettings(
-                                  timeToWaitTermination = 10000,
-                                  workPoolCleanPeriod = 1000,
+                                  timeToWaitTermination = Duration.ofSeconds(10),
+                                  workPoolCleanPeriod = Duration.ofSeconds(1),
                                   lockManagerConfig = PersistentExpiringLockManagerConfig(
                                           lockAcquirePeriod = Duration.ofSeconds(15),
                                           expirationPeriod = Duration.ofSeconds(5),

@@ -146,7 +146,7 @@ class DJMUpdatesZkTreeTest : DJMTestSuite() {
     }
 
     @Test
-    fun `djm1 shutdowns, all workItems assigned to djm2`(){
+    fun `djm1 shutdowns, all workItems assigned to djm2`() {
         val workPool = WorkPool.of("item-1", "item-2", "item-3")
 
         val djm1 = createDJM(
@@ -154,7 +154,7 @@ class DJMUpdatesZkTreeTest : DJMTestSuite() {
                         JobForZkTreeCheck("job-1", workPool)),
                 nodeId = "worker-1")
 
-        val djm2 = createDJM(
+        createDJM(
                 jobs = listOf(
                         JobForZkTreeCheck("job-1", workPool)),
                 nodeId = "worker-2")
@@ -164,8 +164,8 @@ class DJMUpdatesZkTreeTest : DJMTestSuite() {
 
         sleep(1000)
 
-        await().atMost(30, TimeUnit.SECONDS).until{
-            val workPoolForJobOnSecondWorker = server.client.getChildren()
+        await().atMost(30, TimeUnit.SECONDS).until {
+            val workPoolForJobOnSecondWorker = server.client.children
                     .forPath(djmZkPathsManager.assignedWorkPool("worker-2", "job-1"));
 
             workPoolForJobOnSecondWorker.sorted() == workPool.items.sorted()

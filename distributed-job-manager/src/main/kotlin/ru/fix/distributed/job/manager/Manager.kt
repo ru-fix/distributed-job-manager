@@ -28,7 +28,7 @@ class Manager(
         curatorFramework: CuratorFramework,
         private val nodeId: String,
         private val paths: ZkPathsManager,
-        private val assignmentStrategy: AssignmentStrategy,
+        assignmentStrategy: AssignmentStrategy,
         profiler: Profiler,
         settings: DynamicProperty<DistributedJobManagerSettings>
 ) : AutoCloseable {
@@ -53,7 +53,7 @@ class Manager(
             paths,
             curatorFramework,
             currentState,
-            settings.map{it.workPoolCleanPeriod},
+            settings.map { it.workPoolCleanPeriod.toMillis() },
             aliveWorkersCache
     )
 
@@ -78,8 +78,8 @@ class Manager(
 
     private fun startRebalancingTask() {
         rebalanceExecutor.execute {
-            while(!rebalanceAccumulator.isClosed() && currentState.get() != State.SHUTDOWN){
-                if(rebalanceAccumulator.extractAccumulatedValue() != null) {
+            while (!rebalanceAccumulator.isClosed() && currentState.get() != State.SHUTDOWN) {
+                if (rebalanceAccumulator.extractAccumulatedValue() != null) {
                     if (currentState.get() == State.IS_LEADER) {
                         rebalancer.reassignAndBalanceTasks()
                     }
@@ -174,7 +174,7 @@ class Manager(
         cleaner.close()
 
         rebalanceExecutor.shutdown()
-        if(!rebalanceExecutor.awaitTermination(1, TimeUnit.MINUTES)){
+        if (!rebalanceExecutor.awaitTermination(1, TimeUnit.MINUTES)) {
             logger.error("Failed to await rebalance executor termination")
             rebalanceExecutor.shutdownNow()
         }

@@ -471,7 +471,7 @@ class Worker implements AutoCloseable {
     public void safelyTerminateJobs(Collection<ScheduledJobExecution> jobExecutions) {
         jobExecutions.forEach(ScheduledJobExecution::shutdown);
 
-        long totalTime = settings.get().getTimeToWaitTermination();
+        long totalTime = settings.get().getTimeToWaitTermination().toMillis();
         long startTime = System.currentTimeMillis();
         for (ScheduledJobExecution jobExecutionWrapper : jobExecutions) {
             log.info("wid={} safelyTerminateJobs shutdown {}",
@@ -523,7 +523,7 @@ class Worker implements AutoCloseable {
         jobReschedulableScheduler.shutdown();
 
         // await all executors completion
-        long timeToWait = settings.get().getTimeToWaitTermination();
+        long timeToWait = settings.get().getTimeToWaitTermination().toMillis();
 
         long executorPoolTerminationTime = awaitAndTerminate(jobReschedulableScheduler, timeToWait);
         timeToWait -= executorPoolTerminationTime;

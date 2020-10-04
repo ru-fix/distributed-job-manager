@@ -1,21 +1,21 @@
 package ru.fix.distributed.job.manager.model
 
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
-import java.util.concurrent.TimeUnit
+import java.time.Duration
 
 data class DistributedJobManagerSettings @JvmOverloads constructor(
 
         /**
          * Time to wait for tasks to complete or redistributed when the DJM instance is closing
          * */
-        val timeToWaitTermination: Long = TimeUnit.MINUTES.toMillis(15),
+        val timeToWaitTermination: Duration = Duration.ofMinutes(15),
         /**
          * How often cleaning process checks for obsolete not relevant jobs
          * in ZooKeeper `work-pool` subtree.
          * Obsolete jobs appears when new version of application with different set of jobs is starts in the cluster.
          * Minor process. Default value is three hours
          * */
-        val workPoolCleanPeriod: Long = TimeUnit.HOURS.toMillis(3),
+        val workPoolCleanPeriod: Duration = Duration.ofHours(3),
 
         /**
          * Disabled Job work items continue to distribute and assign but job stop launching.

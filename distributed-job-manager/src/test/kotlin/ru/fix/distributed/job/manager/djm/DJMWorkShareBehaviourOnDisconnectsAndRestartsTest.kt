@@ -148,11 +148,11 @@ class DJMWorkShareBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
     fun `djm2 added to djm1, workItems rebalanced `() {
         val job1 = LastUsedWorkShareJob()
         val job2 = LastUsedWorkShareJob()
-        val djm1 = createDJM(job1)
+        createDJM(job1)
 
         LastUsedWorkShareJob.awaitWorkPoolIsDistributedBetweenWorkers(job1)
 
-        val djm2 = createDJM(job2)
+        createDJM(job2)
         LastUsedWorkShareJob.awaitWorkPoolIsDistributedBetweenWorkers(job1, job2)
     }
 
@@ -164,7 +164,7 @@ class DJMWorkShareBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
         disconnectDjm(djm1)
         closeDjm(djm1)
 
-        val djm2 = createDJM(job)
+        createDJM(job)
         LastUsedWorkShareJob.awaitWorkPoolIsDistributedBetweenWorkers(job)
     }
 
@@ -173,8 +173,8 @@ class DJMWorkShareBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
         val job1 = LastUsedWorkShareJob()
         val job2 = LastUsedWorkShareJob()
 
-        val djm1 = createDJM(job1)
-        val djm2 = createDJM(job2)
+        createDJM(job1)
+        createDJM(job2)
 
         LastUsedWorkShareJob.awaitWorkPoolIsDistributedBetweenWorkers(job1, job2)
         LastUsedWorkShareJob.workPool.add("item-42")
