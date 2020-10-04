@@ -126,7 +126,7 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
                     jobs = jobs,
                     settings = jobDisableConfig.map {
                         DistributedJobManagerSettings(
-                                timeToWaitTermination = Duration.ofSeconds(1),
+                                timeToWaitTermination = Duration.ofSeconds(10),
                                 workPoolCleanPeriod = Duration.ofSeconds(1),
                                 lockManagerConfig = PersistentExpiringLockManagerConfig(
                                         lockAcquirePeriod = Duration.ofSeconds(15),
