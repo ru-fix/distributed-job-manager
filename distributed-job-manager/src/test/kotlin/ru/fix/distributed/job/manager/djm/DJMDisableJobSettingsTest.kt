@@ -44,8 +44,8 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         settingsEditor.setDisableAllJobProperty(true)
 
         createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
 
         await().pollDelay(defaultJobRunTimeout).untilAsserted {
@@ -76,8 +76,8 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         val settingsEditor = JobDisableConfigEditor()
         settingsEditor.disableConcreteJob(job1)
         createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
         await().atMost(defaultJobRunTimeout).untilAsserted {
             verify(job1, never()).run(any())
@@ -111,8 +111,8 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
             setDisableJobDefaultValue(false)
         }
         createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
         await().pollDelay(defaultJobRunTimeout).untilAsserted {
             verify(job1, never()).run(any())
@@ -122,20 +122,21 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
     }
 
     fun createDJM(jobs: List<DistributedJob>, jobDisableConfig: DynamicProperty<JobDisableConfig>) =
-            createDJM(
-                    jobs = jobs,
-                    settings = jobDisableConfig.map {
-                        DistributedJobManagerSettings(
-                                timeToWaitTermination = Duration.ofSeconds(10),
-                                workPoolCleanPeriod = Duration.ofSeconds(1),
-                                lockManagerConfig = PersistentExpiringLockManagerConfig(
-                                        lockAcquirePeriod = Duration.ofSeconds(15),
-                                        expirationPeriod = Duration.ofSeconds(5),
-                                        lockCheckAndProlongInterval = Duration.ofSeconds(5)
-                                ),
-                                jobDisableConfig = it)
-                    }
-            )
+        createDJM(
+            jobs = jobs,
+            settings = jobDisableConfig.map {
+                DistributedJobManagerSettings(
+                    timeToWaitTermination = Duration.ofSeconds(10),
+                    workPoolCleanPeriod = Duration.ofSeconds(1),
+                    lockManagerConfig = PersistentExpiringLockManagerConfig(
+                        lockAcquirePeriod = Duration.ofSeconds(15),
+                        expirationPeriod = Duration.ofSeconds(5),
+                        lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                    ),
+                    jobDisableConfig = it
+                )
+            }
+        )
 
 
 }

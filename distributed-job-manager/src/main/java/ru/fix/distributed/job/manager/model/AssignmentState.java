@@ -97,7 +97,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             int globalWorkPoolSizeOnWorker = worker.getValue().size();
 
 
-            if(localWorkPoolSizeOnWorker < minLocalWorkPoolSizeOnWorker){
+            if (localWorkPoolSizeOnWorker < minLocalWorkPoolSizeOnWorker) {
                 minLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
                 minGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
                 lessBusyWorker = worker.getKey();
@@ -165,7 +165,7 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
             int globalWorkPoolSizeOnWorker = worker.getValue().size();
 
 
-            if(localWorkPoolSizeOnWorker > maxLocalWorkPoolSizeOnWorker){
+            if (localWorkPoolSizeOnWorker > maxLocalWorkPoolSizeOnWorker) {
                 maxLocalWorkPoolSizeOnWorker = localWorkPoolSizeOnWorker;
                 maxGlobalWorkPoolSizeOnWorker = globalWorkPoolSizeOnWorker;
                 mostBusyWorker = worker.getKey();
@@ -370,7 +370,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
     }
 
 
-
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("AssignmentState\n");
@@ -391,7 +390,6 @@ public class AssignmentState extends HashMap<WorkerId, HashSet<WorkItem>> {
         }
         return result.toString();
     }
-
 
 
 }

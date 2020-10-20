@@ -8,7 +8,6 @@ import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
-import ru.fix.distributed.job.manager.strategy.AssignmentStrategies;
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy;
 import ru.fix.dynamic.property.api.DynamicProperty;
 
@@ -50,17 +49,16 @@ public class DistributedJobManager implements AutoCloseable {
     private final DynamicProperty<DistributedJobManagerSettings> settings;
 
     /**
-     *
-     * @param curatorFramework client to access ZooKeeper
-     * @param nodeId unique identifies DJM instance within DJM cluster. Providing non unique identifies
-     *               could lead to undetermined behaviour of DJM cluster.
-     * @param rootPath path within ZooKeeper where DJM will store it's state.
-     *                 All DJM instances within same cluster should share same rootPath.
+     * @param curatorFramework   client to access ZooKeeper
+     * @param nodeId             unique identifies DJM instance within DJM cluster. Providing non unique identifies
+     *                           could lead to undetermined behaviour of DJM cluster.
+     * @param rootPath           path within ZooKeeper where DJM will store it's state.
+     *                           All DJM instances within same cluster should share same rootPath.
      * @param assignmentStrategy Specifies how to distribute job work items between DJM nodes,
      *                           use {@link ru.fix.distributed.job.manager.strategy.AssignmentStrategies#DEFAULT}
-     * @param userDefinedJobs Job instances to launch within DJM cluster
-     * @param profiler records DJM metrics
-     * @param settings DJM configuration
+     * @param userDefinedJobs    Job instances to launch within DJM cluster
+     * @param profiler           records DJM metrics
+     * @param settings           DJM configuration
      */
     public DistributedJobManager(
             CuratorFramework curatorFramework,
@@ -83,7 +81,7 @@ public class DistributedJobManager implements AutoCloseable {
                 Collections.singletonMap("djmNodeId", nodeId)
         );
 
-        try(ProfiledCall initProfiledCall = djmProfiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
+        try (ProfiledCall initProfiledCall = djmProfiler.profiledCall(ProfilerMetrics.DJM_INIT).start()) {
             ZkPathsManager paths = new ZkPathsManager(rootPath);
             paths.initPaths(curatorFramework);
 

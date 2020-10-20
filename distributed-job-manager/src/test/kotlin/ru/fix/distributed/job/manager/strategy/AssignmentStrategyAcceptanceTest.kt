@@ -15,17 +15,17 @@ class AssignmentStrategyAcceptanceTest {
         @JvmStatic
         fun allStrategies(): Stream<Arguments> {
             return Stream.of(
-                    Arguments.of(AssignmentStrategies.EVENLY_RENDEZVOUS),
-                    Arguments.of(AssignmentStrategies.RENDEZVOUS),
-                    Arguments.of(AssignmentStrategies.EVENLY_SPREAD)
+                Arguments.of(AssignmentStrategies.EVENLY_RENDEZVOUS),
+                Arguments.of(AssignmentStrategies.RENDEZVOUS),
+                Arguments.of(AssignmentStrategies.EVENLY_SPREAD)
             )
         }
 
         @JvmStatic
         fun locallyBalancedStrategies(): Stream<Arguments> {
             return Stream.of(
-                    Arguments.of(AssignmentStrategies.EVENLY_RENDEZVOUS),
-                    Arguments.of(AssignmentStrategies.EVENLY_SPREAD)
+                Arguments.of(AssignmentStrategies.EVENLY_RENDEZVOUS),
+                Arguments.of(AssignmentStrategies.EVENLY_SPREAD)
             )
         }
     }
@@ -34,7 +34,7 @@ class AssignmentStrategyAcceptanceTest {
     @ParameterizedTest
     @MethodSource("allStrategies")
     fun `if availability strongly restricts assignments then assignment equals to availability`(
-            strategy: AssignmentStrategy
+        strategy: AssignmentStrategy
     ) {
         val available = availability {
             "job-A"("worker-0")
@@ -74,18 +74,19 @@ class AssignmentStrategyAcceptanceTest {
 
     @ParameterizedTest
     @MethodSource("allStrategies")
-    fun `in random set item can be assigned only once to particular worker`(strategy: AssignmentStrategy)  = repeat(100){
-        val workLoad = RandomWorkload(50, 50, 50)
+    fun `in random set item can be assigned only once to particular worker`(strategy: AssignmentStrategy) =
+        repeat(100) {
+            val workLoad = RandomWorkload(50, 50, 50)
 
-        val current = AssignmentState()
-        strategy.reassignAndBalance(workLoad.available, workLoad.previous, current, workLoad.workItems)
+            val current = AssignmentState()
+            strategy.reassignAndBalance(workLoad.available, workLoad.previous, current, workLoad.workItems)
 
-        for (workItem in workLoad.workItems) {
-            withClue("WorkItem $workItem assigned once") {
-                current.values.flatMap { it }.count().shouldBe(1)
+            for (workItem in workLoad.workItems) {
+                withClue("WorkItem $workItem assigned once") {
+                    current.values.flatMap { it }.count().shouldBe(1)
+                }
             }
         }
-    }
 
     @ParameterizedTest
     @MethodSource("locallyBalancedStrategies")
@@ -104,7 +105,7 @@ class AssignmentStrategyAcceptanceTest {
         current.isBalancedForEachJob(workLoad.available)
     }
 
-    class RandomWorkload(val maxWorkers: Int, maxJobs: Int, maxItemsPerJob: Int){
+    class RandomWorkload(val maxWorkers: Int, maxJobs: Int, maxItemsPerJob: Int) {
         private val random = ThreadLocalRandom.current()
 
         val workers = (1..random.nextInt(1, maxWorkers + 1)).map { "w$it" }

@@ -17,7 +17,7 @@ public class WorkerId implements Comparable<WorkerId> {
         this.id = id;
     }
 
-    public static Set<WorkerId> setOf(String...ids){
+    public static Set<WorkerId> setOf(String... ids) {
         return Arrays.stream(ids).map(WorkerId::new).collect(Collectors.toSet());
     }
 

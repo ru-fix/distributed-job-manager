@@ -44,12 +44,12 @@ class DJMWorkShareBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
 
             fun awaitWorkPoolIsDistributedBetweenWorkers(vararg jobs: LastUsedWorkShareJob) {
                 await().pollDelay(100, TimeUnit.MILLISECONDS)
-                        .atMost(30, TimeUnit.SECONDS)
-                        .untilAsserted {
-                            val workShares = jobs.map { it.lastUsedWorkShare.get() }
-                            workShares.forEach { it.shouldNotBeEmpty() }
-                            workShares.flatten().shouldContainExactlyInAnyOrder(workPool)
-                        }
+                    .atMost(30, TimeUnit.SECONDS)
+                    .untilAsserted {
+                        val workShares = jobs.map { it.lastUsedWorkShare.get() }
+                        workShares.forEach { it.shouldNotBeEmpty() }
+                        workShares.flatten().shouldContainExactlyInAnyOrder(workPool)
+                    }
             }
         }
     }
@@ -157,7 +157,7 @@ class DJMWorkShareBehaviourOnDisconnectsAndRestartsTest : DJMTestSuite() {
     }
 
     @Test
-    fun `simulate hard shutdown of single djm where availability is not cleaned up`(){
+    fun `simulate hard shutdown of single djm where availability is not cleaned up`() {
         val job = LastUsedWorkShareJob()
         val djm1 = createDJM(job)
 

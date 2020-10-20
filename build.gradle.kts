@@ -39,11 +39,11 @@ plugins {
  */
 fun envConfig() = object : ReadOnlyProperty<Any?, String?> {
     override fun getValue(thisRef: Any?, property: KProperty<*>): String? =
-            if (ext.has(property.name)) {
-                ext[property.name] as? String
-            } else {
-                System.getenv(property.name)
-            }
+        if (ext.has(property.name)) {
+            ext[property.name] as? String
+        } else {
+            System.getenv(property.name)
+        }
 }
 
 val repositoryUser by envConfig()

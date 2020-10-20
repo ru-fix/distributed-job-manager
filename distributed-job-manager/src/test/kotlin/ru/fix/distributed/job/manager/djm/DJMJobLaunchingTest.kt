@@ -1,13 +1,15 @@
 package ru.fix.distributed.job.manager.djm
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.apache.logging.log4j.kotlin.Logging
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.aggregating.profiler.NoopProfiler
@@ -18,13 +20,14 @@ import ru.fix.distributed.job.manager.model.WorkItem
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
-import java.lang.IllegalStateException
 import java.lang.Thread.sleep
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.TimeUnit.*
-import java.util.concurrent.atomic.*
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -98,6 +101,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
             }
+
             override fun getWorkPool(): WorkPool = WorkPool(emptySet())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
@@ -105,7 +109,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
         val djm = createDJM(jobWithEmptyWorkPool)
 
         sleep(3000)
-        jobIsStarted.get().shouldBe(false)
+        jobIsStarted.get().shouldBeFalse()
 
         logRecorder.getContent().shouldNotContain("ERROR")
         logRecorder.close()
@@ -171,6 +175,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
             override fun run(context: DistributedJobContext) {
                 jobIsStarted.set(true)
             }
+
             override fun getWorkPool() = WorkPool.of(workPool.get())
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 100
@@ -286,19 +291,19 @@ class DJMJobLaunchingTest : DJMTestSuite() {
         }
         val djm = createDJM(jobWith100msDelay)
         await().pollDelay(10, MILLISECONDS)
-                .atMost(1, MINUTES)
-                .until { jobWith100msDelay.invocationCounter.get() > 10 }
+            .atMost(1, MINUTES)
+            .until { jobWith100msDelay.invocationCounter.get() > 10 }
 
         jobWith100msDelay.invocationCounter.set(0)
         sleep(1000)
 
         jobWith100msDelay.delaysPerInvocation.toList()
-                .drop(10)
-                .map { it.toMillis().toInt() }
-                .forEach {
-                    //100ms delay +/- 20ms
-                    it.shouldBeInRange(80..120)
-                }
+            .drop(10)
+            .map { it.toMillis().toInt() }
+            .forEach {
+                //100ms delay +/- 20ms
+                it.shouldBeInRange(80..120)
+            }
         jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
         closeDjm(djm)
     }
@@ -320,7 +325,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
         }
         val djm = createDJM(jobWithRate100ms)
         await().pollDelay(10, MILLISECONDS)
-                .atMost(1, MINUTES).until { jobWithRate100ms.invocationCounter.get() > 10 }
+            .atMost(1, MINUTES).until { jobWithRate100ms.invocationCounter.get() > 10 }
 
         jobWithRate100ms.invocationCounter.set(0)
         sleep(1000)
@@ -339,6 +344,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
             override fun run(context: DistributedJobContext) {
                 receivedWorkShare.set(context.workShare)
             }
+
             override fun getWorkPool() = WorkPool.of(workItems)
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod() = 0L
@@ -346,10 +352,11 @@ class DJMJobLaunchingTest : DJMTestSuite() {
 
         val everythingToSingleWorker = object : AssignmentStrategy {
             override fun reassignAndBalance(
-                    availability: Availability,
-                    prevAssignment: AssignmentState,
-                    currentAssignment: AssignmentState,
-                    itemsToAssign: MutableSet<WorkItem>) {
+                availability: Availability,
+                prevAssignment: AssignmentState,
+                currentAssignment: AssignmentState,
+                itemsToAssign: MutableSet<WorkItem>
+            ) {
 
                 for (item in itemsToAssign) {
                     val workerId = availability[item.jobId]!!.minBy { it.id }
@@ -359,7 +366,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
         }
 
         val jobs = (1..3).map { JobForCustomAssignmnetStrategy() }
-        for(job in jobs){
+        for (job in jobs) {
             createDJM(job, assignmentStrategy = everythingToSingleWorker)
         }
 

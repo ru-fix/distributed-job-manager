@@ -33,22 +33,22 @@ class DJMLoggingAndProfilingTest : DJMTestSuite() {
         val initReport = reporter.buildReportAndReset()
         println("Init report: $initReport")
         initReport.profilerCallReports
-                .single { it.identity.name == "djm.init" }
-                .apply {
-                    stopSum.shouldBe(1)
-                    latencyAvg.shouldBeGreaterThanOrEqual(0)
-                }
+            .single { it.identity.name == "djm.init" }
+            .apply {
+                stopSum.shouldBe(1)
+                latencyAvg.shouldBeGreaterThanOrEqual(0)
+            }
 
         closeDjm(djm)
 
         val closeReport = reporter.buildReportAndReset()
         println("Close report: $initReport")
         closeReport.profilerCallReports
-                .single { it.identity.name == "djm.close" }
-                .apply {
-                    stopSum.shouldBe(1)
-                    latencyAvg.shouldBeGreaterThanOrEqual(0)
-                }
+            .single { it.identity.name == "djm.close" }
+            .apply {
+                stopSum.shouldBe(1)
+                latencyAvg.shouldBeGreaterThanOrEqual(0)
+            }
 
     }
 
@@ -73,10 +73,10 @@ class DJMLoggingAndProfilingTest : DJMTestSuite() {
         fun awaitFor(condition: (ProfiledCallReport) -> Boolean) {
             Awaitility.await().pollInterval(100, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.SECONDS).until {
                 reporter.buildReportAndReset().profilerCallReports
-                        .singleOrNull { it.identity.name == "djm." + ProfilerMetrics.JOB(JobId("oneSecondJob")) }
-                        ?.let {
-                            condition(it)
-                        } ?: false
+                    .singleOrNull { it.identity.name == "djm." + ProfilerMetrics.JOB(JobId("oneSecondJob")) }
+                    ?.let {
+                        condition(it)
+                    } ?: false
             }
         }
 
@@ -108,35 +108,36 @@ class DJMLoggingAndProfilingTest : DJMTestSuite() {
         val djm = createDJM(oneSecondJob, profiler)
 
         class Condition
+
         val runJobProfiled = Condition()
         val getWorkPoolProfiled = Condition()
         val fulfilledConditions = ConcurrentHashMap.newKeySet<Condition>()
 
         Awaitility.await()
-                .pollInterval(300, TimeUnit.MILLISECONDS)
-                .atMost(10, TimeUnit.SECONDS)
-                .until {
+            .pollInterval(300, TimeUnit.MILLISECONDS)
+            .atMost(10, TimeUnit.SECONDS)
+            .until {
 
-                    val report = reporter.buildReportAndReset()
-                    val profiledCallsReport = report.profilerCallReports
+                val report = reporter.buildReportAndReset()
+                val profiledCallsReport = report.profilerCallReports
 
-                    if (profiledCallsReport.any {
-                                it.identity.name == "djm.pool.job-scheduler.run" && it.stopSum > 0
-                            }) fulfilledConditions += runJobProfiled
+                if (profiledCallsReport.any {
+                        it.identity.name == "djm.pool.job-scheduler.run" && it.stopSum > 0
+                    }) fulfilledConditions += runJobProfiled
 
-                    if (profiledCallsReport.any {
-                                it.identity.name == "djm.pool.check-work-pool.run" && it.stopSum > 0
-                            }) fulfilledConditions += getWorkPoolProfiled
+                if (profiledCallsReport.any {
+                        it.identity.name == "djm.pool.check-work-pool.run" && it.stopSum > 0
+                    }) fulfilledConditions += getWorkPoolProfiled
 
-                    println("REPORT: " + report)
+                println("REPORT: " + report)
 
-                    fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
-                }
+                fulfilledConditions.containsAll(listOf(runJobProfiled, getWorkPoolProfiled))
+            }
         closeDjm(djm)
     }
 
     @Test
-    fun `DJM logs start and stop information to log`(){
+    fun `DJM logs start and stop information to log`() {
         val logRecorder = Log4jLogRecorder()
 
         val nothingJob = object : DistributedJob {

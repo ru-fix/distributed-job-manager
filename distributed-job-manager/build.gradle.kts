@@ -29,8 +29,6 @@ dependencies {
     // Test
     testImplementation(Libs.jfix_zookeeper_test)
     testImplementation(Libs.junit_jupiter)
-    testImplementation(Libs.junit_jupiter_api)
-    testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.mockito)
     testImplementation(Libs.mockito_kotlin)
     testImplementation(Libs.curator_test)

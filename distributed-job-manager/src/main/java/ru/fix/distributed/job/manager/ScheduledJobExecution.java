@@ -4,11 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.zookeeper.lock.LockIdentity;
 import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
-import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;

@@ -12,11 +12,11 @@ import ru.fix.stdlib.concurrency.threads.Schedule
 import java.lang.Thread.sleep
 import java.time.Duration
 import java.time.Instant
+import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import java.util.ArrayDeque
 
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -30,12 +30,14 @@ class DJMDisconnectsAndRestartsChaosTest : DJMTestSuite() {
     }
 
     val workLoad = mapOf(
-            "job1" to (1..1).map { "$it" }.toSet(),
-            "job3" to (1..3).map { "$it" }.toSet(),
-            "job6" to (1..6).map { "$it" }.toSet(),
-            "job16" to (1..16).map { "$it" }.toSet())
+        "job1" to (1..1).map { "$it" }.toSet(),
+        "job3" to (1..3).map { "$it" }.toSet(),
+        "job6" to (1..6).map { "$it" }.toSet(),
+        "job16" to (1..16).map { "$it" }.toSet()
+    )
 
-    val processings = workLoad.map { it.key to it.value.map { workItem -> workItem to WorkItemInvocations() }.toMap() }.toMap()
+    val processings =
+        workLoad.map { it.key to it.value.map { workItem -> workItem to WorkItemInvocations() }.toMap() }.toMap()
     val jobs = workLoad.map { ChaosJob(it.key, it.value) }
     val maxDjmsCount = 6
 
@@ -61,13 +63,13 @@ class DJMDisconnectsAndRestartsChaosTest : DJMTestSuite() {
     }
 
     fun awaitAllWorkItemsAreAccessedDuringOneSecond() =
-            await().pollInterval(100, TimeUnit.MILLISECONDS)
-                    .atMost(15, TimeUnit.SECONDS)
-                    .until {
-                        processings.values.flatMap { it.values }.all {
-                            Duration.between(it.previousAccessTime.get(), Instant.now()).toSeconds() <= 1
-                        }
-                    }
+        await().pollInterval(100, TimeUnit.MILLISECONDS)
+            .atMost(15, TimeUnit.SECONDS)
+            .until {
+                processings.values.flatMap { it.values }.all {
+                    Duration.between(it.previousAccessTime.get(), Instant.now()).toSeconds() <= 1
+                }
+            }
 
     enum class ChaosAction {
         Disconnect, Connect, Close, Start;

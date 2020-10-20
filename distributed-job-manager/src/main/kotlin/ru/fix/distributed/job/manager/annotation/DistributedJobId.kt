@@ -19,5 +19,5 @@ import ru.fix.distributed.job.manager.DistributedJob
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class DistributedJobId(
-        val value: String
+    val value: String
 )

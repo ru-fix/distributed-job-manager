@@ -8,12 +8,18 @@ internal class JobDisableConfigTest {
 
     @Test
     fun `isJobShouldBeLaunched WHEN disableAllJobs is true THEN returns false`() {
-        assertFalse(JobDisableConfig(disableAllJobs = true, defaultDisableJobSwitchValue = true)
-                .isJobShouldBeLaunched("any job"))
-        assertFalse(JobDisableConfig(disableAllJobs = true, defaultDisableJobSwitchValue = false)
-                .isJobShouldBeLaunched("any job"))
-        assertFalse(JobDisableConfig(disableAllJobs = true, jobsDisableSwitches = mapOf("job" to true))
-                .isJobShouldBeLaunched("job"))
+        assertFalse(
+            JobDisableConfig(disableAllJobs = true, defaultDisableJobSwitchValue = true)
+                .isJobShouldBeLaunched("any job")
+        )
+        assertFalse(
+            JobDisableConfig(disableAllJobs = true, defaultDisableJobSwitchValue = false)
+                .isJobShouldBeLaunched("any job")
+        )
+        assertFalse(
+            JobDisableConfig(disableAllJobs = true, jobsDisableSwitches = mapOf("job" to true))
+                .isJobShouldBeLaunched("job")
+        )
     }
 
     @Test
