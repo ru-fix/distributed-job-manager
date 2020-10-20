@@ -44,8 +44,8 @@ class DJMZookeeperLeanAccessTest : DJMTestSuite() {
                                                                    _: ChildData? ->
             if (oldData != null) {
                 val path = oldData.path
-                        .removePrefix("/")
-                        .substringAfter("/")
+                    .removePrefix("/")
+                    .substringAfter("/")
 
                 if (path.startsWith("locks/")) {
                     logger.info("Lock path changed: $path, type: $type")

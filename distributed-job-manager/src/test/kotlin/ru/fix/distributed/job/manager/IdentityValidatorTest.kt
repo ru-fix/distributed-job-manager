@@ -17,15 +17,15 @@ class IdentityValidatorTest {
     @Test
     fun `Identity with incorrect symbols can not be created`() {
         shouldThrow<Exception> { validate(JobId, "withCyrillicSymbol-ы") }
-        shouldThrow<Exception> { validate(JobId,"with:colon") }
-        shouldThrow<Exception> { validate(JobId,"with/slash") }
-        shouldThrow<Exception> { validate(JobId,"with\\backslash") }
-        shouldThrow<Exception> { validate(JobId," withSpacePrefix") }
-        shouldThrow<Exception> { validate(JobId,"with space") }
+        shouldThrow<Exception> { validate(JobId, "with:colon") }
+        shouldThrow<Exception> { validate(JobId, "with/slash") }
+        shouldThrow<Exception> { validate(JobId, "with\\backslash") }
+        shouldThrow<Exception> { validate(JobId, " withSpacePrefix") }
+        shouldThrow<Exception> { validate(JobId, "with space") }
     }
 
     @Test
-    fun `JobId equality based on String id equality`(){
+    fun `JobId equality based on String id equality`() {
         JobId("foo").equals(JobId("foo")).shouldBeTrue()
         JobId("foo").equals(JobId("bar")).shouldBeFalse()
     }

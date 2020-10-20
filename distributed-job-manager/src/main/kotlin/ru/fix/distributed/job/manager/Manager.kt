@@ -25,43 +25,43 @@ import java.util.concurrent.TimeUnit
  * @see Worker
  */
 class Manager(
-        curatorFramework: CuratorFramework,
-        private val nodeId: String,
-        private val paths: ZkPathsManager,
-        assignmentStrategy: AssignmentStrategy,
-        profiler: Profiler,
-        settings: DynamicProperty<DistributedJobManagerSettings>
+    curatorFramework: CuratorFramework,
+    private val nodeId: String,
+    private val paths: ZkPathsManager,
+    assignmentStrategy: AssignmentStrategy,
+    profiler: Profiler,
+    settings: DynamicProperty<DistributedJobManagerSettings>
 ) : AutoCloseable {
 
     companion object : Logging
 
     private val aliveWorkersCache = CuratorCache
-            .bridgeBuilder(curatorFramework, paths.aliveWorkers())
-            .withDataNotCached()
-            .build()
+        .bridgeBuilder(curatorFramework, paths.aliveWorkers())
+        .withDataNotCached()
+        .build()
 
     private val workPoolCache = CuratorCache
-            .bridgeBuilder(curatorFramework, paths.availableWorkPool())
-            .withDataNotCached()
-            .build()
+        .bridgeBuilder(curatorFramework, paths.availableWorkPool())
+        .withDataNotCached()
+        .build()
 
     private val leaderLatch = LeaderLatch(curatorFramework, paths.leaderLatch())
 
     private val currentState = AtomicProperty(State.IS_NOT_LEADER)
     private val cleaner = Cleaner(
-            profiler,
-            paths,
-            curatorFramework,
-            currentState,
-            settings.map { it.workPoolCleanPeriod.toMillis() },
-            aliveWorkersCache
+        profiler,
+        paths,
+        curatorFramework,
+        currentState,
+        settings.map { it.workPoolCleanPeriod.toMillis() },
+        aliveWorkersCache
     )
 
     private val rebalancer = Rebalancer(
-            paths,
-            curatorFramework,
-            assignmentStrategy,
-            nodeId
+        paths,
+        curatorFramework,
+        assignmentStrategy,
+        nodeId
     )
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)
 

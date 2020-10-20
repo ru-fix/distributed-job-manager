@@ -2,7 +2,10 @@ package ru.fix.distributed.job.manager.strategy
 
 import com.google.common.hash.Funnel
 import com.google.common.hash.Hashing
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.util.RendezvousHash
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -11,10 +14,10 @@ import kotlin.collections.ArrayList
 class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Availability,
-            prevAssignment: AssignmentState,
-            currentAssignment: AssignmentState,
-            itemsToAssign: MutableSet<WorkItem>
+        availability: Availability,
+        prevAssignment: AssignmentState,
+        currentAssignment: AssignmentState,
+        itemsToAssign: MutableSet<WorkItem>
     ) {
         val stringFunnel = Funnel<String> { from, into ->
             into.putBytes(from.toByteArray(StandardCharsets.UTF_8))
@@ -22,7 +25,7 @@ class RendezvousHashAssignmentStrategy : AbstractAssignmentStrategy() {
 
         for ((jobId, availableWorkers) in availability) {
             val hash = RendezvousHash<String, String>(
-                    Hashing.murmur3_128(), stringFunnel, stringFunnel, ArrayList()
+                Hashing.murmur3_128(), stringFunnel, stringFunnel, ArrayList()
             )
             availableWorkers.forEach { worker ->
                 hash.add(worker.id)

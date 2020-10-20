@@ -4,7 +4,10 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
 import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.model.WorkerId
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
@@ -16,10 +19,10 @@ private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
  *  Performs rebalance according to ZK tree state, using given [assignmentStrategy]
  * */
 internal class Rebalancer(
-        private val paths: ZkPathsManager,
-        private val curatorFramework: CuratorFramework,
-        private val assignmentStrategy: AssignmentStrategy,
-        private val nodeId: String
+    private val paths: ZkPathsManager,
+    private val curatorFramework: CuratorFramework,
+    private val assignmentStrategy: AssignmentStrategy,
+    private val nodeId: String
 ) {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
@@ -63,10 +66,10 @@ internal class Rebalancer(
         }
 
         assignmentStrategy.reassignAndBalance(
-                availability,
-                previousState,
-                newState,
-                generateItemsToAssign(availableState)
+            availability,
+            previousState,
+            newState,
+            generateItemsToAssign(availableState)
         )
 
         logger.trace {
@@ -80,8 +83,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.rewriteZookeeperNodes(
-            previousState: AssignmentState,
-            newAssignmentState: AssignmentState
+        previousState: AssignmentState,
+        newAssignmentState: AssignmentState
     ) {
         removeAssignmentsOnDeadNodes()
         createNodesContainedInFirstStateButNotInSecond(newAssignmentState, previousState)
@@ -89,8 +92,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.createNodesContainedInFirstStateButNotInSecond(
-            newAssignmentState: AssignmentState,
-            previousState: AssignmentState
+        newAssignmentState: AssignmentState,
+        previousState: AssignmentState
     ) {
         for ((workerId, workItemsOnWorker) in newAssignmentState) {
             val jobs = itemsToMap(workItemsOnWorker)
@@ -110,8 +113,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.deleteNodesContainedInFirstStateButNotInSecond(
-            previousState: AssignmentState,
-            newAssignmentState: AssignmentState
+        previousState: AssignmentState,
+        newAssignmentState: AssignmentState
     ) {
         for ((workerId, workItemsOnWorker) in previousState) {
             val jobs = itemsToMap(workItemsOnWorker)
@@ -170,11 +173,11 @@ internal class Rebalancer(
                 continue
             }
             val assignedJobIds = curatorFramework.children
-                    .forPath(paths.assignedJobs(worker))
+                .forPath(paths.assignedJobs(worker))
             val assignedWorkPool = HashSet<WorkItem>()
             for (assignedJobId in assignedJobIds) {
                 val assignedJobWorkItems = curatorFramework.children
-                        .forPath(paths.assignedWorkPool(worker, assignedJobId))
+                    .forPath(paths.assignedWorkPool(worker, assignedJobId))
                 for (workItem in assignedJobWorkItems) {
                     assignedWorkPool.add(WorkItem(workItem, JobId(assignedJobId)))
                 }
@@ -189,11 +192,11 @@ internal class Rebalancer(
                 continue
             }
             val availableJobIds = curatorFramework.children
-                    .forPath(paths.availableJobs(worker))
+                .forPath(paths.availableJobs(worker))
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
-                        .forPath(paths.availableWorkPool(availableJobId))
+                    .forPath(paths.availableWorkPool(availableJobId))
                 for (workItem in workItemsForAvailableJobList) {
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))
                 }
@@ -222,8 +225,8 @@ internal class Rebalancer(
     }
 
     private class GlobalAssignmentState internal constructor(
-            val availableState: AssignmentState,
-            val assignedState: AssignmentState
+        val availableState: AssignmentState,
+        val assignedState: AssignmentState
     )
 
     companion object : Logging

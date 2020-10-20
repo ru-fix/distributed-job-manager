@@ -3,7 +3,8 @@ package ru.fix.distributed.job.manager.djm
 import io.kotest.matchers.maps.shouldContainExactly
 import org.apache.logging.log4j.kotlin.Logging
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.fix.distributed.job.manager.*

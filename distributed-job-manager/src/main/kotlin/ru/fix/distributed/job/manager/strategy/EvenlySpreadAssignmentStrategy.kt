@@ -1,15 +1,17 @@
 package ru.fix.distributed.job.manager.strategy
 
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
 import java.util.*
 
 class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Availability,
-            prevAssignment: AssignmentState,
-            currentAssignment: AssignmentState,
-            itemsToAssign: MutableSet<WorkItem>
+        availability: Availability,
+        prevAssignment: AssignmentState,
+        currentAssignment: AssignmentState,
+        itemsToAssign: MutableSet<WorkItem>
     ) {
         for ((jobId, availableWorkers) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign)
@@ -19,11 +21,12 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
                 val workerFromPrevious = prevAssignment.getWorkerOfWorkItem(item)
 
                 if (prevAssignment.containsWorkItem(item)
-                        && availableWorkers.contains(workerFromPrevious)) {
+                    && availableWorkers.contains(workerFromPrevious)
+                ) {
                     currentAssignment.addWorkItem(workerFromPrevious, item)
                 } else {
                     val lessBusyWorker = currentAssignment
-                            .getLessBusyWorkerWithJobId(jobId, availableWorkers)
+                        .getLessBusyWorkerWithJobId(jobId, availableWorkers)
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                 }
                 itemsToAssign.remove(item)
@@ -31,9 +34,9 @@ class EvenlySpreadAssignmentStrategy : AbstractAssignmentStrategy() {
 
             while (!currentAssignment.isBalancedByJobId(jobId, availableWorkers)) {
                 val mostBusyWorker = currentAssignment
-                        .getMostBusyWorkerWithJobId(jobId, availableWorkers)
+                    .getMostBusyWorkerWithJobId(jobId, availableWorkers)
                 val lessBusyWorker = currentAssignment
-                        .getLessBusyWorkerWithJobId(jobId, availableWorkers)
+                    .getLessBusyWorkerWithJobId(jobId, availableWorkers)
                 val itemToMove = currentAssignment.getWorkItems(mostBusyWorker, jobId).last()
                 currentAssignment.moveWorkItem(itemToMove, mostBusyWorker, lessBusyWorker)
             }

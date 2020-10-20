@@ -1,7 +1,10 @@
 package ru.fix.distributed.job.manager.strategy
 
 import ru.fix.distributed.job.manager.JobId
-import ru.fix.distributed.job.manager.model.*
+import ru.fix.distributed.job.manager.model.AssignmentState
+import ru.fix.distributed.job.manager.model.Availability
+import ru.fix.distributed.job.manager.model.WorkItem
+import ru.fix.distributed.job.manager.model.WorkerId
 
 class WorkerScope(private val state: AssignmentState) {
     operator fun String.invoke(builder: JobScope.() -> Unit) {
@@ -10,8 +13,8 @@ class WorkerScope(private val state: AssignmentState) {
 }
 
 class JobScope(
-        private val state: AssignmentState,
-        private val worker: String
+    private val state: AssignmentState,
+    private val worker: String
 ) {
     operator fun String.invoke(vararg items: String) {
         for (item in items) {
@@ -21,31 +24,33 @@ class JobScope(
 }
 
 fun assignmentState(builder: WorkerScope.() -> Unit) =
-        AssignmentState().apply {
-            builder(WorkerScope(this))
-        }
+    AssignmentState().apply {
+        builder(WorkerScope(this))
+    }
 
-class AvailabilityScope(private val availability: Availability){
+class AvailabilityScope(private val availability: Availability) {
     operator fun String.invoke(vararg items: String) {
         availability[JobId(this)] = items.map { WorkerId(it) }.toHashSet()
     }
 }
-fun availability(builder: AvailabilityScope.() -> Unit) =
-        Availability().apply {
-            builder(AvailabilityScope(this))
-        }
 
-class WorkItemScope(private val workItems: HashSet<WorkItem>){
+fun availability(builder: AvailabilityScope.() -> Unit) =
+    Availability().apply {
+        builder(AvailabilityScope(this))
+    }
+
+class WorkItemScope(private val workItems: HashSet<WorkItem>) {
     operator fun String.invoke(vararg items: String) {
-        for(item in items){
+        for (item in items) {
             workItems.add(WorkItem(item, JobId(this)))
         }
     }
 }
+
 fun workItems(builder: WorkItemScope.() -> Unit) =
-        HashSet<WorkItem>().apply {
-            WorkItemScope(this).builder()
-        }
+    HashSet<WorkItem>().apply {
+        WorkItemScope(this).builder()
+    }
 
 fun generateAvailability(assignmentState: AssignmentState): Availability {
     val availability = Availability()
@@ -84,15 +89,15 @@ fun AssignmentState.getLocalWorkPoolSizeInfo(availability: Map<JobId, Set<Worker
     val info = StringBuilder("Work pool size per job:\n")
     availability.forEach { (jobId: JobId?, availableWorkers: Set<WorkerId?>) ->
         info.append(jobId)
-                .append(" - work pool size: ")
-                .append(localPoolSize(jobId))
-                .append("\n")
+            .append(" - work pool size: ")
+            .append(localPoolSize(jobId))
+            .append("\n")
         availableWorkers.forEach { workerId: WorkerId? ->
             info.append("\t")
-                    .append(workerId)
-                    .append(": ")
-                    .append(this.getWorkItems(workerId, jobId).size)
-                    .append("\n")
+                .append(workerId)
+                .append(": ")
+                .append(this.getWorkItems(workerId, jobId).size)
+                .append("\n")
         }
 
     }
@@ -103,26 +108,26 @@ fun AssignmentState.getGlobalWorkPoolSizeInfo(): String? {
     val info = StringBuilder("Global load per worker:\n")
     this.forEach { workerId: WorkerId?, items: HashSet<WorkItem?> ->
         info.append("\t")
-                .append(workerId)
-                .append(": ")
-                .append(items.size)
-                .append("\n")
+            .append(workerId)
+            .append(": ")
+            .append(items.size)
+            .append("\n")
     }
     return info.toString()
 }
 
 class Report(
-        private val availability: Map<JobId, Set<WorkerId>>? = null,
-        private val itemsToAssign: Set<WorkItem>? = null,
-        private val prevAssignment: AssignmentState? = null,
-        private val newAssignment: AssignmentState? = null
+    private val availability: Map<JobId, Set<WorkerId>>? = null,
+    private val itemsToAssign: Set<WorkItem>? = null,
+    private val prevAssignment: AssignmentState? = null,
+    private val newAssignment: AssignmentState? = null
 ) {
 
     override fun toString(): String {
         return "".plus(availability?.let { availability(availability) } ?: "")
-                .plus(itemsToAssign?.let { itemsToAssign(itemsToAssign) } ?: "")
-                .plus(prevAssignment?.let { "Previous $prevAssignment" } ?: "")
-                .plus(newAssignment?.let { "New $newAssignment" } ?: "")
+            .plus(itemsToAssign?.let { itemsToAssign(itemsToAssign) } ?: "")
+            .plus(prevAssignment?.let { "Previous $prevAssignment" } ?: "")
+            .plus(newAssignment?.let { "New $newAssignment" } ?: "")
     }
 
     private fun itemsToAssign(itemsToAssign: Set<WorkItem>): String {

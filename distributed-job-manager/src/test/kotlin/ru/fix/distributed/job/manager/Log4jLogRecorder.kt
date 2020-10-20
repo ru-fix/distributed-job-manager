@@ -6,20 +6,22 @@ import org.apache.logging.log4j.core.layout.PatternLayout
 import java.io.CharArrayWriter
 import java.util.concurrent.atomic.AtomicInteger
 
-class Log4jLogRecorder : AutoCloseable{
-    private companion object{
+class Log4jLogRecorder : AutoCloseable {
+    private companion object {
         private val previousId = AtomicInteger()
     }
 
     private val target = CharArrayWriter()
     private val logger = LogManager.getRootLogger() as org.apache.logging.log4j.core.Logger
     private val appender = WriterAppender.createAppender(
-            PatternLayout.newBuilder().withPattern("%level %msg").build(),
-            null,
-            target,
-            "test-appender-" + previousId.incrementAndGet(),
-            false,
-            false)
+        PatternLayout.newBuilder().withPattern("%level %msg").build(),
+        null,
+        target,
+        "test-appender-" + previousId.incrementAndGet(),
+        false,
+        false
+    )
+
     init {
         appender.start()
         logger.addAppender(appender)
