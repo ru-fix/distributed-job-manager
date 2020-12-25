@@ -2629,11 +2629,47 @@ djm.close();</pre>
             <div class="sect2">
                 <h3 id="_monitoring_and_metrics">Monitoring and metrics</h3>
                 <div class="paragraph">
-                    <p>DJM expose Jobs state through profiler metrics.<br>
-                        * What tasks are currently running.
-                        * How long it took for task to complete.
-                        * How many work items processed.
-                        * etc.</p>
+                    <p>DJM expose Jobs state through profiler metrics.
+                      Every DJM metric starts with "djm_" prefix and
+                      contains tag djmNodeId, which is equal to "nodeId" arg passed to DJM's constructor.
+                    </p>
+                  <div class="ulist">
+                    <ul>
+                      <li>
+                        <b>djm_init</b> profiles DJM's initialization
+                      </li>
+                      <li>
+                        <b>djm_close</b> profiles DJM's shutdown
+                      </li>
+                      <li>
+                        <b>djm_job_{jobId}</b> profiles every run of every job
+                      </li>
+                      <li>
+                        <b>djm_pool_rebalance_*</b> -
+                          metrics of Manager's ProfiledThreadPoolExecutor for performing rebalance
+                      </li>
+                      <li>
+                        <b>djm_scheduled_pool_cleaning_task_*</b> and <b>djm_pool_cleaning_task_*</b> -
+                        metrics of Manager's ReschedulableScheduler for performing cleaning ZK
+                      </li>
+                      <li>
+                        <b>djm_pool_update_assignment_*</b> -
+                        metrics of Worker's ProfiledThreadPoolExecutor for stopping/starting jobs and updating ZK
+                        according to updates from manager
+                      </li>
+                      <li>
+                        <b>djm_scheduled_pool_check_work_pool_*</b> and <b>djm_pool_check_work_pool_*</b> -
+                        metrics of Worker's ReschedulableScheduler for performing periodic checks for changes in total work-pool of each job
+                      </li>
+                      <li>
+                        <b>djm_scheduled_pool_job_scheduler_*</b> and <b>djm_pool_job_scheduler_*</b> -
+                        metrics of Worker's ReschedulableScheduler for running jobs
+                      </li>
+                    </ul>
+                  </div>
+                  See also: <a href="https://github.com/ru-fix/jfix-stdlib#namedexecutors-metrics">
+                    ReschedulableScheduler and ProfiledThreadPoolExecutor metrics
+                  </a>
                 </div>
             </div>
         </div>
