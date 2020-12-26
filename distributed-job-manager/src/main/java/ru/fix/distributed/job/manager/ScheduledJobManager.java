@@ -85,11 +85,11 @@ class ScheduledJobManager {
         return scheduledJobs.get(distributedJob);
     }
 
-    synchronized void removeIf(Predicate<Map.Entry<JobDescriptor, List<ScheduledJobExecution>>> predicate) {
+    private synchronized void removeIf(Predicate<Map.Entry<JobDescriptor, List<ScheduledJobExecution>>> predicate) {
         scheduledJobs.entrySet().removeIf(predicate);
     }
 
-    synchronized void add(JobDescriptor distributedJob, ScheduledJobExecution scheduledJobExecution) {
+    private synchronized void add(JobDescriptor distributedJob, ScheduledJobExecution scheduledJobExecution) {
         scheduledJobs.computeIfAbsent(distributedJob, e -> Collections.synchronizedList(new ArrayList<>()))
                 .add(scheduledJobExecution);
     }
