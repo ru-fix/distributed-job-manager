@@ -17,7 +17,7 @@ public class ZkPathsManager {
 
     final String rootPath;
 
-    ZkPathsManager(String rootPath) {
+    public ZkPathsManager(String rootPath) {
         this.rootPath = rootPath;
     }
 
@@ -57,8 +57,12 @@ public class ZkPathsManager {
         return path(LOCKS);
     }
 
-    public String workItemLock(JobId jobId, String workItem) {
-        return path(LOCKS, jobId.getId(), String.format("work-share-%s.lock", workItem));
+    public String workItemLock(String jobId, String workItem) {
+        return path(LOCKS, jobId, String.format("work-share-%s.lock", workItem));
+    }
+
+    public String jobLock(String jobId) {
+        return path(LOCKS, jobId);
     }
 
     public String workerVersion() {
