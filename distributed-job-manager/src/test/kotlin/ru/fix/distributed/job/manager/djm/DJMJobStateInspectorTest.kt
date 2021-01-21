@@ -25,7 +25,7 @@ class DJMJobStateInspectorTest : DJMTestSuite() {
     @BeforeEach
     fun init() {
         jobStateInspector = JobStateInspectorImpl(
-            zkRootPath = this.djmZkRootPath,
+            zkRootPaths = setOf(this.djmZkRootPath),
             curatorFramework = this.server.client
         )
     }
