@@ -4,11 +4,9 @@ import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.imps.CuratorFrameworkState
 import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
-import ru.fix.distributed.job.manager.model.AssignmentState
-import ru.fix.distributed.job.manager.model.Availability
-import ru.fix.distributed.job.manager.model.WorkItem
-import ru.fix.distributed.job.manager.model.WorkerId
+import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
+import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
@@ -22,7 +20,8 @@ internal class Rebalancer(
     private val paths: ZkPathsManager,
     private val curatorFramework: CuratorFramework,
     private val assignmentStrategy: AssignmentStrategy,
-    private val nodeId: String
+    private val nodeId: String,
+    private val disableConfigProperty: DynamicProperty<JobDisableConfig>
 ) {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
@@ -186,13 +185,16 @@ internal class Rebalancer(
         }
     }
 
-    private fun getAvailableState(allWorkers: List<String>) = AssignmentState().also {
+    private fun getAvailableState(allWorkers: List<String>) = AssignmentState().also { state ->
         for (worker in allWorkers) {
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) == null) {
                 continue
             }
+            val disableConfig = disableConfigProperty.get()
             val availableJobIds = curatorFramework.children
                 .forPath(paths.availableJobs(worker))
+                .filter { disableConfig.isJobShouldBeLaunched(it) }
+
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
@@ -201,7 +203,7 @@ internal class Rebalancer(
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))
                 }
             }
-            it[WorkerId(worker)] = availableWorkPool
+            state[WorkerId(worker)] = availableWorkPool
         }
     }
 

@@ -24,12 +24,11 @@ dependencies {
     }
 
     // JFIX Test
-    implementation(Libs.jfix_socket)
+    testImplementation(Libs.jfix_zookeeper_test)
 
     // Test
-    testImplementation(Libs.jfix_zookeeper_test)
     testImplementation(Libs.junit_jupiter)
-    testImplementation(Libs.mockito)
+    testImplementation(Libs.mockk)
     testImplementation(Libs.mockito_kotlin)
     testImplementation(Libs.curator_test)
     testImplementation(Libs.log4j_core)
