@@ -105,6 +105,8 @@ DJM expose Jobs state through profiler metrics. +
 * How many work items processed.
 * etc.
 
+Also there is JobStateInspector to expose Jobs state through zookeeper
+
 == Reassignment
 
 Reassignment is a process when a Master changes Job and work items assignment between application instances in the cluster.
