@@ -95,7 +95,7 @@ class Manager(
     private fun initSettingsSubscriptionForManagerEvents() {
         settingsSubscription.setAndCallListener { oldValue, newValue ->
             if(oldValue?.jobDisableConfig != newValue.jobDisableConfig) {
-                handleManagerEvent(ManagerEvent.ZK_WORKERS_CONFIG_CHANGED)
+                handleManagerEvent(ManagerEvent.JOB_DISABLE_CONFIG_CHANGED)
             }
         }
     }
@@ -144,7 +144,7 @@ class Manager(
 
     private fun handleManagerEventAsLeader(event: ManagerEvent) {
         when (event) {
-            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED, ManagerEvent.JOB_DISABLE_CONFIG_CHANGED -> {
                 rebalanceAccumulator.publishEvent(RebalanceTrigger.DO_REBALANCE)
             }
             ManagerEvent.LEADERSHIP_LOST -> {
@@ -161,7 +161,7 @@ class Manager(
 
     private fun handleManagerEventAsNonLeader(event: ManagerEvent) {
         when (event) {
-            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED, ManagerEvent.JOB_DISABLE_CONFIG_CHANGED -> {
             }
             ManagerEvent.LEADERSHIP_ACQUIRED -> {
                 currentState.set(State.IS_LEADER)
@@ -194,7 +194,7 @@ class Manager(
     }
 
     private enum class ManagerEvent {
-        ZK_WORKERS_CONFIG_CHANGED, LEADERSHIP_LOST, LEADERSHIP_ACQUIRED, SHUTDOWN
+        ZK_WORKERS_CONFIG_CHANGED, JOB_DISABLE_CONFIG_CHANGED, LEADERSHIP_LOST, LEADERSHIP_ACQUIRED, SHUTDOWN
     }
 
     private enum class RebalanceTrigger {
