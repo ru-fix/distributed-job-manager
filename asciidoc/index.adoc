@@ -62,14 +62,6 @@ void run(DistributedJobContext context) {
 
 include::assignment-strategies.adoc[]
 
-=== Example of DJM configuration
-:sourcedir: ../distributed-job-manager/src/test/kotlin
-
-[source,kotlin]
-----
-include::{sourcedir}/ru/fix/distributed/job/manager/example/DjmConfigurationExample.kt[]
-----
-
 image::djm.png[]
 
 == Getting started
