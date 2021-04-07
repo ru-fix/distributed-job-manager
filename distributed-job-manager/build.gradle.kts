@@ -12,7 +12,7 @@ dependencies {
     api(Libs.jfix_zookeeper) {
         exclude("org.apache.curator", "curator-recipes")
     }
-    implementation(Libs.jfix_concurrency)
+    api(Libs.jfix_concurrency)
     api(Libs.jfix_dynamic_property_api)
 
     // Common
