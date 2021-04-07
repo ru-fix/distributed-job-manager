@@ -427,7 +427,6 @@ class Worker implements AutoCloseable {
                 new HashSet<>(workPoolToExecute),
                 profiler,
                 lockManager,
-                settings.map(DistributedJobManagerSettings::getJobDisableConfig),
                 paths
         );
 
