@@ -35,6 +35,8 @@ class Manager(
 
     companion object : Logging
 
+    private val settingsSubscription = settings.createSubscription()
+
     private val aliveWorkersCache = CuratorCache
         .bridgeBuilder(curatorFramework, paths.aliveWorkers())
         .withDataNotCached()
@@ -61,7 +63,8 @@ class Manager(
         paths,
         curatorFramework,
         assignmentStrategy,
-        nodeId
+        nodeId,
+        settings.map { it.jobDisableConfig }
     )
     private val rebalanceExecutor = NamedExecutors.newSingleThreadPool("rebalance", profiler)
 
@@ -71,6 +74,7 @@ class Manager(
         initCuratorCacheForManagerEvents(aliveWorkersCache, paths.aliveWorkers())
         initCuratorCacheForManagerEvents(workPoolCache, paths.availableWorkPool())
         initLeaderLatchForManagerEvents()
+        initSettingsSubscriptionForManagerEvents()
 
         cleaner.start()
         startRebalancingTask()
@@ -84,6 +88,14 @@ class Manager(
                         rebalancer.reassignAndBalanceTasks()
                     }
                 }
+            }
+        }
+    }
+
+    private fun initSettingsSubscriptionForManagerEvents() {
+        settingsSubscription.setAndCallListener { oldValue, newValue ->
+            if(oldValue?.jobDisableConfig != newValue.jobDisableConfig) {
+                handleManagerEvent(ManagerEvent.JOB_DISABLE_CONFIG_CHANGED)
             }
         }
     }
@@ -132,7 +144,7 @@ class Manager(
 
     private fun handleManagerEventAsLeader(event: ManagerEvent) {
         when (event) {
-            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED, ManagerEvent.JOB_DISABLE_CONFIG_CHANGED -> {
                 rebalanceAccumulator.publishEvent(RebalanceTrigger.DO_REBALANCE)
             }
             ManagerEvent.LEADERSHIP_LOST -> {
@@ -149,7 +161,7 @@ class Manager(
 
     private fun handleManagerEventAsNonLeader(event: ManagerEvent) {
         when (event) {
-            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED -> {
+            ManagerEvent.ZK_WORKERS_CONFIG_CHANGED, ManagerEvent.JOB_DISABLE_CONFIG_CHANGED -> {
             }
             ManagerEvent.LEADERSHIP_ACQUIRED -> {
                 currentState.set(State.IS_LEADER)
@@ -168,6 +180,7 @@ class Manager(
         handleManagerEvent(ManagerEvent.SHUTDOWN)
 
         rebalanceAccumulator.close()
+        settingsSubscription.close()
         aliveWorkersCache.close()
         workPoolCache.close()
         leaderLatch.close()
@@ -181,7 +194,7 @@ class Manager(
     }
 
     private enum class ManagerEvent {
-        ZK_WORKERS_CONFIG_CHANGED, LEADERSHIP_LOST, LEADERSHIP_ACQUIRED, SHUTDOWN
+        ZK_WORKERS_CONFIG_CHANGED, JOB_DISABLE_CONFIG_CHANGED, LEADERSHIP_LOST, LEADERSHIP_ACQUIRED, SHUTDOWN
     }
 
     private enum class RebalanceTrigger {
