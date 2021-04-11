@@ -2,17 +2,19 @@ package ru.fix.distributed.job.manager.djm
 
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
 import ru.fix.distributed.job.manager.flight.control.JobStateInspector
-import ru.fix.distributed.job.manager.flight.control.JobStateInspectorImpl
 import ru.fix.distributed.job.manager.flight.control.JobStatus
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 
 class DJMJobStateInspectorTest : DJMTestSuite() {
 
@@ -22,10 +24,11 @@ class DJMJobStateInspectorTest : DJMTestSuite() {
     }
 
     lateinit var jobStateInspector: JobStateInspector
+
     @BeforeEach
     fun init() {
-        jobStateInspector = JobStateInspectorImpl(
-            zkRootPaths = setOf(this.djmZkRootPath),
+        jobStateInspector = JobStateInspector(
+            zkRootPath = this.djmZkRootPath,
             curatorFramework = this.server.client
         )
     }
@@ -36,8 +39,8 @@ class DJMJobStateInspectorTest : DJMTestSuite() {
         createDJM(job)
 
         await().atMost(Duration.ofSeconds(DELAY_SECONDS * 2)).untilAsserted {
-            job.status shouldBe JobStatus.STARTED
-            jobStateInspector.getJobStatus(JOB_ID) shouldBe JobStatus.STARTED
+            job.status shouldBe JobStatus.RUNNING
+            jobStateInspector.getJobStatus(JOB_ID) shouldBe JobStatus.RUNNING
         }
 
         await().atMost(Duration.ofSeconds(DELAY_SECONDS * 2)).untilAsserted {
@@ -48,23 +51,27 @@ class DJMJobStateInspectorTest : DJMTestSuite() {
 
     @Test
     fun `when JobId is not available then throw Exception`() {
-        createDJM(FlightControlTestJob("test_id"))
+        createDJM(FlightControlTestJob("job_that_exists_in_djm"))
 
         shouldThrowExactly<IllegalArgumentException> {
-            jobStateInspector.getJobStatus(JOB_ID)
+            jobStateInspector.getJobStatus("job_that_does_not_exist")
         }
     }
 
     class FlightControlTestJob(jobId: String = JOB_ID) : DistributedJob {
+        @Volatile
         var status = JobStatus.STOPPED
         override val jobId = JobId(jobId)
+        val mutex = Mutex()
 
-        override fun getSchedule() = DynamicProperty.of(Schedule.withRate(Duration.ofSeconds(DELAY_SECONDS).toMillis()))
+        override fun getSchedule() = DynamicProperty.of(Schedule.withDelay(Duration.ofSeconds(DELAY_SECONDS).toMillis()))
 
-        override fun run(context: DistributedJobContext) {
-            status = JobStatus.STARTED
-            TimeUnit.SECONDS.sleep(3)
-            status = JobStatus.STOPPED
+        override fun run(context: DistributedJobContext) = runBlocking {
+            mutex.withLock {
+                status = JobStatus.RUNNING
+                delay(Duration.ofSeconds(DELAY_SECONDS).toMillis())
+                status = JobStatus.STOPPED
+            }
         }
 
         override fun getWorkPool() = WorkPool.singleton()
