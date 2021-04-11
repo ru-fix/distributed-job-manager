@@ -301,8 +301,8 @@ class DJMJobLaunchingTest : DJMTestSuite() {
             .drop(10)
             .map { it.toMillis().toInt() }
             .forEach {
-                //100ms delay +/- 20ms
-                it.shouldBeInRange(80..120)
+                //100ms delay +/- 60ms
+                it.shouldBeInRange(40..160)
             }
         jobWith100msDelay.invocationCounter.get().shouldBeInRange(8..12)
         closeDjm(djm)

@@ -8,28 +8,27 @@ dependencies {
     implementation(Libs.kotlin_jdk8)
 
     // JFIX
-    implementation(Libs.aggregating_profiler)
-    implementation(Libs.jfix_zookeeper) {
+    api(Libs.aggregating_profiler)
+    api(Libs.jfix_zookeeper) {
         exclude("org.apache.curator", "curator-recipes")
     }
-    implementation(Libs.jfix_concurrency)
-    implementation(Libs.jfix_dynamic_property_api)
+    api(Libs.jfix_concurrency)
+    api(Libs.jfix_dynamic_property_api)
 
     // Common
     implementation(Libs.slf4j)
     implementation(Libs.log4j_kotlin)
     implementation(Libs.validation_api)
-    implementation(Libs.curator) {
+    api(Libs.curator) {
         exclude("org.slf4j", "slf4j-api")
     }
 
     // JFIX Test
-    implementation(Libs.jfix_socket)
+    testImplementation(Libs.jfix_zookeeper_test)
 
     // Test
-    testImplementation(Libs.jfix_zookeeper_test)
     testImplementation(Libs.junit_jupiter)
-    testImplementation(Libs.mockito)
+    testImplementation(Libs.mockk)
     testImplementation(Libs.mockito_kotlin)
     testImplementation(Libs.curator_test)
     testImplementation(Libs.log4j_core)

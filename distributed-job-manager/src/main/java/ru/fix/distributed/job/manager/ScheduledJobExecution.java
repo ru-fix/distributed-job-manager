@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
-import ru.fix.distributed.job.manager.model.JobDisableConfig;
-import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.zookeeper.lock.LockIdentity;
 import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
 
@@ -33,7 +31,6 @@ class ScheduledJobExecution implements Runnable {
     private final Profiler profiler;
     private final ZkPathsManager zkPathsManager;
     private final Lock lock = new ReentrantLock();
-    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
     private volatile ScheduledFuture<?> scheduledFuture;
     private volatile long lastShutdownTime;
@@ -44,7 +41,6 @@ class ScheduledJobExecution implements Runnable {
             Set<String> workShare,
             Profiler profiler,
             PersistentExpiringLockManager lockManager,
-            DynamicProperty<JobDisableConfig> jobDisableConfig,
             ZkPathsManager zkPathsManager
     ) {
         if (workShare.isEmpty()) {
@@ -56,16 +52,11 @@ class ScheduledJobExecution implements Runnable {
         this.workShare = workShare;
         this.profiler = profiler;
         this.lockManager = lockManager;
-        this.jobDisableConfig = jobDisableConfig;
         this.zkPathsManager = zkPathsManager;
     }
 
     @Override
     public void run() {
-        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId().getId())) {
-            log.trace("Job {} wasn't launched due to jobDisableConfig", job.getJobId());
-            return;
-        }
 
         ProfiledCall jobLaunchProfiledCall = profiler.profiledCall(ProfilerMetrics.JOB(job.getJobId()));
 

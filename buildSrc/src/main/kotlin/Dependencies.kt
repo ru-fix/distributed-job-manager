@@ -11,14 +11,14 @@ object Vers {
 
     const val aggregating_profiler = "1.6.6"
     const val jfix_zookeeper = "1.1.7"
-    const val jfix_stdlib = "3.0.12"
+    const val jfix_stdlib = "3.0.14"
     const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "5.0.0"
 
     const val junit = "5.6.2"
-    const val mockito = "3.3.3"
+    const val mockk = "1.10.5"
     const val mockito_kotlin = "2.2.0"
     const val awaitility = "4.0.3"
 
@@ -43,7 +43,6 @@ object Libs {
     // JFIX
     const val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
     const val jfix_zookeeper = "ru.fix:jfix-zookeeper:${Vers.jfix_zookeeper}"
-    const val jfix_zookeeper_test = "ru.fix:jfix-zookeeper-test:${Vers.jfix_zookeeper}"
     const val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_stdlib}"
     const val jfix_dynamic_property_api = "ru.fix:dynamic-property-api:${Vers.jfix_dynamic_property}"
 
@@ -57,12 +56,12 @@ object Libs {
     const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test
-    const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_stdlib}"
+    const val jfix_zookeeper_test = "ru.fix:jfix-zookeeper-test:${Vers.jfix_zookeeper}"
 
     // Test
     const val junit_jupiter = "org.junit.jupiter:junit-jupiter:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
-    const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
+    const val mockk = "io.mockk:mockk:${Vers.mockk}"
     const val mockito_kotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:${Vers.mockito_kotlin}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
     const val kotest_assertions = "io.kotest:kotest-assertions-core:4.1.1"
