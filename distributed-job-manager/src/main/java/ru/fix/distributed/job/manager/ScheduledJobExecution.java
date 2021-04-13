@@ -82,7 +82,7 @@ class ScheduledJobExecution implements Runnable {
                  * Worker2 tries to acquire lock for jobA and fails because Worker1 still holds the lock.
                  */
                 if (!lockManager.tryAcquire(
-                        new LockIdentity(zkPathsManager.workItemLock(job.getJobId(), workItem), null),
+                        new LockIdentity(zkPathsManager.workItemLock(job.getJobId().getId(), workItem), null),
                         lockIdentity -> jobContext.shutdown())
                 ) {
                     log.info("Failed to tryAcquire work share '{}' for job '{}'. Job launching will rescheduled.",
@@ -104,7 +104,7 @@ class ScheduledJobExecution implements Runnable {
             jobRuns.remove(jobContext);
             try {
                 for (String workItem : workShare) {
-                    String workItemPath = zkPathsManager.workItemLock(job.getJobId(), workItem);
+                    String workItemPath = zkPathsManager.workItemLock(job.getJobId().getId(), workItem);
                     LockIdentity lockId = new LockIdentity(workItemPath, null);
                     if (lockManager.isLockManaged(lockId)) {
                         lockManager.release(lockId);

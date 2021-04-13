@@ -113,6 +113,8 @@ metrics of Worker's ReschedulableScheduler for running jobs
 See also:
 https://github.com/ru-fix/jfix-stdlib#namedexecutors-metrics++[ReschedulableScheduler and ProfiledThreadPoolExecutor metrics]
 
+Also there is JobStateInspector to expose Jobs state through zookeeper
+
 == Reassignment
 
 Reassignment is a process when a Master changes Job and work items assignment between application instances in the cluster.

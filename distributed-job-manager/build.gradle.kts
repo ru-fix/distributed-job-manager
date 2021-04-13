@@ -27,6 +27,7 @@ dependencies {
     testImplementation(Libs.jfix_zookeeper_test)
 
     // Test
+    testImplementation(Libs.kotlinx_coroutines_core)
     testImplementation(Libs.junit_jupiter)
     testImplementation(Libs.mockk)
     testImplementation(Libs.mockito_kotlin)
