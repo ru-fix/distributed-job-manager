@@ -104,8 +104,11 @@ public class DistributedJobManager implements AutoCloseable {
                     djmProfiler,
                     settings);
 
-            this.manager.start();
+            // worker should start before manager, because manager starts
+            // async rebalancing and can assume current worker as dead (and remove it)
+            // if worker haven't registered itself as alive yet
             this.worker.start();
+            this.manager.start();
 
             initProfiledCall.stop();
         }
