@@ -75,7 +75,7 @@ class ScheduledJobManager {
         );
     }
 
-    synchronized List<ScheduledJobExecution> getScheduledJobExecutions(JobDescriptor distributedJob) {
+    private synchronized List<ScheduledJobExecution> getScheduledJobExecutions(JobDescriptor distributedJob) {
         return scheduledJobs.get(distributedJob);
     }
 
