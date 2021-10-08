@@ -359,7 +359,7 @@ class DJMJobLaunchingTest : DJMTestSuite() {
             ) {
 
                 for (item in itemsToAssign) {
-                    val workerId = availability[item.jobId]!!.minBy { it.id }
+                    val workerId = availability[item.jobId]!!.minByOrNull { it.id }!!
                     currentAssignment.addWorkItem(workerId, item)
                 }
             }
