@@ -1,17 +1,18 @@
 object Vers {
     //Plugins
-    const val dokkav = "0.10.1"
-    const val gradle_release_plugin = "1.3.17"
+    const val dokkav = "1.4.30"
+    const val gradle_release_plugin = "1.4.3"
     const val asciidoctor = "1.6.0"
 
     //Dependencies
-    const val kotlin = "1.3.72"
+    const val kotlin = "1.5.31"
+    const val gradle_kotlin = "1.5.21"
     const val kotlin_coroutines = "1.3.5"
 
     const val slf4j = "1.7.30"
 
     const val aggregating_profiler = "1.6.6"
-    const val jfix_zookeeper = "1.1.7"
+    const val jfix_zookeeper = "1.2.2"
     const val jfix_stdlib = "3.0.14"
     const val jfix_dynamic_property = "2.0.7"
 
@@ -41,6 +42,9 @@ object Libs {
     const val kotlin_jdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Vers.kotlin}"
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Vers.kotlin}"
     const val kotlinx_coroutines_core = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Vers.kotlin_coroutines}"
+
+    const val gradle_kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Vers.gradle_kotlin}"
+    const val gradle_kotlin_jdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Vers.gradle_kotlin}"
 
     // JFIX
     const val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
