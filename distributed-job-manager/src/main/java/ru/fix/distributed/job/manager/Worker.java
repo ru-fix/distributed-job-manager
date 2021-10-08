@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +51,7 @@ class Worker implements AutoCloseable {
     private final ReschedulableScheduler checkWorkPoolScheduler;
     private final DynamicProperty<DistributedJobManagerSettings> settings;
     private volatile CuratorCache workPooledCache;
-    private final AtomicBoolean isWorkerShutdown = new AtomicBoolean(false);
+    private volatile boolean isWorkerShutdown = false;
 
     Worker(CuratorFramework curatorFramework,
            String nodeId,
@@ -89,8 +88,7 @@ class Worker implements AutoCloseable {
                 paths,
                 profiler,
                 workerId,
-                settings,
-                isWorkerShutdown
+                settings
         );
 
     }
@@ -152,7 +150,7 @@ class Worker implements AutoCloseable {
                         DynamicProperty.delegated(() -> Schedule.withDelay(job.getWorkPoolCheckPeriod())),
                         workPoolCheckPeriod,
                         () -> {
-                            if (isWorkerShutdown.get()) {
+                            if (isWorkerShutdown) {
                                 return;
                             }
                             WorkPool workPool = WorkPool.of(Collections.emptySet());
@@ -170,7 +168,7 @@ class Worker implements AutoCloseable {
 
         curatorFramework.getConnectionStateListenable().addListener((client, event) -> {
             log.info("wid={} start().connectionListener event={}", workerId, event);
-            if (!isWorkerShutdown.get()) {
+            if (!isWorkerShutdown) {
                 switch (event) {
                     case SUSPENDED:
                         assignmentUpdatesExecutor.submit(this::shutdownAllJobExecutions);
@@ -268,7 +266,7 @@ class Worker implements AutoCloseable {
                     case NODE_CHANGED:
                     case NODE_CREATED:
                     case NODE_DELETED:
-                        if (!isWorkerShutdown.get()) {
+                        if (!isWorkerShutdown) {
                             assignmentUpdatesExecutor.submit(() -> {
                                 try {
                                     onWorkPooledJobReassigned();
@@ -289,7 +287,7 @@ class Worker implements AutoCloseable {
         workPooledCache.listenable().addListener(curatorCacheListener);
         workPooledCache.start();
         while (!cacheInitLocker.tryAcquire(5, TimeUnit.SECONDS)) {
-            if (isWorkerShutdown.get()) return;
+            if (isWorkerShutdown) return;
         }
     }
 
@@ -370,7 +368,7 @@ class Worker implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        isWorkerShutdown.set(true);
+        isWorkerShutdown = true;
 
         // shutdown cache to stop updates
         CuratorCache curatorCache = workPooledCache;

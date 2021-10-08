@@ -39,7 +39,6 @@ class ScheduledJobManager {
 
     private final ZkPathsManager paths;
 
-    private final AtomicBoolean isWorkerShutdown;
     private final DynamicProperty<Long> timeToWaitTermination;
 
     private final AtomicProperty<Integer> threadPoolSize;
@@ -58,13 +57,11 @@ class ScheduledJobManager {
             ZkPathsManager paths,
             Profiler profiler,
             String workerId,
-            DynamicProperty<DistributedJobManagerSettings> settings,
-            AtomicBoolean isWorkerShutdown
+            DynamicProperty<DistributedJobManagerSettings> settings
     ) {
         this.workerId = workerId;
         this.profiler = profiler;
         this.paths = paths;
-        this.isWorkerShutdown = isWorkerShutdown;
         this.timeToWaitTermination = settings.map(it -> it.getTimeToWaitTermination().toMillis());
         this.threadPoolSize = new AtomicProperty<>(1);
         this.jobReschedulableScheduler = new ReschedulableScheduler(
@@ -180,12 +177,14 @@ class ScheduledJobManager {
                 paths
         );
 
-        if (!isWorkerShutdown.get()) {
-            ScheduledFuture<?> scheduledFuture =
-                    jobReschedulableScheduler.schedule(
-                            newMultiJob.getSchedule(),
-                            initialJobDelay,
-                            jobExecutionWrapper);
+        Optional<ScheduledFuture<?>> scheduledFutureOptional =
+                jobReschedulableScheduler.scheduleIfNotShutdown(
+                        newMultiJob.getSchedule(),
+                        initialJobDelay,
+                        jobExecutionWrapper);
+
+        if (scheduledFutureOptional.isPresent()) {
+            ScheduledFuture<?> scheduledFuture = scheduledFutureOptional.get();
             jobExecutionWrapper.setScheduledFuture(scheduledFuture);
             add(newMultiJob, jobExecutionWrapper);
 
