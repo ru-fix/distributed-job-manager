@@ -5,8 +5,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.JobId
+import ru.fix.distributed.job.manager.model.AssignmentState
 import ru.fix.distributed.job.manager.model.WorkerId
 
 internal class RendezvousHashAssignmentStrategyTest {
@@ -23,19 +23,19 @@ internal class RendezvousHashAssignmentStrategyTest {
 
     private val workPool: JobScope.() -> Unit = {
         "job-0"(
-                "work-item-0",
-                "work-item-1",
-                "work-item-2",
-                "work-item-3",
-                "work-item-4",
-                "work-item-5"
+            "work-item-0",
+            "work-item-1",
+            "work-item-2",
+            "work-item-3",
+            "work-item-4",
+            "work-item-5"
         )
     }
     private val workPool1: JobScope.() -> Unit = {
         "job-1"(
-                "work-item-0",
-                "work-item-1",
-                "work-item-2"
+            "work-item-0",
+            "work-item-1",
+            "work-item-2"
         )
     }
 
@@ -156,24 +156,26 @@ internal class RendezvousHashAssignmentStrategyTest {
     }
 
     private fun calculateNewAssignment(
-            available: AssignmentState,
-            previous: AssignmentState
+        available: AssignmentState,
+        previous: AssignmentState
     ): AssignmentState {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
 
-        logger.info(Report(
+        logger.info(
+            Report(
                 availability,
                 itemsToAssign,
-                previous).toString()
+                previous
+            ).toString()
         )
 
         val newState = AssignmentState()
         rendezvous.reassignAndBalance(
-                availability,
-                previous,
-                newState,
-                itemsToAssign
+            availability,
+            previous,
+            newState,
+            itemsToAssign
         )
         logger.info(Report(newAssignment = newState).toString())
         return newState

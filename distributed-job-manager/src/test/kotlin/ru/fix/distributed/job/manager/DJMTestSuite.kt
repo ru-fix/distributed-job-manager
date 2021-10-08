@@ -67,39 +67,43 @@ abstract class DJMTestSuite {
 
     private val djmConnections = ConcurrentHashMap<DistributedJobManager, DjmZkConnector>()
 
-    fun createDJM(job: DistributedJob,
-                  profiler: Profiler = NoopProfiler(),
-                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT) =
-            createDJM(listOf(job), profiler, assignmentStrategy)
+    fun createDJM(
+        job: DistributedJob,
+        profiler: Profiler = NoopProfiler(),
+        assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT
+    ) = createDJM(listOf(job), profiler, assignmentStrategy)
 
-    fun createDJM(jobs: List<DistributedJob>,
-                  profiler: Profiler = NoopProfiler(),
-                  assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
-                  nodeId: String = generateNodeId(),
-                  settings: DynamicProperty<DistributedJobManagerSettings> = DynamicProperty.of(
-                          DistributedJobManagerSettings(
-                                  timeToWaitTermination = 10000,
-                                  workPoolCleanPeriod = 1000,
-                                  lockManagerConfig = PersistentExpiringLockManagerConfig(
-                                          lockAcquirePeriod = Duration.ofSeconds(15),
-                                          expirationPeriod = Duration.ofSeconds(5),
-                                          lockCheckAndProlongInterval = Duration.ofSeconds(5)
-                                  ),
-                                  jobDisableConfig = JobDisableConfig())
-                  )
+    fun createDJM(
+        jobs: List<DistributedJob>,
+        profiler: Profiler = NoopProfiler(),
+        assignmentStrategy: AssignmentStrategy = AssignmentStrategies.DEFAULT,
+        nodeId: String = generateNodeId(),
+        settings: DynamicProperty<DistributedJobManagerSettings> = DynamicProperty.of(
+            DistributedJobManagerSettings(
+                timeToWaitTermination = Duration.ofSeconds(10),
+                workPoolCleanPeriod = Duration.ofSeconds(1),
+                lockManagerConfig = PersistentExpiringLockManagerConfig(
+                    lockAcquirePeriod = Duration.ofSeconds(15),
+                    expirationPeriod = Duration.ofSeconds(5),
+                    lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                ),
+                jobDisableConfig = JobDisableConfig()
+            )
+        )
     ): DistributedJobManager {
 
         val tcpCrusher = server.openProxyTcpCrusher()
         val curator = server.createZkProxyClient(tcpCrusher)
         try {
             val djm = DistributedJobManager(
-                    curator,
-                    nodeId,
-                    djmZkRootPath,
-                    assignmentStrategy,
-                    jobs,
-                    profiler,
-                    settings)
+                curator,
+                nodeId,
+                djmZkRootPath,
+                assignmentStrategy,
+                jobs,
+                profiler,
+                settings
+            )
             djmConnections[djm] = DjmZkConnector(curator, tcpCrusher)
             return djm
         } catch (exc: Exception) {

@@ -78,6 +78,7 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
             override fun run(context: DistributedJobContext) {
                 receivedWorkShare.add(context.workShare)
             }
+
             override fun getWorkPool() = WorkPool.of(workItems)
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategy { workPool -> workPool.size / 2 }
             override fun getWorkPoolCheckPeriod() = 0L
@@ -85,11 +86,11 @@ class DJMWorkItemThreadPolicyJobLaunchingTest : DJMTestSuite() {
 
         val djm = createDJM(jobWithCustomWorkPoolRunningnStrategy)
         await().pollDelay(100, TimeUnit.MILLISECONDS)
-                .atMost(1, TimeUnit.MINUTES).until {
-                    val workShares = jobWithCustomWorkPoolRunningnStrategy.receivedWorkShare.toList()
-                    workShares.flatten().toSet().size == 10 &&
-                            workShares.all { it.size == 2 }
-                }
+            .atMost(1, TimeUnit.MINUTES).until {
+                val workShares = jobWithCustomWorkPoolRunningnStrategy.receivedWorkShare.toList()
+                workShares.flatten().toSet().size == 10 &&
+                        workShares.all { it.size == 2 }
+            }
 
         closeDjm(djm)
     }

@@ -28,10 +28,10 @@ class AssignmentStrategyUsageTest {
     private val singleUssdItemAssignedToOneOfWorkers = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: Availability,
-                prevAssignment: AssignmentState,
-                currentAssignment: AssignmentState,
-                itemsToAssign: MutableSet<WorkItem>
+            availability: Availability,
+            prevAssignment: AssignmentState,
+            currentAssignment: AssignmentState,
+            itemsToAssign: MutableSet<WorkItem>
         ) {
             val ussdItem = ussdWorkItems.single()
             itemsToAssign.remove(ussdItem)
@@ -50,10 +50,10 @@ class AssignmentStrategyUsageTest {
     private val multipleSmsItemsAssignedToWorkersWithoutUssd = object : AbstractAssignmentStrategy() {
 
         override fun reassignAndBalance(
-                availability: Availability,
-                prevAssignment: AssignmentState,
-                currentAssignment: AssignmentState,
-                itemsToAssign: MutableSet<WorkItem>
+            availability: Availability,
+            prevAssignment: AssignmentState,
+            currentAssignment: AssignmentState,
+            itemsToAssign: MutableSet<WorkItem>
         ) {
             for ((jobId, workers) in availability) {
                 val itemsToAssignForJob = getWorkItemsByJob(jobId, itemsToAssign)
@@ -74,7 +74,7 @@ class AssignmentStrategyUsageTest {
                     }
 
                     val lessBusyWorker = currentAssignment
-                            .getLessBusyWorker(availableWorkers)
+                        .getLessBusyWorker(availableWorkers)
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                     itemsToAssign.remove(item)
                 }
@@ -87,49 +87,49 @@ class AssignmentStrategyUsageTest {
     fun `assign single ussd and multiple sms on 4 workers`() {
         val customStrategy = object : AbstractAssignmentStrategy() {
             override fun reassignAndBalance(
-                    availability: Availability,
-                    prevAssignment: AssignmentState,
-                    currentAssignment: AssignmentState,
-                    itemsToAssign: MutableSet<WorkItem>
+                availability: Availability,
+                prevAssignment: AssignmentState,
+                currentAssignment: AssignmentState,
+                itemsToAssign: MutableSet<WorkItem>
             ) {
                 val ussdItemsToAssign = itemsToAssign.filter { it.jobId == ussdJobId }.toMutableSet()
                 singleUssdItemAssignedToOneOfWorkers.reassignAndBalance(
-                        availability,
-                        prevAssignment,
-                        currentAssignment,
-                        ussdItemsToAssign
+                    availability,
+                    prevAssignment,
+                    currentAssignment,
+                    ussdItemsToAssign
                 )
 
                 val smsItemsToAssign = itemsToAssign.filter { it.jobId == smsJobId }.toMutableSet()
                 multipleSmsItemsAssignedToWorkersWithoutUssd.reassignAndBalance(
-                        availability,
-                        prevAssignment,
-                        currentAssignment,
-                        smsItemsToAssign
+                    availability,
+                    prevAssignment,
+                    currentAssignment,
+                    smsItemsToAssign
                 )
 
                 itemsToAssign.removeIf { it.jobId in setOf(ussdJobId, smsJobId) }
 
                 // reassign items of other jobs using evenly spread strategy
                 AssignmentStrategies.EVENLY_SPREAD.reassignAndBalance(
-                        availability,
-                        prevAssignment,
-                        currentAssignment,
-                        itemsToAssign
+                    availability,
+                    prevAssignment,
+                    currentAssignment,
+                    itemsToAssign
                 )
             }
         }
 
         val currentAssignment = AssignmentState()
         customStrategy.reassignAndBalance(
-                availability = availability {
-                    ussdJobId.id(*workers)
-                    smsJobId.id(*workers)
-                    rebillJobId.id(*workers)
-                },
-                prevAssignment = AssignmentState(),
-                currentAssignment = currentAssignment,
-                itemsToAssign = (ussdWorkItems + smsWorkItems + rebillWorkItems).toMutableSet()
+            availability = availability {
+                ussdJobId.id(*workers)
+                smsJobId.id(*workers)
+                rebillJobId.id(*workers)
+            },
+            prevAssignment = AssignmentState(),
+            currentAssignment = currentAssignment,
+            itemsToAssign = (ussdWorkItems + smsWorkItems + rebillWorkItems).toMutableSet()
         )
 
 

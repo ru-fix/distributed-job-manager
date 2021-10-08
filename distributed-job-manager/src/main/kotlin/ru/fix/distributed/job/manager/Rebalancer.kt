@@ -6,6 +6,7 @@ import org.apache.logging.log4j.kotlin.Logging
 import org.apache.zookeeper.KeeperException.NoNodeException
 import ru.fix.distributed.job.manager.model.*
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
+import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.zookeeper.transactional.ZkTransaction
 import ru.fix.zookeeper.utils.ZkTreePrinter
 import java.util.*
@@ -16,10 +17,11 @@ private const val ASSIGNMENT_COMMIT_RETRIES_COUNT = 3
  *  Performs rebalance according to ZK tree state, using given [assignmentStrategy]
  * */
 internal class Rebalancer(
-        private val paths: ZkPathsManager,
-        private val curatorFramework: CuratorFramework,
-        private val assignmentStrategy: AssignmentStrategy,
-        private val nodeId: String
+    private val paths: ZkPathsManager,
+    private val curatorFramework: CuratorFramework,
+    private val assignmentStrategy: AssignmentStrategy,
+    private val nodeId: String,
+    private val disableConfigProperty: DynamicProperty<JobDisableConfig>
 ) {
     private val zkPrinter = ZkTreePrinter(curatorFramework)
 
@@ -63,10 +65,10 @@ internal class Rebalancer(
         }
 
         assignmentStrategy.reassignAndBalance(
-                availability,
-                previousState,
-                newState,
-                generateItemsToAssign(availableState)
+            availability,
+            previousState,
+            newState,
+            generateItemsToAssign(availableState)
         )
 
         logger.trace {
@@ -80,8 +82,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.rewriteZookeeperNodes(
-            previousState: AssignmentState,
-            newAssignmentState: AssignmentState
+        previousState: AssignmentState,
+        newAssignmentState: AssignmentState
     ) {
         removeAssignmentsOnDeadNodes()
         createNodesContainedInFirstStateButNotInSecond(newAssignmentState, previousState)
@@ -89,8 +91,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.createNodesContainedInFirstStateButNotInSecond(
-            newAssignmentState: AssignmentState,
-            previousState: AssignmentState
+        newAssignmentState: AssignmentState,
+        previousState: AssignmentState
     ) {
         for ((workerId, workItemsOnWorker) in newAssignmentState) {
             val jobs = itemsToMap(workItemsOnWorker)
@@ -110,8 +112,8 @@ internal class Rebalancer(
     }
 
     private fun ZkTransaction.deleteNodesContainedInFirstStateButNotInSecond(
-            previousState: AssignmentState,
-            newAssignmentState: AssignmentState
+        previousState: AssignmentState,
+        newAssignmentState: AssignmentState
     ) {
         for ((workerId, workItemsOnWorker) in previousState) {
             val jobs = itemsToMap(workItemsOnWorker)
@@ -170,11 +172,11 @@ internal class Rebalancer(
                 continue
             }
             val assignedJobIds = curatorFramework.children
-                    .forPath(paths.assignedJobs(worker))
+                .forPath(paths.assignedJobs(worker))
             val assignedWorkPool = HashSet<WorkItem>()
             for (assignedJobId in assignedJobIds) {
                 val assignedJobWorkItems = curatorFramework.children
-                        .forPath(paths.assignedWorkPool(worker, assignedJobId))
+                    .forPath(paths.assignedWorkPool(worker, assignedJobId))
                 for (workItem in assignedJobWorkItems) {
                     assignedWorkPool.add(WorkItem(workItem, JobId(assignedJobId)))
                 }
@@ -183,22 +185,25 @@ internal class Rebalancer(
         }
     }
 
-    private fun getAvailableState(allWorkers: List<String>) = AssignmentState().also {
+    private fun getAvailableState(allWorkers: List<String>) = AssignmentState().also { state ->
         for (worker in allWorkers) {
             if (curatorFramework.checkExists().forPath(paths.aliveWorker(worker)) == null) {
                 continue
             }
+            val disableConfig = disableConfigProperty.get()
             val availableJobIds = curatorFramework.children
-                    .forPath(paths.availableJobs(worker))
+                .forPath(paths.availableJobs(worker))
+                .filter { disableConfig.isJobShouldBeLaunched(it) }
+
             val availableWorkPool = HashSet<WorkItem>()
             for (availableJobId in availableJobIds) {
                 val workItemsForAvailableJobList = curatorFramework.children
-                        .forPath(paths.availableWorkPool(availableJobId))
+                    .forPath(paths.availableWorkPool(availableJobId))
                 for (workItem in workItemsForAvailableJobList) {
                     availableWorkPool.add(WorkItem(workItem, JobId(availableJobId)))
                 }
             }
-            it[WorkerId(worker)] = availableWorkPool
+            state[WorkerId(worker)] = availableWorkPool
         }
     }
 
@@ -222,8 +227,8 @@ internal class Rebalancer(
     }
 
     private class GlobalAssignmentState internal constructor(
-            val availableState: AssignmentState,
-            val assignedState: AssignmentState
+        val availableState: AssignmentState,
+        val assignedState: AssignmentState
     )
 
     companion object : Logging

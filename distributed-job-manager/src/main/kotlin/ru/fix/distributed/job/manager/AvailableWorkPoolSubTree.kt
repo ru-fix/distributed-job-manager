@@ -7,13 +7,13 @@ import ru.fix.zookeeper.transactional.ZkTransaction
 import java.util.concurrent.ConcurrentMap
 
 internal class AvailableWorkPoolSubTree(
-        private val curatorFramework: CuratorFramework,
-        private val paths: ZkPathsManager
+    private val curatorFramework: CuratorFramework,
+    private val paths: ZkPathsManager
 ) {
     companion object : Logging
 
     fun readVersionThenCheckAndUpdateIfTxMutatesState(transaction: ZkTransaction): Int =
-            transaction.readVersionThenCheckAndUpdateInTransactionIfItMutatesZkState(paths.availableWorkPoolVersion())
+        transaction.readVersionThenCheckAndUpdateInTransactionIfItMutatesZkState(paths.availableWorkPoolVersion())
 
     fun pruneOutDatedJobs(transaction: ZkTransaction, actualJobs: Set<String>) {
         for (jobIdFromZk in currentJobsFromZk()) {
@@ -55,7 +55,7 @@ internal class AvailableWorkPoolSubTree(
     }
 
     private fun createItemsContainedInFirstSetButNotInSecond(
-            newWorkPool: Set<String>, currentWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
+        newWorkPool: Set<String>, currentWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
     ) {
         val workPoolsToAdd: MutableSet<String> = java.util.HashSet(newWorkPool)
         workPoolsToAdd.removeAll(currentWorkPool)
@@ -65,7 +65,7 @@ internal class AvailableWorkPoolSubTree(
     }
 
     private fun removeItemsContainedInFirstSetButNotInSecond(
-            currentWorkPool: Set<String>, newWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
+        currentWorkPool: Set<String>, newWorkPool: Set<String>, transaction: ZkTransaction, jobId: String
     ) {
         val workPoolsToDelete: MutableSet<String> = java.util.HashSet(currentWorkPool)
         workPoolsToDelete.removeAll(newWorkPool)

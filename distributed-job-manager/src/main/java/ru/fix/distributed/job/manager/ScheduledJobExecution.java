@@ -4,11 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.ProfiledCall;
 import ru.fix.aggregating.profiler.Profiler;
-import ru.fix.distributed.job.manager.model.JobDisableConfig;
-import ru.fix.dynamic.property.api.DynamicProperty;
+import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.zookeeper.lock.LockIdentity;
 import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
-import ru.fix.distributed.job.manager.model.JobDescriptor;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +31,6 @@ class ScheduledJobExecution implements Runnable {
     private final Profiler profiler;
     private final ZkPathsManager zkPathsManager;
     private final Lock lock = new ReentrantLock();
-    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
     ConcurrentHashMap.KeySetView<JobContext, Boolean> jobRuns = ConcurrentHashMap.newKeySet();
     private volatile ScheduledFuture<?> scheduledFuture;
     private volatile long lastShutdownTime;
@@ -44,7 +41,6 @@ class ScheduledJobExecution implements Runnable {
             Set<String> workShare,
             Profiler profiler,
             PersistentExpiringLockManager lockManager,
-            DynamicProperty<JobDisableConfig> jobDisableConfig,
             ZkPathsManager zkPathsManager
     ) {
         if (workShare.isEmpty()) {
@@ -56,16 +52,11 @@ class ScheduledJobExecution implements Runnable {
         this.workShare = workShare;
         this.profiler = profiler;
         this.lockManager = lockManager;
-        this.jobDisableConfig = jobDisableConfig;
         this.zkPathsManager = zkPathsManager;
     }
 
     @Override
     public void run() {
-        if (!jobDisableConfig.get().isJobShouldBeLaunched(job.getJobId().getId())) {
-            log.trace("Job {} wasn't launched due to jobDisableConfig", job.getJobId());
-            return;
-        }
 
         ProfiledCall jobLaunchProfiledCall = profiler.profiledCall(ProfilerMetrics.JOB(job.getJobId()));
 
@@ -91,7 +82,7 @@ class ScheduledJobExecution implements Runnable {
                  * Worker2 tries to acquire lock for jobA and fails because Worker1 still holds the lock.
                  */
                 if (!lockManager.tryAcquire(
-                        new LockIdentity(zkPathsManager.workItemLock(job.getJobId(), workItem), null),
+                        new LockIdentity(zkPathsManager.workItemLock(job.getJobId().getId(), workItem), null),
                         lockIdentity -> jobContext.shutdown())
                 ) {
                     log.info("Failed to tryAcquire work share '{}' for job '{}'. Job launching will rescheduled.",
@@ -113,7 +104,7 @@ class ScheduledJobExecution implements Runnable {
             jobRuns.remove(jobContext);
             try {
                 for (String workItem : workShare) {
-                    String workItemPath = zkPathsManager.workItemLock(job.getJobId(), workItem);
+                    String workItemPath = zkPathsManager.workItemLock(job.getJobId().getId(), workItem);
                     LockIdentity lockId = new LockIdentity(workItemPath, null);
                     if (lockManager.isLockManaged(lockId)) {
                         lockManager.release(lockId);

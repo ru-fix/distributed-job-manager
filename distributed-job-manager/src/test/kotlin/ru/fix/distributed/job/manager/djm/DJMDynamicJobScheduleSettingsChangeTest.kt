@@ -14,23 +14,26 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
     @Test
     fun `delayed Job should start immediately if implicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and implicit 1h initial delay
-        val jobWithBigDelayAndImplicitBigInitialDelay = object: DistributedJob {
+        val jobWithBigDelayAndImplicitBigInitialDelay = object : DistributedJob {
             val launched = AtomicBoolean()
             val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
 
             override val jobId = JobId("jobWithBigDelayAndImplicitBigInitialDelay")
             override fun getSchedule(): DynamicProperty<Schedule> = schedule
-            override fun run(context: DistributedJobContext) { launched.set(true) }
+            override fun run(context: DistributedJobContext) {
+                launched.set(true)
+            }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-        val djm = createDJM(jobWithBigDelayAndImplicitBigInitialDelay)
+        createDJM(jobWithBigDelayAndImplicitBigInitialDelay)
 
         // initial 1h delay continues still, job not started
         await().during(3, TimeUnit.SECONDS).until {
-            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == false
+            !jobWithBigDelayAndImplicitBigInitialDelay.launched.get()
         }
 
         // change schedule delay setting of the job with implicit start delay settings,
@@ -38,14 +41,14 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
         jobWithBigDelayAndImplicitBigInitialDelay.schedule.set(Schedule.withDelay(TimeUnit.SECONDS.toMillis(1L)))
 
         await().atMost(10, TimeUnit.SECONDS).until {
-            jobWithBigDelayAndImplicitBigInitialDelay.launched.get() == true
+            jobWithBigDelayAndImplicitBigInitialDelay.launched.get()
         }
     }
 
     @Test
     fun `delayed Job should start immediately if explicit initial delay changes from big to small`() {
         // initial setting - 1h delay, and explicit 1h initial delay
-        val jobWithExplicitBigInitialDelay = object: DistributedJob {
+        val jobWithExplicitBigInitialDelay = object : DistributedJob {
             val launched = AtomicBoolean()
             val schedule = AtomicProperty<Schedule>(Schedule.withDelay(TimeUnit.HOURS.toMillis(1)))
             val initialDelay = AtomicProperty<Long>(TimeUnit.HOURS.toMillis(1))
@@ -53,24 +56,27 @@ internal class DJMDynamicJobScheduleSettingsChangeTest : DJMTestSuite() {
             override val jobId = JobId("jobWithExplicitBigInitialDelay")
             override fun getSchedule(): DynamicProperty<Schedule> = schedule
             override fun getInitialJobDelay(): DynamicProperty<Long> = initialDelay
-            override fun run(context: DistributedJobContext) { launched.set(true) }
+            override fun run(context: DistributedJobContext) {
+                launched.set(true)
+            }
+
             override fun getWorkPool() = WorkPool.singleton()
             override fun getWorkPoolRunningStrategy() = WorkPoolRunningStrategies.getSingleThreadStrategy()
             override fun getWorkPoolCheckPeriod(): Long = 0
         }
 
-        val djm = createDJM(jobWithExplicitBigInitialDelay)
+        createDJM(jobWithExplicitBigInitialDelay)
 
         // initial 1h delay continues still, job not started
         await().during(3, TimeUnit.SECONDS).until {
-            jobWithExplicitBigInitialDelay.launched.get() == false
+            !jobWithExplicitBigInitialDelay.launched.get()
         }
 
         // change start delay setting, so the job should start immediately
         jobWithExplicitBigInitialDelay.initialDelay.set(0)
 
         await().atMost(10, TimeUnit.SECONDS).until {
-            jobWithExplicitBigInitialDelay.launched.get() == true
+            jobWithExplicitBigInitialDelay.launched.get()
         }
     }
 }

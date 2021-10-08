@@ -11,16 +11,14 @@ import kotlin.reflect.KProperty
 
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
         mavenLocal()
     }
     dependencies {
         classpath(Libs.gradle_release_plugin)
         classpath(Libs.dokka_gradle_plugin)
-        classpath(Libs.kotlin_stdlib)
-        classpath(Libs.kotlin_jdk8)
-        classpath(Libs.kotlin_reflect)
+        classpath(Libs.gradle_kotlin_stdlib)
+        classpath(Libs.gradle_kotlin_jdk8)
         classpath(Libs.asciidoctor)
     }
 }
@@ -39,11 +37,11 @@ plugins {
  */
 fun envConfig() = object : ReadOnlyProperty<Any?, String?> {
     override fun getValue(thisRef: Any?, property: KProperty<*>): String? =
-            if (ext.has(property.name)) {
-                ext[property.name] as? String
-            } else {
-                System.getenv(property.name)
-            }
+        if (ext.has(property.name)) {
+            ext[property.name] as? String
+        } else {
+            System.getenv(property.name)
+        }
 }
 
 val repositoryUser by envConfig()
@@ -89,13 +87,8 @@ subprojects {
         from("src/main/kotlin")
     }
 
-    val dokkaTask by tasks.creating(DokkaTask::class) {
-        outputFormat = "javadoc"
-        outputDirectory = "$buildDir/dokka"
-
-        //TODO: wait dokka support JDK11 - https://github.com/Kotlin/dokka/issues/428
-        //TODO: wait dokka fix https://github.com/Kotlin/dokka/issues/464
-        enabled = false
+    val dokkaTask = tasks.getByName<DokkaTask>("dokkaJavadoc") {
+        outputDirectory.set(buildDir.resolve("dokka"))
     }
 
     val dokkaJar by tasks.creating(Jar::class) {

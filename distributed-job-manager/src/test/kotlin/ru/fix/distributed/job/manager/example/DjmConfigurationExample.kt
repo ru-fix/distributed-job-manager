@@ -13,6 +13,7 @@ import ru.fix.distributed.job.manager.strategy.AssignmentStrategies
 import ru.fix.distributed.job.manager.strategy.AssignmentStrategy
 import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
+import java.time.Duration
 
 class RebillJob : DistributedJob {
     override val jobId = JobId("rebill-job")
@@ -67,10 +68,10 @@ class UssdJob : DistributedJob {
 private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Availability,
-            prevAssignment: AssignmentState,
-            currentAssignment: AssignmentState,
-            itemsToAssign: MutableSet<WorkItem>
+        availability: Availability,
+        prevAssignment: AssignmentState,
+        currentAssignment: AssignmentState,
+        itemsToAssign: MutableSet<WorkItem>
     ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
@@ -83,7 +84,7 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
                     currentAssignment.addWorkItem(workerFromPrevious, item)
                 } else {
                     val lessBusyWorker = currentAssignment
-                            .getLessBusyWorker(value)
+                        .getLessBusyWorker(value)
                     currentAssignment.addWorkItem(lessBusyWorker, item)
                 }
             }
@@ -95,10 +96,10 @@ private val ussdAssignmentStrategy = object : AbstractAssignmentStrategy() {
 private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
     override fun reassignAndBalance(
-            availability: Availability,
-            prevAssignment: AssignmentState,
-            currentAssignment: AssignmentState,
-            itemsToAssign: MutableSet<WorkItem>
+        availability: Availability,
+        prevAssignment: AssignmentState,
+        currentAssignment: AssignmentState,
+        itemsToAssign: MutableSet<WorkItem>
     ) {
         for ((key, value) in availability) {
             val itemsToAssignForJob = getWorkItemsByJob(key, itemsToAssign)
@@ -119,7 +120,7 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
                 }
 
                 val lessBusyWorker = currentAssignment
-                        .getLessBusyWorker(availableWorkers)
+                    .getLessBusyWorker(availableWorkers)
                 currentAssignment.addWorkItem(lessBusyWorker, item)
                 itemsToAssign.remove(item)
             }
@@ -129,49 +130,51 @@ private val smsAssignmentStrategy = object : AbstractAssignmentStrategy() {
 
 class CustomAssignmentStrategy : AssignmentStrategy {
     override fun reassignAndBalance(
-            availability: Availability,
-            prevAssignment: AssignmentState,
-            currentAssignment: AssignmentState,
-            itemsToAssign: MutableSet<WorkItem>
+        availability: Availability,
+        prevAssignment: AssignmentState,
+        currentAssignment: AssignmentState,
+        itemsToAssign: MutableSet<WorkItem>
     ) {
         ussdAssignmentStrategy.reassignAndBalance(
-                Availability.of(mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!)),
-                prevAssignment,
-                currentAssignment,
-                itemsToAssign
+            Availability.of(mutableMapOf(JobId("ussd-job") to availability[JobId("ussd-job")]!!)),
+            prevAssignment,
+            currentAssignment,
+            itemsToAssign
         )
         availability.remove(JobId("ussd-job"))
 
         smsAssignmentStrategy.reassignAndBalance(
-                Availability.of(mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!)),
-                prevAssignment,
-                currentAssignment,
-                itemsToAssign
+            Availability.of(mutableMapOf(JobId("sms-job") to availability[JobId("sms-job")]!!)),
+            prevAssignment,
+            currentAssignment,
+            itemsToAssign
         )
         availability.remove(JobId("sms-job"))
 
         // reassign items of other jobs using evenly rendezvous strategy
         AssignmentStrategies.EVENLY_RENDEZVOUS.reassignAndBalance(
-                availability,
-                prevAssignment,
-                currentAssignment,
-                itemsToAssign
+            availability,
+            prevAssignment,
+            currentAssignment,
+            itemsToAssign
         )
     }
 }
 
 fun main() {
     DistributedJobManager(
-            CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
-            "my-app-instance-1",
-            "zk/root/path",
-            CustomAssignmentStrategy(),
-            listOf(SmsJob(), UssdJob(), RebillJob()),
-            AggregatingProfiler(),
-            DynamicProperty.of(DistributedJobManagerSettings(
-                    timeToWaitTermination = 180_000L,
-                    workPoolCleanPeriod = 1_000L))
-
+        CuratorFrameworkFactory.newClient("list/of/servers", ExponentialBackoffRetry(1000, 10)),
+        "my-app-instance-1",
+        "zk/root/path",
+        CustomAssignmentStrategy(),
+        listOf(SmsJob(), UssdJob(), RebillJob()),
+        AggregatingProfiler(),
+        DynamicProperty.of(
+            DistributedJobManagerSettings(
+                timeToWaitTermination = Duration.ofMinutes(3),
+                workPoolCleanPeriod = Duration.ofHours(3)
+            )
+        )
     )
 }
 

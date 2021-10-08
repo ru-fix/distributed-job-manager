@@ -20,12 +20,12 @@ private const val CLEAN_WORK_POOL_RETRIES_COUNT = 1
  * Job is irrelevant if there are no worker that could run this job.
  * */
 internal class Cleaner(
-        profiler: Profiler,
-        private val paths: ZkPathsManager,
-        private val curatorFramework: CuratorFramework,
-        private val managerState: DynamicProperty<Manager.State>,
-        private val workPoolCleanPeriod: DynamicProperty<Long>,
-        private val aliveWorkersCache: CuratorCache
+    profiler: Profiler,
+    private val paths: ZkPathsManager,
+    private val curatorFramework: CuratorFramework,
+    private val managerState: DynamicProperty<Manager.State>,
+    private val workPoolCleanPeriod: DynamicProperty<Long>,
+    private val aliveWorkersCache: CuratorCache
 ) : AutoCloseable {
     private val scheduler = NamedExecutors.newSingleThreadScheduler("cleaning-task", profiler)
     private val workPoolSubTree = AvailableWorkPoolSubTree(curatorFramework, paths)
@@ -36,8 +36,8 @@ internal class Cleaner(
             try {
                 if (managerState.get() == Manager.State.IS_LEADER) {
                     ZkTransaction.tryCommit(
-                            curatorFramework,
-                            CLEAN_WORK_POOL_RETRIES_COUNT
+                        curatorFramework,
+                        CLEAN_WORK_POOL_RETRIES_COUNT
                     ) { transaction ->
                         cleanWorkPool(transaction)
                     }

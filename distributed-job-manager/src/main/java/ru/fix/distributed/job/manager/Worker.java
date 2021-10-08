@@ -391,7 +391,7 @@ class Worker implements AutoCloseable {
         scheduledJobManager.shutdown();
 
         // await all executors completion
-        long timeToWait = settings.get().getTimeToWaitTermination();
+        long timeToWait = settings.get().getTimeToWaitTermination().toMillis();
 
         long executorPoolTerminationTime = scheduledJobManager.awaitAndTerminate(timeToWait);
         timeToWait -= executorPoolTerminationTime;

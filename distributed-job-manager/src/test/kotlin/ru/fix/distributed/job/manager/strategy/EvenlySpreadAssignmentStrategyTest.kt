@@ -21,15 +21,15 @@ internal class EvenlySpreadAssignmentStrategyTest {
 
     private val workPool: JobScope.() -> Unit = {
         "job-0"(
-                "work-item-0",
-                "work-item-1",
-                "work-item-2"
+            "work-item-0",
+            "work-item-1",
+            "work-item-2"
         )
     }
     private val workPool1: JobScope.() -> Unit = {
         "job-3"(
-                "work-item-0",
-                "work-item-1"
+            "work-item-0",
+            "work-item-1"
         )
     }
 
@@ -122,24 +122,24 @@ internal class EvenlySpreadAssignmentStrategyTest {
     fun `reassign when new worker added and local work pools evenly reassigned, but not global`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
             )
             "job-1"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
             )
             "job-2"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
             )
             "job-3"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
             )
         }
         val available = assignmentState {
@@ -151,44 +151,44 @@ internal class EvenlySpreadAssignmentStrategyTest {
         val previous = assignmentState {
             "worker-0" {
                 "job-0"(
-                        "work-item-0"
+                    "work-item-0"
                 )
                 "job-1"(
-                        "work-item-0"
+                    "work-item-0"
                 )
                 "job-2"(
-                        "work-item-0"
+                    "work-item-0"
                 )
                 "job-3"(
-                        "work-item-0"
+                    "work-item-0"
                 )
             }
             "worker-1" {
                 "job-0"(
-                        "work-item-1"
+                    "work-item-1"
                 )
                 "job-1"(
-                        "work-item-1"
+                    "work-item-1"
                 )
                 "job-2"(
-                        "work-item-1"
+                    "work-item-1"
                 )
                 "job-3"(
-                        "work-item-1"
+                    "work-item-1"
                 )
             }
             "worker-2" {
                 "job-0"(
-                        "work-item-2"
+                    "work-item-2"
                 )
                 "job-1"(
-                        "work-item-2"
+                    "work-item-2"
                 )
                 "job-2"(
-                        "work-item-2"
+                    "work-item-2"
                 )
                 "job-3"(
-                        "work-item-2"
+                    "work-item-2"
                 )
             }
         }
@@ -201,22 +201,22 @@ internal class EvenlySpreadAssignmentStrategyTest {
     fun `iteratively start four workers and reboot one worker`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2",
-                    "work-item-3",
-                    "work-item-4",
-                    "work-item-5",
-                    "work-item-6"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2",
+                "work-item-3",
+                "work-item-4",
+                "work-item-5",
+                "work-item-6"
             )
             "job-1"(
-                    "work-item-0"
+                "work-item-0"
             )
             "job-2"(
-                    "work-item-0"
+                "work-item-0"
             )
             "job-3"(
-                    "work-item-0"
+                "work-item-0"
             )
         }
         var available = assignmentState {
@@ -275,27 +275,27 @@ internal class EvenlySpreadAssignmentStrategyTest {
     fun `iteratively start three workers and reboot two workers`() {
         val workPool: JobScope.() -> Unit = {
             "job-0"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2",
-                    "work-item-3",
-                    "work-item-4",
-                    "work-item-5",
-                    "work-item-6",
-                    "work-item-7",
-                    "work-item-8",
-                    "work-item-9"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2",
+                "work-item-3",
+                "work-item-4",
+                "work-item-5",
+                "work-item-6",
+                "work-item-7",
+                "work-item-8",
+                "work-item-9"
             )
             "job-1"(
-                    "work-item-0",
-                    "work-item-1",
-                    "work-item-2"
+                "work-item-0",
+                "work-item-1",
+                "work-item-2"
             )
             "job-2"(
-                    "work-item-0"
+                "work-item-0"
             )
             "job-3"(
-                    "work-item-0"
+                "work-item-0"
             )
         }
         var available = assignmentState {
@@ -356,22 +356,24 @@ internal class EvenlySpreadAssignmentStrategyTest {
     }
 
     private fun calculateNewAssignment(
-            available: AssignmentState, previous: AssignmentState
+        available: AssignmentState, previous: AssignmentState
     ): AssignmentState {
         val availability = generateAvailability(available)
         val itemsToAssign = generateItemsToAssign(available)
 
-        logger.info(Report(
+        logger.info(
+            Report(
                 availability,
                 itemsToAssign,
-                previous).toString()
+                previous
+            ).toString()
         )
         val newState = AssignmentState()
         evenlySpread.reassignAndBalance(
-                availability,
-                previous,
-                newState,
-                itemsToAssign
+            availability,
+            previous,
+            newState,
+            itemsToAssign
         )
         logger.info(Report(newAssignment = newState).toString())
         return newState

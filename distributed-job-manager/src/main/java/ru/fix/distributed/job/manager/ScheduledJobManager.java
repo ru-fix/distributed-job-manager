@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
-import ru.fix.distributed.job.manager.model.JobDisableConfig;
 import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
@@ -42,7 +41,6 @@ class ScheduledJobManager {
 
     private final AtomicBoolean isWorkerShutdown;
     private final DynamicProperty<Long> timeToWaitTermination;
-    private final DynamicProperty<JobDisableConfig> jobDisableConfig;
 
     private final AtomicProperty<Integer> threadPoolSize;
     private final ReschedulableScheduler jobReschedulableScheduler;
@@ -67,8 +65,7 @@ class ScheduledJobManager {
         this.profiler = profiler;
         this.paths = paths;
         this.isWorkerShutdown = isWorkerShutdown;
-        this.jobDisableConfig = settings.map(DistributedJobManagerSettings::getJobDisableConfig);
-        this.timeToWaitTermination = settings.map(DistributedJobManagerSettings::getTimeToWaitTermination);
+        this.timeToWaitTermination = settings.map(it -> it.getTimeToWaitTermination().toMillis());
         this.threadPoolSize = new AtomicProperty<>(1);
         this.jobReschedulableScheduler = new ReschedulableScheduler(
                 "job-scheduler",
@@ -180,7 +177,6 @@ class ScheduledJobManager {
                 new HashSet<>(workPoolToExecute),
                 profiler,
                 lockManager,
-                jobDisableConfig,
                 paths
         );
 

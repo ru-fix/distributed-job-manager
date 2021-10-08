@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
-<title>Source guidebook</title>
+<title>Assignment Strategies</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -434,42 +434,34 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="header">
 </div>
 <div id="content">
-<div class="sect1">
-<h2 id="_source_guidebook">Source guidebook</h2>
-<div class="sectionbody">
-<div class="quoteblock abstract">
-<blockquote>
-Implementation details
-</blockquote>
-</div>
 <div class="sect2">
-<h3 id="_generate_documentation">Generate documentation</h3>
+<h3 id="_assignment_strategies">Assignment Strategies</h3>
 <div class="paragraph">
-<p>Documentation source located at</p>
+<p>Number of active worker changes over time due to server reboot or crash.
+Jobs change number and composition of their work items.
+This events trigger DJM reassignment process.
+During reassignment DJM Manager uses an Assignment Strategy to decide to which worker particular work item will be assigned.<br>
+DJM provides several implementations for the most common cases of work item distribution among workers.
+You can implement custom AssigmentStrategy for your case and register it within DJM.</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>asciidoc/*</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Compiled documentation stored at</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>docs/*</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Compiled documentation stored in git and served as a static content.
-To compile documentation run</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>gradle asciidoctor</pre>
-</div>
-</div>
-</div>
+<div class="ulist">
+<ul>
+<li>
+<p>EvenlySpreadAssignmentStrategy<br>
+Intended for evenly distribution work items for each available job on all available workers.
+It sets up all the work item from the previous distribution and then makes balancing by moving the work item from the more loaded to the less loaded</p>
+</li>
+<li>
+<p>RendezvousHashAssignmentStrategy<br>
+It minimize job reassignment within living workers when new worker added or one of workers removed using
+<a href="https://github.com/clohfink/RendezvousHash">Rendezvous hash</a></p>
+</li>
+<li>
+<p>EvenlyRendezvousAssignmentStrategy<br>
+Modification of RendezvousHashAssignmentStrategy.
+It gets the worker with the maximum hash from the list of workers who are not yet filled</p>
+</li>
+</ul>
 </div>
 </div>
 </div>

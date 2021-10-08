@@ -12,7 +12,7 @@ class JobId(val id: String) {
     }
 
     override fun equals(other: Any?) =
-            this === other || this.id == (other as? JobId)?.id
+        this === other || this.id == (other as? JobId)?.id
 
     override fun hashCode() = Objects.hash(id)
 

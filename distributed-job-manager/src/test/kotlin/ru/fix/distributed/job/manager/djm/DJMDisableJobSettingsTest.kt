@@ -1,6 +1,8 @@
 package ru.fix.distributed.job.manager.djm
 
 import com.nhaarman.mockitokotlin2.*
+import io.kotest.matchers.shouldBe
+import io.mockk.*
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
 import ru.fix.distributed.job.manager.*
@@ -12,6 +14,7 @@ import ru.fix.dynamic.property.api.DynamicProperty
 import ru.fix.stdlib.concurrency.threads.Schedule
 import ru.fix.zookeeper.lock.PersistentExpiringLockManagerConfig
 import java.time.Duration
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
 
@@ -19,6 +22,8 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
 
     companion object {
         private val defaultJobRunTimeout = Duration.ofSeconds(2)
+        private val defaultJobRunTimeoutMs = defaultJobRunTimeout.toMillis()
+        private val defaultShutdownEventTimeoutMs = Duration.ofSeconds(1).toMillis()
     }
 
     open class FrequentJob(jobId: Int) : DistributedJob {
@@ -43,9 +48,9 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
 
         settingsEditor.setDisableAllJobProperty(true)
 
-        val djm = createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+        createDJM(
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
 
         await().pollDelay(defaultJobRunTimeout).untilAsserted {
@@ -75,9 +80,9 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
         val job2 = spy(FrequentJob(2))
         val settingsEditor = JobDisableConfigEditor()
         settingsEditor.disableConcreteJob(job1)
-        val djm = createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+        createDJM(
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
         await().atMost(defaultJobRunTimeout).untilAsserted {
             verify(job1, never()).run(any())
@@ -110,9 +115,9 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
             enableConcreteJob(job1)
             setDisableJobDefaultValue(false)
         }
-        val djm = createDJM(
-                jobs = listOf(job1, job2),
-                jobDisableConfig = settingsEditor.jobDisableConfig
+        createDJM(
+            jobs = listOf(job1, job2),
+            jobDisableConfig = settingsEditor.jobDisableConfig
         )
         await().pollDelay(defaultJobRunTimeout).untilAsserted {
             verify(job1, never()).run(any())
@@ -121,21 +126,65 @@ class DJMDisableJobSettingsTest : DJMTestSuite() {
 
     }
 
-    fun createDJM(jobs: List<DistributedJob>, jobDisableConfig: DynamicProperty<JobDisableConfig>) =
+    @Test
+    fun `WHEN job disabled THEN job's run context receives shutdown event`() {
+        val longRunningJob = spyk(FrequentJob(1))
+
+        val jobStopLatch = CountDownLatch(1)
+        try {
+            every {
+                longRunningJob.run(any())
+            }.answers {
+                jobStopLatch.await()
+            }
+
+            val settingsEditor = JobDisableConfigEditor()
             createDJM(
-                    jobs = jobs,
-                    settings = jobDisableConfig.map {
-                        DistributedJobManagerSettings(
-                                timeToWaitTermination = 10000,
-                                workPoolCleanPeriod = 1000,
-                                lockManagerConfig = PersistentExpiringLockManagerConfig(
-                                        lockAcquirePeriod = Duration.ofSeconds(15),
-                                        expirationPeriod = Duration.ofSeconds(5),
-                                        lockCheckAndProlongInterval = Duration.ofSeconds(5)
-                                ),
-                                jobDisableConfig = it)
-                    }
+                jobs = listOf(longRunningJob),
+                jobDisableConfig = settingsEditor.jobDisableConfig
             )
+
+            val captor = slot<DistributedJobContext>()
+            verify(timeout = defaultJobRunTimeoutMs, exactly = 1) {
+                longRunningJob.run(capture(captor))
+            }
+            val capturedContext = captor.captured
+
+            val shutdownListener: ShutdownListener = mockk()
+            capturedContext.addShutdownListener(shutdownListener)
+
+            verify(timeout = defaultShutdownEventTimeoutMs, exactly = 1, inverse = true) {
+                shutdownListener.onShutdown()
+            }
+            capturedContext.isNeedToShutdown shouldBe false
+
+            settingsEditor.setDisableAllJobProperty(true)
+
+            verify(timeout = defaultShutdownEventTimeoutMs, exactly = 1, inverse = false) {
+                shutdownListener.onShutdown()
+            }
+            capturedContext.isNeedToShutdown shouldBe true
+        } finally {
+            jobStopLatch.countDown()
+        }
+    }
+
+    fun createDJM(jobs: List<DistributedJob>, jobDisableConfig: DynamicProperty<JobDisableConfig>) =
+        createDJM(
+            jobs = jobs,
+            settings = jobDisableConfig.map {
+                DistributedJobManagerSettings(
+                    timeToWaitTermination = Duration.ofSeconds(10),
+                    workPoolCleanPeriod = Duration.ofSeconds(1),
+                    lockManagerConfig = PersistentExpiringLockManagerConfig(
+                        lockAcquirePeriod = Duration.ofSeconds(15),
+                        expirationPeriod = Duration.ofSeconds(5),
+                        lockCheckAndProlongInterval = Duration.ofSeconds(5)
+                    ),
+                    jobDisableConfig = it
+                )
+            }
+        )
 
 
 }

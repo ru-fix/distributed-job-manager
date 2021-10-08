@@ -1,24 +1,26 @@
 object Vers {
     //Plugins
-    const val dokkav = "0.10.1"
-    const val gradle_release_plugin = "1.3.17"
+    const val dokkav = "1.4.30"
+    const val gradle_release_plugin = "1.4.3"
     const val asciidoctor = "1.6.0"
 
     //Dependencies
-    const val kotlin = "1.3.72"
+    const val kotlin = "1.5.31"
+    const val gradle_kotlin = "1.5.21"
+    const val kotlin_coroutines = "1.3.8"
 
     const val slf4j = "1.7.30"
 
     const val aggregating_profiler = "1.6.6"
-    const val jfix_zookeeper = "1.1.7"
-    const val jfix_stdlib = "3.0.12"
+    const val jfix_zookeeper = "1.2.2"
+    const val jfix_stdlib = "3.0.14"
     const val jfix_dynamic_property = "2.0.7"
 
     const val validation_api = "2.0.1.Final"
     const val curator = "5.0.0"
 
     const val junit = "5.6.2"
-    const val mockito = "3.3.3"
+    const val mockk = "1.10.5"
     const val mockito_kotlin = "2.2.0"
     const val awaitility = "4.0.3"
 
@@ -39,11 +41,14 @@ object Libs {
     const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Vers.kotlin}"
     const val kotlin_jdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Vers.kotlin}"
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Vers.kotlin}"
+    const val kotlinx_coroutines_core = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Vers.kotlin_coroutines}"
+
+    const val gradle_kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Vers.gradle_kotlin}"
+    const val gradle_kotlin_jdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Vers.gradle_kotlin}"
 
     // JFIX
     const val aggregating_profiler = "ru.fix:aggregating-profiler:${Vers.aggregating_profiler}"
     const val jfix_zookeeper = "ru.fix:jfix-zookeeper:${Vers.jfix_zookeeper}"
-    const val jfix_zookeeper_test = "ru.fix:jfix-zookeeper-test:${Vers.jfix_zookeeper}"
     const val jfix_concurrency = "ru.fix:jfix-stdlib-concurrency:${Vers.jfix_stdlib}"
     const val jfix_dynamic_property_api = "ru.fix:dynamic-property-api:${Vers.jfix_dynamic_property}"
 
@@ -57,14 +62,12 @@ object Libs {
     const val slf4j_over_log4j = "org.apache.logging.log4j:log4j-slf4j-impl:${Vers.log4j}"
 
     // JFIX Test
-    const val jfix_socket = "ru.fix:jfix-stdlib-socket:${Vers.jfix_stdlib}"
+    const val jfix_zookeeper_test = "ru.fix:jfix-zookeeper-test:${Vers.jfix_zookeeper}"
 
     // Test
-    const val junit_jupiter_api = "org.junit.jupiter:junit-jupiter-api:${Vers.junit}"
-    const val junit_jupiter = "org.junit.jupiter:junit-jupiter-engine:${Vers.junit}"
-    const val junit_jupiter_params = "org.junit.jupiter:junit-jupiter-params:${Vers.junit}"
+    const val junit_jupiter = "org.junit.jupiter:junit-jupiter:${Vers.junit}"
     const val curator_test = "org.apache.curator:curator-test:${Vers.curator}"
-    const val mockito = "org.mockito:mockito-core:${Vers.mockito}"
+    const val mockk = "io.mockk:mockk:${Vers.mockk}"
     const val mockito_kotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:${Vers.mockito_kotlin}"
     const val awaitility = "org.awaitility:awaitility:${Vers.awaitility}"
     const val kotest_assertions = "io.kotest:kotest-assertions-core:4.1.1"
