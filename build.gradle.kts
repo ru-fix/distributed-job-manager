@@ -13,6 +13,9 @@ buildscript {
     repositories {
         jcenter()
         mavenCentral()
+        maven {
+            url = uri("http://artifactory.vasp/artifactory/ru-fix-repo/")
+        }
         mavenLocal()
     }
     dependencies {
