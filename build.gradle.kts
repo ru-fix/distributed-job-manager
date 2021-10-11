@@ -13,9 +13,6 @@ buildscript {
     repositories {
         jcenter()
         mavenCentral()
-        maven {
-            url = uri("http://artifactory.vasp/artifactory/ru-fix-repo/")
-        }
         mavenLocal()
     }
     dependencies {
@@ -84,6 +81,7 @@ subprojects {
         jcenter()
         mavenCentral()
         mavenLocal()
+        maven(url = "http://artifactory.vasp/artifactory/libs-release/")
     }
 
     val sourcesJar by tasks.creating(Jar::class) {
