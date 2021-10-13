@@ -1,6 +1,5 @@
 package ru.fix.distributed.job.manager;
 
-import com.google.common.collect.Lists;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
@@ -13,17 +12,18 @@ import ru.fix.aggregating.profiler.Profiler;
 import ru.fix.distributed.job.manager.model.DistributedJobManagerSettings;
 import ru.fix.distributed.job.manager.model.JobDescriptor;
 import ru.fix.distributed.job.manager.util.WorkPoolUtils;
-import ru.fix.dynamic.property.api.AtomicProperty;
 import ru.fix.dynamic.property.api.DynamicProperty;
 import ru.fix.stdlib.concurrency.threads.NamedExecutors;
 import ru.fix.stdlib.concurrency.threads.ReschedulableScheduler;
 import ru.fix.stdlib.concurrency.threads.Schedule;
-import ru.fix.zookeeper.lock.PersistentExpiringLockManager;
 import ru.fix.zookeeper.transactional.ZkTransaction;
 import ru.fix.zookeeper.utils.ZkTreePrinter;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -42,21 +42,14 @@ class Worker implements AutoCloseable {
     private final CuratorFramework curatorFramework;
 
     private final Collection<JobDescriptor> availableJobs;
-    private final ScheduledJobManager scheduledJobManager = new ScheduledJobManager();
+    private final ScheduledJobManager scheduledJobManager;
 
     private final ZkPathsManager paths;
     private final String workerId;
     private final AvailableWorkPoolSubTree workPoolSubTree;
-    private final ReschedulableScheduler jobReschedulableScheduler;
     private final ExecutorService assignmentUpdatesExecutor;
     private final ReschedulableScheduler checkWorkPoolScheduler;
-    private final Profiler profiler;
     private final DynamicProperty<DistributedJobManagerSettings> settings;
-    /**
-     * Acquires locks for job for workItems, prolongs them and releases
-     */
-    private final PersistentExpiringLockManager lockManager;
-    private final AtomicProperty<Integer> threadPoolSize;
     private volatile CuratorCache workPooledCache;
     private volatile boolean isWorkerShutdown = false;
 
@@ -77,7 +70,6 @@ class Worker implements AutoCloseable {
         }
 
         this.availableJobs = jobs;
-        this.profiler = profiler;
 
         this.workPoolSubTree = new AvailableWorkPoolSubTree(curatorFramework, paths);
 
@@ -91,18 +83,14 @@ class Worker implements AutoCloseable {
                 profiler
         );
 
-        this.threadPoolSize = new AtomicProperty<>(1);
-
-        this.jobReschedulableScheduler = new ReschedulableScheduler(
-                "job-scheduler",
-                threadPoolSize,
-                profiler);
-
-        this.lockManager = new PersistentExpiringLockManager(
+        this.scheduledJobManager = new ScheduledJobManager(
                 curatorFramework,
-                settings.map(DistributedJobManagerSettings::getLockManagerConfig),
-                profiler
+                paths,
+                profiler,
+                workerId,
+                settings
         );
+
     }
 
     private void assertAllJobsHasUniqueJobId(Collection<JobDescriptor> jobs) {
@@ -115,14 +103,6 @@ class Worker implements AutoCloseable {
                             jobs.stream()
                                     .map(job -> job.getJobId().getId())
                                     .collect(Collectors.joining()));
-    }
-
-    private static Map<JobDescriptor, Integer> getThreadCounts(
-            Map<JobDescriptor, Set<String>> assignedWorkPools) {
-        return assignedWorkPools.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        o -> o.getKey().getWorkPoolRunningStrategy().getThreadCount(o.getValue()))
-                );
     }
 
     /**
@@ -345,13 +325,6 @@ class Worker implements AutoCloseable {
         }
     }
 
-    private void reconfigureExecutors(Map<JobDescriptor, Integer> workPooledMultiJobThreadCounts) {
-        int threadsCount = workPooledMultiJobThreadCounts.values().stream().mapToInt(v -> v).sum();
-        threadsCount = Math.max(threadsCount, 1);
-        log.trace("Pool size now is {}", threadsCount);
-        threadPoolSize.set(threadsCount);
-    }
-
     private void onWorkPooledJobReassigned() throws Exception {
         log.trace("Invoke Worker#onWorkPooledJobReassigned() in {} worker", workerId);
 
@@ -362,90 +335,7 @@ class Worker implements AutoCloseable {
         // get new assignment
         Map<JobDescriptor, Set<String>> newAssignments = getAssignedWorkPools(availableJobs);
 
-        // configure executors
-        Map<JobDescriptor, Integer> threadCounts = getThreadCounts(newAssignments);
-        reconfigureExecutors(threadCounts);
-
-        // stop already running jobs which changed their states
-        scheduledJobManager.removeIf(scheduledEntry -> {
-            JobDescriptor multiJob = scheduledEntry.getKey();
-            List<ScheduledJobExecution> jobExecutions = scheduledEntry.getValue();
-
-            // stop job work pools if they are not equal
-            Set<String> newWorkPool = newAssignments.get(multiJob);
-            Set<String> runningWorkPools = jobExecutions.stream()
-                    .map(ScheduledJobExecution::getWorkShare)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toSet());
-            if (!runningWorkPools.equals(newWorkPool)) {
-                log.info("wid={} onWorkPooledJobReassigned reassigned jobId={} from {} to {}",
-                        workerId,
-                        multiJob.getJobId(),
-                        runningWorkPools,
-                        newWorkPool);
-                safelyTerminateJobs(jobExecutions);
-                //remove current entry from scheduledJobs
-                return true;
-            } else {
-                jobExecutions.forEach(scheduledJobExecution -> {
-                    if (scheduledJobExecution.isShutdowned()) {
-                        log.error("wid={} onWorkPooledJobReassigned jobId={} is down! Work share {}",
-                                workerId,
-                                multiJob.getJobId(),
-                                scheduledJobExecution.getWorkShare());
-                    }
-                });
-            }
-            return false;
-        });
-
-        // start required jobs
-        for (Map.Entry<JobDescriptor, Set<String>> newAssignment : newAssignments.entrySet()) {
-            JobDescriptor newMultiJob = newAssignment.getKey();
-            List<String> newWorkPool = new ArrayList<>(newAssignment.getValue());
-            if (scheduledJobManager.getScheduledJobExecutions(newMultiJob) == null && !newWorkPool.isEmpty()) {
-                int threadCount = threadCounts.get(newMultiJob);
-                int groupsSize = newWorkPool.size() / threadCount;
-
-                for (List<String> workPoolToExecute : Lists.partition(newWorkPool, groupsSize)) {
-                    scheduleExecutingWorkPoolForJob(workPoolToExecute, newMultiJob);
-                }
-            }
-        }
-    }
-
-    private void scheduleExecutingWorkPoolForJob(List<String> workPoolToExecute, JobDescriptor newMultiJob) {
-        DynamicProperty<Long> initialJobDelay = newMultiJob.getInitialJobDelay();
-        long initialJobDelayVal = initialJobDelay.get();
-        log.info("wid={} onWorkPooledJobReassigned start jobId={} with {} and delay={}",
-                workerId,
-                newMultiJob.getJobId(),
-                workPoolToExecute,
-                initialJobDelayVal);
-        ScheduledJobExecution jobExecutionWrapper = new ScheduledJobExecution(
-                newMultiJob,
-                new HashSet<>(workPoolToExecute),
-                profiler,
-                lockManager,
-                paths
-        );
-
-        if (!isWorkerShutdown) {
-            ScheduledFuture<?> scheduledFuture =
-                    jobReschedulableScheduler.schedule(
-                            newMultiJob.getSchedule(),
-                            initialJobDelay,
-                            jobExecutionWrapper);
-            jobExecutionWrapper.setScheduledFuture(scheduledFuture);
-            scheduledJobManager.add(newMultiJob, jobExecutionWrapper);
-
-            log.debug("Future {} with hash={} scheduled for jobId={} with {} and delay={}",
-                    scheduledFuture, System.identityHashCode(scheduledFuture),
-                    newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
-        } else {
-            log.warn("Cannot schedule wid={} jobId={} with {} and delay={}. Worker is in shutdown state",
-                    workerId, newMultiJob.getJobId(), workPoolToExecute, initialJobDelayVal);
-        }
+        scheduledJobManager.restartJobsAccordingToNewAssignments(newAssignments);
     }
 
     private Map<JobDescriptor, Set<String>> getAssignedWorkPools(
@@ -464,29 +354,6 @@ class Worker implements AutoCloseable {
         } catch (KeeperException.NoNodeException e) {
             log.trace("Received event when NoNode for work pool path {}", e, e);
             return Collections.emptyList();
-        }
-    }
-
-    public void safelyTerminateJobs(Collection<ScheduledJobExecution> jobExecutions) {
-        jobExecutions.forEach(ScheduledJobExecution::shutdown);
-
-        long totalTime = settings.get().getTimeToWaitTermination().toMillis();
-        long startTime = System.currentTimeMillis();
-        for (ScheduledJobExecution jobExecutionWrapper : jobExecutions) {
-            log.info("wid={} safelyTerminateJobs shutdown {}",
-                    workerId,
-                    jobExecutionWrapper.getJobId());
-            try {
-                long spend = System.currentTimeMillis() - startTime;
-                if (!jobExecutionWrapper.awaitTermination(Math.max(0, totalTime - spend), TimeUnit.MILLISECONDS)) {
-                    log.error("Job {} is not completed in {} ms after request to shutdown",
-                            jobExecutionWrapper.getJobId(),
-                            System.currentTimeMillis() - startTime);
-                }
-            } catch (InterruptedException exc) {
-                log.error("Interrupted job execution {}", jobExecutionWrapper.getJobId(), exc);
-                Thread.currentThread().interrupt();
-            }
         }
     }
 
@@ -519,12 +386,12 @@ class Worker implements AutoCloseable {
         shutdownAllJobExecutions();
 
         // shutdown jobs executor
-        jobReschedulableScheduler.shutdown();
+        scheduledJobManager.shutdown();
 
         // await all executors completion
         long timeToWait = settings.get().getTimeToWaitTermination().toMillis();
 
-        long executorPoolTerminationTime = awaitAndTerminate(jobReschedulableScheduler, timeToWait);
+        long executorPoolTerminationTime = scheduledJobManager.awaitAndTerminate(timeToWait);
         timeToWait -= executorPoolTerminationTime;
         log.info("Job executor pool is terminated. Awaiting time: {} ms.", executorPoolTerminationTime);
 
@@ -547,9 +414,6 @@ class Worker implements AutoCloseable {
         } catch (Exception e) {
             log.warn("Alive node was already terminated", e);
         }
-
-        lockManager.close();
-
 
     }
 
