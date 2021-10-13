@@ -15,7 +15,7 @@ public final class WorkPoolRunningStrategies {
 
     @NotNull
     public static WorkPoolRunningStrategy getSingleThreadStrategy() {
-        return localWorkPool -> 1;
+        return localWorkPool -> localWorkPool.isEmpty()? 0 : 1;
     }
 
 
